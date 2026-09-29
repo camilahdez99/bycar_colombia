@@ -49,6 +49,38 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllEnvs());
 
+// Cada handler de usuario debe estar clasificado: si se agrega uno nuevo, este test obliga a decidir su regla
+const COBERTURA = {
+  'GET /api/viajes': 'sin IDs de recurso: búsqueda de viajes disponibles',
+  'POST /api/viajes': 'usuarioId del body = sesión',
+  'GET /api/viajes/mis-rutas': 'usuarioId de la query = sesión',
+  'POST /api/solicitudes': 'usuarioId del body = sesión',
+  'PUT /api/solicitudes': 'conductor acepta/rechaza, pasajero cancela',
+  'GET /api/solicitudes/recibidas': 'usuarioId de la query = sesión',
+  'GET /api/mensajes': 'participante del chat',
+  'POST /api/mensajes': 'senderId = sesión y participante del chat',
+  'GET /api/mensajes/chats': 'usuarioId de la query = sesión',
+  'GET /api/guardian': 'usuarioId = sesión, o email = correo de la sesión',
+  'POST /api/guardian': 'participante del viaje',
+  'PUT /api/guardian': 'participante del viaje del guardián',
+};
+
+test('todos los handlers de usuario tienen una regla de pertenencia definida', () => {
+  const modulos = {
+    '/api/viajes': viajes,
+    '/api/viajes/mis-rutas': misRutas,
+    '/api/solicitudes': solicitudes,
+    '/api/solicitudes/recibidas': recibidas,
+    '/api/mensajes': mensajes,
+    '/api/mensajes/chats': chats,
+    '/api/guardian': guardian,
+  };
+  const exportados = Object.entries(modulos).flatMap(([ruta, modulo]) =>
+    ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].filter((m) => modulo[m]).map((m) => `${m} ${ruta}`),
+  );
+  expect(exportados.sort()).toEqual(Object.keys(COBERTURA).sort());
+});
+
 describe('Fase A: usuarioId en la query', () => {
   describe.each([
     ['GET /api/viajes/mis-rutas', misRutas.GET, '/api/viajes/mis-rutas'],
