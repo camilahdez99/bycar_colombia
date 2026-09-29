@@ -1,0 +1,77 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`findSolicitudParticipants > devuelve pasajero y conductor; fija el SQL 1`] = `
+[
+  {
+    "binds": {
+      "solicitudId": 55,
+    },
+    "options": undefined,
+    "sql": "
+    SELECT s.USUARIOS_ID_USU AS "passengerId", v.USUARIOS_ID_USU AS "driverId"
+    FROM SOLICITUDES s
+    JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
+    WHERE s.ID_SOL = :solicitudId
+  ",
+  },
+]
+`;
+
+exports[`findUserEmail > devuelve el correo; fija el SQL 1`] = `
+[
+  {
+    "binds": {
+      "userId": 7,
+    },
+    "options": undefined,
+    "sql": "SELECT CORREO_USU AS "correo" FROM USUARIOS WHERE ID_USU = :userId",
+  },
+]
+`;
+
+exports[`isGuardianParticipant > total > 0 → true; fija SQL y binds numéricos 1`] = `
+[
+  {
+    "binds": {
+      "aceptada": 2,
+      "guardianId": 5,
+      "userId": 7,
+    },
+    "options": undefined,
+    "sql": "
+    SELECT COUNT(*) AS "total"
+    FROM GUARDIANES g
+    JOIN VIAJES v ON g.VIAJES_ID_VIA = v.ID_VIA
+    WHERE g.ID_GUA = :guardianId
+      AND (v.USUARIOS_ID_USU = :userId
+           OR EXISTS (SELECT 1 FROM SOLICITUDES s
+                      WHERE s.VIAJES_ID_VIA = v.ID_VIA
+                        AND s.USUARIOS_ID_USU = :userId
+                        AND s.ESTADO_ID_EST = :aceptada))
+  ",
+  },
+]
+`;
+
+exports[`isViajeParticipant > total > 0 → true; fija SQL y binds numéricos 1`] = `
+[
+  {
+    "binds": {
+      "aceptada": 2,
+      "userId": 7,
+      "viajeId": 5,
+    },
+    "options": undefined,
+    "sql": "
+    SELECT COUNT(*) AS "total"
+    FROM VIAJES v
+    WHERE v.ID_VIA = :viajeId
+      AND (v.USUARIOS_ID_USU = :userId
+           OR EXISTS (SELECT 1 FROM SOLICITUDES s
+                      WHERE s.VIAJES_ID_VIA = v.ID_VIA
+                        AND s.USUARIOS_ID_USU = :userId
+                        AND s.ESTADO_ID_EST = :aceptada))
+  ",
+  },
+]
+`;
