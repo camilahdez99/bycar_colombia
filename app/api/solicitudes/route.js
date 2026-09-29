@@ -1,7 +1,19 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
-import { requireSelf } from '@/lib/auth/ownership';
+import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
+import { findSolicitudParticipants } from '@/lib/auth/ownershipQueries';
+
+// Quién puede llevar una solicitud a cada estado (1 = Pendiente no se asigna por API)
+const ESTADOS_DEL_CONDUCTOR = [2, 3]; // Aceptada, Rechazada
+const ESTADOS_DEL_PASAJERO = [4]; // Cancelada
+
+function canChangeSolicitud(userId, estadoId, participants) {
+  if (!participants) return false;
+  if (ESTADOS_DEL_CONDUCTOR.includes(estadoId)) return sameUser(userId, participants.driverId);
+  if (ESTADOS_DEL_PASAJERO.includes(estadoId)) return sameUser(userId, participants.passengerId);
+  return false;
+}
 
 export async function POST(req) {
   const denied = await authorize(req);
@@ -71,6 +83,11 @@ export async function PUT(req) {
     if (!estadoId) {
       return NextResponse.json({ error: `Estado desconocido: ${estado}` }, { status: 400 });
     }
+
+    const notAllowed = await checkOwnership(req, async (userId) =>
+      canChangeSolicitud(userId, Number(estadoId), await findSolicitudParticipants(connection, solicitudId))
+    );
+    if (notAllowed) return notAllowed;
 
     const sql = `UPDATE SOLICITUDES SET ESTADO_ID_EST = :estadoId WHERE ID_SOL = :solicitudId`;
     const result = await connection.execute(

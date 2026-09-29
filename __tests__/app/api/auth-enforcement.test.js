@@ -102,9 +102,10 @@ describe('AUTH_ENFORCED=true', () => {
     expect([401, 403]).not.toContain(status);
   });
 
-  test.each(RUTAS_USUARIO)('%s con sesión de usuario → pasa el guard', async (_nombre, handler, method, ruta) => {
+  // En rutas de usuario un 403 solo puede venir de la pertenencia del recurso, que se prueba en idor.test.js
+  test.each(RUTAS_USUARIO)('%s con sesión de usuario → pasa la autenticación', async (_nombre, handler, method, ruta) => {
     const { status } = await handler(await request(method, ruta, { session: USUARIO }));
-    expect([401, 403]).not.toContain(status);
+    expect(status).not.toBe(401);
   });
 
   test.each(RUTAS_PUBLICAS)('%s es público: responde sin sesión', async (_nombre, handler, method, ruta) => {

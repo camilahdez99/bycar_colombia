@@ -109,6 +109,102 @@ describe('Fase A: usuarioId en el body', () => {
   });
 });
 
+describe('Fase B: PUT /api/solicitudes (conductor acepta/rechaza, pasajero cancela)', () => {
+  const participantes = (passengerId, driverId) => ({ rows: [{ passengerId, driverId }] });
+  const put = (solicitudId, estado, session) =>
+    call(solicitudes.PUT, 'PUT', '/api/solicitudes', { body: { solicitudId, estado }, session });
+
+  test.each([
+    ['conductor acepta', 'Aceptado', OTRO, YO],
+    ['conductor rechaza', 'Rechazada', OTRO, YO],
+    ['conductor acepta con ID numérico', 2, OTRO, YO],
+    ['pasajero cancela', 'Cancelada', YO, CONDUCTOR],
+  ])('%s → 200', async (_caso, estado, passengerId, driverId) => {
+    useConnection([participantes(passengerId, driverId), { rowsAffected: 1 }]);
+    expect((await put(55, estado)).status).toBe(200);
+    expect(writes()).toHaveLength(1);
+  });
+
+  test.each([
+    ['pasajero se acepta a sí mismo', 'Aceptado', YO, CONDUCTOR],
+    ['pasajero rechaza', 'Rechazado', YO, CONDUCTOR],
+    ['conductor cancela por el pasajero', 'Cancelado', OTRO, YO],
+    ['tercero acepta', 'Aceptado', OTRO, CONDUCTOR],
+    ['conductor vuelve a Pendiente', 'Pendiente', OTRO, YO],
+    ['estado fuera de catálogo', 99, OTRO, YO],
+  ])('%s → 403 sin escribir', async (_caso, estado, passengerId, driverId) => {
+    useConnection([participantes(passengerId, driverId)]);
+    await expect403(await put(55, estado));
+    expect(writes()).toEqual([]);
+  });
+
+  test('solicitud inexistente → 403 sin escribir', async () => {
+    useConnection([{ rows: [] }]);
+    await expect403(await put(404, 'Aceptado'));
+    expect(writes()).toEqual([]);
+  });
+
+  test('admin → actualiza sin consultar pertenencia', async () => {
+    useConnection([{ rowsAffected: 1 }]);
+    expect((await put(55, 'Pendiente', { userId: null, role: ROLES.ADMIN })).status).toBe(200);
+    expect(conn.execute).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Fase B: guardian', () => {
+  const participa = (si) => ({ rows: [{ total: si ? 1 : 0 }] });
+
+  test('POST en un viaje propio → 201', async () => {
+    useConnection([participa(true), { rows: [{ ID_USU: 3 }] }, { rowsAffected: 1 }]);
+    const { status } = await call(guardian.POST, 'POST', '/api/guardian', {
+      body: { viajeId: 5, email: 'contacto@x.co', tiempo: 30 },
+    });
+    expect(status).toBe(201);
+    expect(conn.calls[0].binds).toEqual({ viajeId: 5, userId: YO, aceptada: 2 });
+  });
+
+  test('POST en un viaje ajeno → 403 sin escribir', async () => {
+    useConnection([participa(false)]);
+    await expect403(
+      await call(guardian.POST, 'POST', '/api/guardian', { body: { viajeId: 5, email: 'contacto@x.co' } }),
+    );
+    expect(conn.execute).toHaveBeenCalledOnce();
+    expect(writes()).toEqual([]);
+  });
+
+  test.each([
+    ['estado', { estado: 'Inactivo' }],
+    ['extraTiempo', { extraTiempo: 15 }],
+  ])('PUT (%s) de un guardián propio → 200', async (_caso, cambios) => {
+    useConnection([participa(true), { rowsAffected: 1 }]);
+    expect((await call(guardian.PUT, 'PUT', '/api/guardian', { body: { id: 77, ...cambios } })).status).toBe(200);
+    expect(conn.calls[0].binds).toEqual({ guardianId: 77, userId: YO, aceptada: 2 });
+    expect(writes()).toHaveLength(1);
+  });
+
+  test.each([
+    ['guardián ajeno', { id: 77, estado: 'Alerta' }],
+    ['sin id', { estado: 'Alerta' }],
+  ])('PUT con %s → 403 sin escribir', async (_caso, body) => {
+    useConnection([participa(false)]);
+    await expect403(await call(guardian.PUT, 'PUT', '/api/guardian', { body }));
+    expect(writes()).toEqual([]);
+  });
+
+  test('GET ?email con el correo propio (sin distinguir mayúsculas) → 200', async () => {
+    useConnection([{ rows: [{ correo: 'ana@x.co' }] }, { rows: [] }]);
+    const { status } = await call(guardian.GET, 'GET', '/api/guardian', { query: { email: 'ANA@x.co' } });
+    expect(status).toBe(200);
+    expect(conn.execute).toHaveBeenCalledTimes(2);
+  });
+
+  test('GET ?email con un correo ajeno → 403 sin leer alertas', async () => {
+    useConnection([{ rows: [{ correo: 'ana@x.co' }] }]);
+    await expect403(await call(guardian.GET, 'GET', '/api/guardian', { query: { email: 'otro@x.co' } }));
+    expect(conn.execute).toHaveBeenCalledOnce();
+  });
+});
+
 describe('Fase A: mensajes', () => {
   const chatDe = (passengerId, driverId) => ({ rows: [{ passengerId, driverId }] });
 

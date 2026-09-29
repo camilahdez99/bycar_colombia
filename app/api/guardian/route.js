@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
-import { requireSelf } from '@/lib/auth/ownership';
+import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
+import { findUserEmail, isGuardianParticipant, isViajeParticipant } from '@/lib/auth/ownershipQueries';
+
+// El correo del contacto de confianza se compara igual que en la query: sin distinguir mayúsculas
+const sameEmail = (a, b) => a !== null && b !== null && String(a).toUpperCase() === String(b).toUpperCase();
 
 export async function GET(req) {
   const denied = await authorize(req);
@@ -17,6 +21,11 @@ export async function GET(req) {
     connection = await getConnection();
 
     if (email) {
+      const notOwner = await checkOwnership(req, async (userId) =>
+        sameEmail(await findUserEmail(connection, userId), email)
+      );
+      if (notOwner) return notOwner;
+
       // Buscar alertas para este guardián
       const sql = `
         SELECT g.ID_GUA as "id", 
@@ -105,7 +114,10 @@ export async function POST(req) {
     }
 
     connection = await getConnection();
-    
+
+    const notParticipant = await checkOwnership(req, (userId) => isViajeParticipant(connection, viajeId, userId));
+    if (notParticipant) return notParticipant;
+
     // Validar que el correo del contacto exista en la plataforma (insensible a mayúsculas)
     const checkUserSql = `SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)`;
     const userRes = await connection.execute(checkUserSql, { email }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
@@ -147,6 +159,9 @@ export async function PUT(req) {
     const { id, estado, extraTiempo } = await req.json();
 
     connection = await getConnection();
+
+    const notParticipant = await checkOwnership(req, (userId) => isGuardianParticipant(connection, id, userId));
+    if (notParticipant) return notParticipant;
 
     if (extraTiempo !== undefined) {
       const sql = `UPDATE GUARDIANES SET TIEMPO_ESTIMADO_GUA = TIEMPO_ESTIMADO_GUA + :extraTiempo WHERE ID_GUA = :id`;
