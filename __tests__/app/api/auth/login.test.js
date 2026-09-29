@@ -1,7 +1,8 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getConnection } from '@/lib/db';
 import { POST } from '@/app/api/auth/login/route';
+import { SESSION_COOKIE, decodeSession } from '@/lib/auth/session';
 import { createFakeConnection, makeRequest, readResponse, silenceConsole } from '../../../helpers/api';
 
 vi.mock('@/lib/db', () => ({ getConnection: vi.fn() }));
@@ -59,6 +60,49 @@ describe('POST /api/auth/login (caracterización)', () => {
       body: { error: 'Credenciales incorrectas' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
+  });
+
+  describe('cookie de sesión', () => {
+    const SECRET = 's'.repeat(32);
+    const sessionFrom = (response) => decodeSession(response.cookies.get(SESSION_COOKIE)?.value);
+
+    afterEach(() => vi.unstubAllEnvs());
+
+    test('sin SESSION_SECRET no emite cookie (comportamiento previo intacto)', async () => {
+      vi.stubEnv('SESSION_SECRET', '');
+      const response = await post({ correo: 'admin@bycar.co', contrasena: 'admin' });
+      expect(response.status).toBe(200);
+      expect(response.cookies.get(SESSION_COOKIE)).toBeUndefined();
+    });
+
+    test('admin: cookie httpOnly con role admin y sin userId', async () => {
+      vi.stubEnv('SESSION_SECRET', SECRET);
+      const response = await post({ correo: 'admin@bycar.co', contrasena: 'admin' });
+      const cookie = response.cookies.get(SESSION_COOKIE);
+      expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'lax', path: '/', maxAge: 604800 });
+      expect(await sessionFrom(response)).toEqual({ userId: null, role: 'admin' });
+      expect(await readResponse(response)).toEqual({
+        status: 200,
+        body: { message: 'Login exitoso', redirect: '/admin' },
+      });
+    });
+
+    test('usuario: cookie con su ID_USU y role user; el body no cambia', async () => {
+      vi.stubEnv('SESSION_SECRET', SECRET);
+      const user = { ID_USU: 7, NOMBRE_USU: 'ANA', APELLIDO_USU: 'P', CORREO_USU: 'a@x.co' };
+      getConnection.mockResolvedValue(createFakeConnection([{ rows: [user] }]));
+      const response = await post({ correo: 'a@x.co', contrasena: 'x' });
+      expect(await sessionFrom(response)).toEqual({ userId: 7, role: 'user' });
+      expect((await readResponse(response)).body).toEqual({ message: 'Login exitoso', user, redirect: '/dashboard' });
+    });
+
+    test('credenciales inválidas: no emite cookie', async () => {
+      vi.stubEnv('SESSION_SECRET', SECRET);
+      getConnection.mockResolvedValue(createFakeConnection([{ rows: [] }]));
+      const response = await post({ correo: 'a@x.co', contrasena: 'mal' });
+      expect(response.status).toBe(401);
+      expect(response.cookies.get(SESSION_COOKIE)).toBeUndefined();
+    });
   });
 
   test('error de BD: 500 genérico', async () => {

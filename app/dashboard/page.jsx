@@ -624,6 +624,17 @@ export default function DashboardPage() {
   const aceptarSolicitud = (id) => gestionarSolicitud(id, 'Aceptado');
   const rechazarSolicitud = (id) => gestionarSolicitud(id, 'Rechazado');
 
+  // Borra la cookie de sesión en el servidor; si la red falla, igual se cierra la sesión local
+  const cerrarSesion = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Error al cerrar sesión en el servidor:', error);
+    }
+    localStorage.removeItem('user');
+    router.push('/');
+  };
+
   const getBadgeCount = (url) => {
     if (url === '/solicitudes') {
       return solicitudesRecibidas.length;
@@ -759,7 +770,7 @@ export default function DashboardPage() {
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)' }}>
           <button 
-            onClick={() => { localStorage.removeItem('user'); router.push('/'); }} 
+            onClick={cerrarSesion}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.9rem', padding: '10px' }}
             onMouseEnter={(e) => e.target.style.color = '#fff'}
             onMouseLeave={(e) => e.target.style.color = 'var(--muted)'}
