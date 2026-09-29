@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-09-29 — IDOR (S6): pertenencia de recursos, detrás de `AUTH_ENFORCED`
+
+**Qué cambió**
+- `lib/auth/ownership.js`: `checkOwnership` y `requireSelf`. Si el recurso no es del usuario responden 403. El admin saltea el chequeo y con el flag apagado no hacen nada.
+- **Fase A (sin SQL nuevo), 8 handlers:** `usuarioId` en query o body igual al de la sesión. En `mensajes`, además, ser participante del chat, usando la query que ya existía.
+- **Fase B (SELECTs nuevos de solo lectura, autorizados), 4 handlers:**
+  - `PUT solicitudes`: roles por estado.
+  - `POST` y `PUT guardian`: participar del viaje.
+  - `GET guardian?email`: el correo es el propio.
+- Verifiqué que los datos que manda el dashboard cumplen todas las reglas: solo ofrece guardián en viajes aceptados, y usa su propio ID y correo.
+
+**Tests corridos**
+- Unitarios del helper (18) y de las consultas (15, con 4 snapshots de SQL nuevo).
+- `idor.test.js` (43): para cada ruta, el dueño pasa y otro usuario recibe 403 **sin que se ejecute ninguna escritura**. También verifica que cada handler de usuario tenga una regla declarada.
+- `auth-enforcement.test.js` se ajustó a propósito: en las rutas de usuario verifica "no 401", porque el 403 ahora corresponde a la pertenencia.
+- `npm test`: 30 archivos, 516 tests OK. Los snapshots de caracterización no cambiaron: con el flag apagado no se ejecuta ninguna consulta nueva.
+- `npm run build`: OK. `npm run lint`: igual que la línea base.
+
+**Riesgos pendientes**
+- No se probó contra Oracle real. Las consultas nuevas usan binds con nombre repetido (`:userId` dos veces), que `oracledb` soporta. Conviene correrlas en un entorno de prueba antes de prender el flag.
+- Un 403 por pertenencia no redirige al login. Si alguna vez el usuario del navegador no coincide con el de la cookie, el dashboard muestra errores en vez de pedir que se loguee de nuevo.
+- F3 sigue abierto: un usuario puede publicar un viaje con la placa de un vehículo ajeno. Es una regla de negocio, no un IDOR de IDs de usuario.
+
 ## 2026-09-29 — Fix F27: panel admin ante errores de la API
 
 **Qué cambió**

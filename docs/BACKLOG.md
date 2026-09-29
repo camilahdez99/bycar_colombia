@@ -11,7 +11,7 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
   3. Verificar que producción sirva por HTTPS: en producción la cookie es `Secure`.
   4. Prender `AUTH_ENFORCED=true`.
   5. ~~Redirección del dashboard ante 401~~: resuelto el 2026-09-29 (`lib/client/sessionFetch.js`).
-- [ ] `seguridad` **IDOR (S6).** Plan aprobado el 2026-09-29, detrás de `AUTH_ENFORCED`.
+- [x] `seguridad` **IDOR (S6).** Plan aprobado e implementado el 2026-09-29, detrás de `AUTH_ENFORCED`.
   - **Decisiones:**
     - un ID ajeno responde 403 (no se reemplaza en silencio);
     - el admin saltea la pertenencia;

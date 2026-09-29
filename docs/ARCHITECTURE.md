@@ -49,9 +49,26 @@ Matriz de acceso con `AUTH_ENFORCED=true`:
 | `admin/*` | rol admin |
 | `GET admin/permisos?usuarioId=N` | admin, o el propio usuario N (lo usa el dashboard) |
 
+### Pertenencia de recursos (IDOR)
+
+Con `AUTH_ENFORCED`, además de la sesión, cada ruta de usuario verifica que el recurso sea del usuario (`lib/auth/ownership.js`). Si no lo es, responde 403 y deja un log `ownership_denied`. El admin saltea este chequeo.
+
+| Ruta | Regla |
+|---|---|
+| `GET mis-rutas`, `recibidas`, `chats`, `guardian?usuarioId` | `usuarioId` = sesión |
+| `POST viajes`, `POST solicitudes` | `usuarioId` del body = sesión |
+| `GET/POST mensajes` | ser pasajero o conductor del chat; en POST, además, `senderId` = sesión |
+| `PUT solicitudes` | el conductor acepta o rechaza (2, 3), el pasajero cancela (4); cualquier otro estado, solo el admin |
+| `POST guardian` | participar del viaje: ser el conductor o un pasajero con solicitud aceptada |
+| `PUT guardian` | participar del viaje del guardián; sin `id` responde 403 |
+| `GET guardian?email` | el correo es el de la sesión (sin distinguir mayúsculas) |
+
+Las consultas nuevas de solo lectura viven en `lib/auth/ownershipQueries.js` y están fijadas por snapshot. `checkOwnership` solo las ejecuta con el flag prendido y para usuarios no admin.
+
+`__tests__/app/api/idor.test.js` exige que cada handler de usuario tenga una regla declarada.
+
 Limitaciones vigentes:
 - El rol admin sale del login hardcodeado (`admin@bycar.co`); el admin no tiene `userId`.
-- **IDOR (S6) sigue abierto:** con sesión válida, las rutas todavía confían en el `usuarioId`, `chatId` o `senderId` que manda el cliente.
 - El frontend sigue guardando el usuario en `localStorage` para mostrar datos. La cookie la envía el navegador de forma automática.
 - El dashboard, `/admin` y `PermisosManager` hacen todas sus llamadas con `fetchConSesion` (`lib/client/sessionFetch.js`). Ante un 401 limpia `localStorage` y navega a `/login`, una sola vez por carga de página. Todo `fetch` nuevo del frontend a la API debería usarlo.
 
