@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
+import { fetchConSesion } from '@/lib/client/sessionFetch';
 
 /**
  * PermisosManager
@@ -15,7 +16,7 @@ export default function PermisosManager() {
 
   // Cargar menús al montar
   useEffect(() => {
-    fetch('/api/menus')
+    fetchConSesion('/api/menus')
       .then(r => r.ok ? r.json() : [])
       .then(data => setMenus(data))
       .catch(() => toast.error('Error al cargar menús'));
@@ -25,7 +26,7 @@ export default function PermisosManager() {
   useEffect(() => {
     if (!selectedUsuario) return;
     setLoading(true);
-    fetch(`/api/admin/permisos?usuarioId=${selectedUsuario}`)
+    fetchConSesion(`/api/admin/permisos?usuarioId=${selectedUsuario}`)
       .then(r => r.ok ? r.json() : [])
       .then(data => setAsignados(data.map(p => p.menuId)))
       .catch(() => toast.error('Error al cargar permisos del usuario'))
@@ -44,12 +45,12 @@ export default function PermisosManager() {
     const yaAsignado = asignados.includes(menuId);
     try {
       if (yaAsignado) {
-        const res = await fetch(`/api/admin/permisos?usuarioId=${selectedUsuario}&menuId=${menuId}`, { method: 'DELETE' });
+        const res = await fetchConSesion(`/api/admin/permisos?usuarioId=${selectedUsuario}&menuId=${menuId}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Error al revocar permiso');
         setAsignados(prev => prev.filter(id => id !== menuId));
         toast.success('Permiso revocado');
       } else {
-        const res = await fetch('/api/admin/permisos', {
+        const res = await fetchConSesion('/api/admin/permisos', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ usuarioId: selectedUsuario, menuId }),

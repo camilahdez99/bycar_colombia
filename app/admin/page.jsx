@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PermisosManager from '@/app/components/admin/PermisosManager';
 import DynamicForm from '@/components/DynamicForm';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
+import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -53,7 +54,7 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const res = await fetch('/api/admin/tablas?list=1');
+        const res = await fetchConSesion('/api/admin/tablas?list=1');
         const data = await res.json();
         setTablesList(data);
         if (data.length) setActiveTable(data[0]);
@@ -70,10 +71,10 @@ export default function AdminPage() {
     const loadMetaAndData = async () => {
       setLoading(true);
       try {
-        const metaRes = await fetch(`/api/admin/tablas?metadata=1&tabla=${activeTable}`);
+        const metaRes = await fetchConSesion(`/api/admin/tablas?metadata=1&tabla=${activeTable}`);
         const cols = await metaRes.json();
         setColumnsInfo(cols);
-        const dataRes = await fetch(`/api/admin/tablas?tabla=${activeTable}`);
+        const dataRes = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`);
         const rows = await dataRes.json();
         setRowsData(Array.isArray(rows) ? rows : []);
       } catch (e) {
@@ -87,7 +88,7 @@ export default function AdminPage() {
 
   // Helper to refresh rows after any mutation
   const refreshData = async () => {
-    const dataRes = await fetch(`/api/admin/tablas?tabla=${activeTable}`);
+    const dataRes = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`);
     const rows = await dataRes.json();
     setRowsData(Array.isArray(rows) ? rows : []);
   };
@@ -97,7 +98,7 @@ export default function AdminPage() {
     setGuardando(true);
     const t = toast.loading('Creando registro...');
     try {
-      const r = await fetch(`/api/admin/tablas?tabla=${activeTable}`, {
+      const r = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -121,7 +122,7 @@ export default function AdminPage() {
     setGuardando(true);
     const t = toast.loading('Actualizando registro...');
     try {
-      const r = await fetch(`/api/admin/tablas?id=${id}&tabla=${activeTable}`, {
+      const r = await fetchConSesion(`/api/admin/tablas?id=${id}&tabla=${activeTable}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -145,7 +146,7 @@ export default function AdminPage() {
     if (!confirm('¿Eliminar este registro?')) return;
     const t = toast.loading('Eliminando...');
     try {
-      const r = await fetch(`/api/admin/tablas?id=${id}&tabla=${activeTable}`, { method: 'DELETE' });
+      const r = await fetchConSesion(`/api/admin/tablas?id=${id}&tabla=${activeTable}`, { method: 'DELETE' });
       if (r.ok) {
         toast.success('Eliminado', { id: t });
         await refreshData();
