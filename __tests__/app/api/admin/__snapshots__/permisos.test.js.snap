@@ -1,0 +1,71 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DELETE /api/admin/permisos (caracterización) > 200: borra con ids numéricos y autoCommit 1`] = `
+[
+  {
+    "binds": {
+      "menuId": 2,
+      "usuarioId": 1,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "DELETE FROM PERMISOS WHERE USUARIO_ID_USU = :usuarioId AND MENU_ID_ENU = :menuId",
+  },
+]
+`;
+
+exports[`GET /api/admin/permisos (caracterización) > con usuarioId: menús del usuario con id numérico 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": 5,
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+        SELECT p.USUARIO_ID_USU as "usuarioId", p.MENU_ID_ENU as "menuId",
+               m.CAMPO_ENU as "menuNombre", m.URL_ENU as "menuUrl"
+        FROM PERMISOS p
+        JOIN MENUS m ON p.MENU_ID_ENU = m.ID_ENU
+        WHERE p.USUARIO_ID_USU = :usuarioId
+        ORDER BY m.ID_ENU
+      ",
+  },
+]
+`;
+
+exports[`GET /api/admin/permisos (caracterización) > sin usuarioId: todos los permisos (comportamiento actual: sin autenticación) 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT p.USUARIO_ID_USU as "usuarioId", u.NOMBRE_USU as "usuarioNombre",
+             p.MENU_ID_ENU as "menuId", m.CAMPO_ENU as "menuNombre", m.URL_ENU as "menuUrl"
+      FROM PERMISOS p
+      JOIN USUARIOS u ON p.USUARIO_ID_USU = u.ID_USU
+      JOIN MENUS m ON p.MENU_ID_ENU = m.ID_ENU
+      ORDER BY p.USUARIO_ID_USU, m.ID_ENU
+    ",
+  },
+]
+`;
+
+exports[`POST /api/admin/permisos (caracterización) > 201: inserta con ids numéricos y autoCommit 1`] = `
+[
+  {
+    "binds": {
+      "menuId": 2,
+      "usuarioId": 1,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "INSERT INTO PERMISOS (USUARIO_ID_USU, MENU_ID_ENU) VALUES (:usuarioId, :menuId)",
+  },
+]
+`;

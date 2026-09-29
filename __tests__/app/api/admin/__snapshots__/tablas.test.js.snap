@@ -1,0 +1,252 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con id numérico y autoCommit (comportamiento actual: sin autenticación) 1`] = `
+[
+  {
+    "binds": {
+      "tabla": "USUARIOS",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT cols.column_name
+    FROM user_constraints cons
+    JOIN user_cons_columns cols
+      ON cons.constraint_name = cols.constraint_name
+    WHERE cons.constraint_type = 'P'
+      AND cons.table_name = :tabla
+  ",
+  },
+  {
+    "binds": {
+      "id": 7,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      DELETE FROM USUARIOS
+      WHERE ID_USU = :id
+    ",
+  },
+]
+`;
+
+exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra por ella con id numérico 1`] = `
+[
+  {
+    "binds": {
+      "tabla": "MENUS",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT cols.column_name
+    FROM user_constraints cons
+    JOIN user_cons_columns cols
+      ON cons.constraint_name = cols.constraint_name
+    WHERE cons.constraint_type = 'P'
+      AND cons.table_name = :tabla
+  ",
+  },
+  {
+    "binds": {
+      "id": 3,
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "SELECT * FROM MENUS WHERE ID_ENU = :id",
+  },
+]
+`;
+
+exports[`GET /api/admin/tablas (caracterización) > list: devuelve solo los nombres de user_tables (ignora tabla) 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+        SELECT table_name
+        FROM user_tables
+        ORDER BY table_name
+      ",
+  },
+]
+`;
+
+exports[`GET /api/admin/tablas (caracterización) > metadata=true: devuelve las columnas de user_tab_columns (nombre en mayúsculas) 1`] = `
+[
+  {
+    "binds": {
+      "tabla": "MENUS",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT column_name, data_type, nullable
+    FROM user_tab_columns
+    WHERE table_name = :tabla
+  ",
+  },
+]
+`;
+
+exports[`GET /api/admin/tablas (caracterización) > sin id: SELECT * de la tabla completa (comportamiento actual: sin autenticación, expone contraseñas) 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "SELECT * FROM USUARIOS",
+  },
+]
+`;
+
+exports[`POST /api/admin/tablas (caracterización) > 201: filtra columnas contra la metadata, omite vacíos y convierte DATE/TIMESTAMP 1`] = `
+[
+  {
+    "binds": {
+      "tabla": "VIAJES",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT column_name, data_type, nullable
+    FROM user_tab_columns
+    WHERE table_name = :tabla
+  ",
+  },
+  {
+    "binds": {
+      "CREADO_VIA": 2026-01-01T00:00:00.000Z,
+      "CUPOS_DISPONIBLES_VIA": 3,
+      "id_via": 10,
+      "tiempo_salida_via": 2026-01-02T03:04:05.000Z,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO VIAJES
+      (ID_VIA, CUPOS_DISPONIBLES_VIA, TIEMPO_SALIDA_VIA, CREADO_VIA)
+      VALUES (:id_via, :CUPOS_DISPONIBLES_VIA, :tiempo_salida_via, :CREADO_VIA)
+    ",
+  },
+]
+`;
+
+exports[`POST /api/admin/tablas (caracterización) > MENUS con ID_ENU: inserta sin autoCommit, da permiso a todos los usuarios y hace commit 1`] = `
+[
+  {
+    "binds": {
+      "tabla": "MENUS",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT column_name, data_type, nullable
+    FROM user_tab_columns
+    WHERE table_name = :tabla
+  ",
+  },
+  {
+    "binds": {
+      "CAMPO_ENU": "Nuevo",
+      "URL_ENU": "/n",
+      "id_enu": "9",
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "
+      INSERT INTO MENUS
+      (ID_ENU, CAMPO_ENU, URL_ENU)
+      VALUES (:id_enu, :CAMPO_ENU, :URL_ENU)
+    ",
+  },
+  {
+    "binds": undefined,
+    "options": undefined,
+    "sql": "SELECT ID_USU FROM USUARIOS",
+  },
+  {
+    "binds": {
+      "menuId": 9,
+      "usuarioId": 1,
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "INSERT INTO PERMISOS (USUARIO_ID_USU, MENU_ID_ENU) VALUES (:usuarioId, :menuId)",
+  },
+  {
+    "binds": {
+      "menuId": 9,
+      "usuarioId": 2,
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "INSERT INTO PERMISOS (USUARIO_ID_USU, MENU_ID_ENU) VALUES (:usuarioId, :menuId)",
+  },
+]
+`;
+
+exports[`PUT /api/admin/tablas (caracterización) > 200: excluye la PK y columnas desconocidas, "" pasa a null, fechas a Date, id queda string 1`] = `
+[
+  {
+    "binds": {
+      "tabla": "VIAJES",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT cols.column_name
+    FROM user_constraints cons
+    JOIN user_cons_columns cols
+      ON cons.constraint_name = cols.constraint_name
+    WHERE cons.constraint_type = 'P'
+      AND cons.table_name = :tabla
+  ",
+  },
+  {
+    "binds": {
+      "tabla": "VIAJES",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+    SELECT column_name, data_type, nullable
+    FROM user_tab_columns
+    WHERE table_name = :tabla
+  ",
+  },
+  {
+    "binds": {
+      "NOTA_VIA": null,
+      "TIEMPO_SALIDA_VIA": 2026-01-02T03:04:05.000Z,
+      "cupos_disponibles_via": 2,
+      "id": "10",
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      UPDATE VIAJES
+      SET CUPOS_DISPONIBLES_VIA = :cupos_disponibles_via, TIEMPO_SALIDA_VIA = :TIEMPO_SALIDA_VIA, NOTA_VIA = :NOTA_VIA
+      WHERE ID_VIA = :id
+    ",
+  },
+]
+`;

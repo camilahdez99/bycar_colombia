@@ -1,0 +1,82 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DELETE /api/admin/vehiculos (caracterización) > 200: borra por placa tal cual llega con autoCommit 1`] = `
+[
+  {
+    "binds": {
+      "placa": "abc123",
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "DELETE FROM VEHICULOS WHERE PLACA_VEH = :placa",
+  },
+]
+`;
+
+exports[`GET /api/admin/vehiculos (caracterización) > 200 con las filas tal cual (comportamiento actual: sin autenticación) 1`] = `
+[
+  {
+    "binds": undefined,
+    "options": undefined,
+    "sql": "
+      SELECT veh.PLACA_VEH as "placa", 
+             m.NOMBRE_MAR as "marca", 
+             veh.CAPACIDAD_VEH as "capacidad",
+             veh.CONDUCTOR_ID_USU as "idConductor",
+             u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "conductor"
+      FROM VEHICULOS veh
+      JOIN USUARIOS u ON veh.CONDUCTOR_ID_USU = u.ID_USU
+      JOIN MARCAS m ON veh.MARCA_ID_MAR = m.ID_MAR
+      ORDER BY m.NOMBRE_MAR ASC
+    ",
+  },
+]
+`;
+
+exports[`POST /api/admin/vehiculos (caracterización) > 201: verifica el conductor e inserta con placa en mayúsculas y números parseados 1`] = `
+[
+  {
+    "binds": {
+      "id": 7,
+    },
+    "options": undefined,
+    "sql": "SELECT ID_USU FROM USUARIOS WHERE ID_USU = :id",
+  },
+  {
+    "binds": {
+      "capacidad": 4,
+      "idConductor": 7,
+      "marcaId": 3,
+      "placa": "ABC123",
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO VEHICULOS (PLACA_VEH, CAPACIDAD_VEH, CONDUCTOR_ID_USU, MARCA_ID_MAR)
+      VALUES (:placa, :capacidad, :idConductor, :marcaId)
+    ",
+  },
+]
+`;
+
+exports[`PUT /api/admin/vehiculos (caracterización) > 200: actualiza con la placa tal cual llega (comportamiento actual: no se pasa a mayúsculas) 1`] = `
+[
+  {
+    "binds": {
+      "capacidad": 5,
+      "marcaId": 2,
+      "placa": "abc123",
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      UPDATE VEHICULOS 
+      SET MARCA_ID_MAR = :marcaId, CAPACIDAD_VEH = :capacidad 
+      WHERE PLACA_VEH = :placa
+    ",
+  },
+]
+`;
