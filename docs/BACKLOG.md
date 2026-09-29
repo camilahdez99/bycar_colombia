@@ -14,7 +14,8 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
 - [ ] `seguridad` IDOR (S6): derivar `usuarioId` y `senderId` de la sesión y validar la pertenencia de `chatId`, `solicitudId` y `guardianId`. Tarea aparte.
 - [ ] `seguridad` Quitar el admin hardcodeado (S5) y derivar el rol de `PERFIL_ID_PER` (requiere una query nueva: bd-pendiente).
 - [ ] `feat` Botón de logout en `/admin` (hoy solo existe en el dashboard).
-- [ ] `feat` `/admin` y `PermisosManager` también deberían usar `fetchConSesion`. Hoy, si la sesión del admin vence con la página abierta, se muestran toasts de error en lugar de redirigir.
+- [x] `feat` `/admin` y `PermisosManager` usan `fetchConSesion` (2026-09-29).
+- [ ] `fix` F27: el panel admin se rompe si `?list=1` responde con error. Es chico: validar `res.ok` y `Array.isArray`.
 - [ ] `seguridad` Hash de contraseñas (bcrypt/argon2) con migración de las existentes. Ver S4. Toca BD.
 - [ ] `seguridad` Quitar el admin hardcodeado del login. Ver S5.
 - [x] `tests` Caracterizar los route handlers mockeando `@/lib/db` antes de cualquier refactor de API (2026-09-28).

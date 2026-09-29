@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-29 — /admin: redirección ante 401
+
+**Qué cambió**
+- `app/admin/page.jsx` (7 llamadas) y `PermisosManager.jsx` (4) usan `fetchConSesion`.
+- Fix del wrapper: ahora pasa a `fetch` exactamente los mismos argumentos. Antes agregaba un `init` `undefined`; lo detectó la caracterización nueva.
+
+**Tests corridos**
+- Antes del cambio, caracterización de la carga del panel y de `PermisosManager` (consultar, asignar y revocar). Pasa igual antes y después.
+- Test de integración: el panel con la API respondiendo 401 redirige una sola vez.
+- `npm test`: 27 archivos, 437 tests OK y sin errores no manejados. `npm run build`: OK. `npm run lint`: igual que la línea base.
+
+**Riesgos pendientes**
+- F27 (nuevo): con un 401 el panel admin igual redirige, pero antes se rompe el render y la pantalla queda en blanco por un instante. Con un 500 queda en blanco sin redirigir. Corrección en tarea aparte.
+
 ## 2026-09-29 — Dashboard: redirección ante 401
 
 **Qué cambió**

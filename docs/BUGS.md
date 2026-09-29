@@ -53,6 +53,7 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual".
 | F24 | ⚪ | `viajes/route.js:106-107` | `?origen=%20` pasa el `isNaN` y filtra por el municipio 0. |
 | F25 | ⚪ | `guardian/route.js:118` | No valida que `viajeId` exista ni que pertenezca al usuario. |
 | F26 | ⚪ | `conductores/route.js:38-42` | POST responde 200 con un mensaje informativo y no crea nada. |
+| F27 | 🟡 | `app/admin/page.jsx:56-59` | Guarda la respuesta de `?list=1` sin mirar `res.ok`. Ante cualquier error (401, 500) guarda `{ error }` como lista de tablas y el render falla con `tablesList.map is not a function`: el panel queda en blanco. Lo fija `__tests__/app/admin-sesion.test.jsx`. |
 | E4 | 🟡 | `mensajes/route.js:25,81`; `guardian/route.js:75` | Lee `rows.length` o `rows[0]` sin guarda: si el resultado no trae `rows` da 500, y en guardian expone el mensaje de JS. |
 | E5 | ⚪ | `guardian/route.js:12,135`; `admin/usuarios/route.js:73-75` | Abren la conexión o parsean el JSON antes de validar parámetros. |
 
