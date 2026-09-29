@@ -1,0 +1,36 @@
+CLEAR SCREEN;
+
+prompt ====================================
+prompt |   Esquema de la Base de Datos    |
+prompt ====================================
+
+connect system/12345
+
+show con_name
+
+ALTER SESSION SET CONTAINER=CDB$ROOT;
+ALTER DATABASE OPEN;
+
+DROP TABLESPACE TS_BYCAR INCLUDING CONTENTS and DATAFILES;
+
+CREATE TABLESPACE TS_BYCAR LOGGING
+DATAFILE 'D:\BYCAR_BD\base_de_datos_Bycar.dbf' size 40M
+extent management local segment space management auto;
+
+alter session set "_ORACLE_SCRIPT"=true;
+
+drop user US_BYCAR cascade;
+
+CREATE user US_BYCAR profile default 
+identified by 12345
+default tablespace TS_BYCAR
+temporary tablespace temp 
+account unlock;
+
+prompt Privilegios asignados correctamente al nuevo usuario.
+grant connect, resource,dba to US_BYCAR; 
+
+prompt Conectado como usuario US_BYCAR.
+connect US_BYCAR/12345
+
+show user
