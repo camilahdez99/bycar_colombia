@@ -1,0 +1,18 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`POST /api/auth/login (caracterización) > credenciales válidas: 200 con el usuario y redirect a /dashboard 1`] = `
+[
+  {
+    "binds": {
+      "contrasena": "secreta",
+      "correo": "Ana@X.co",
+    },
+    "options": undefined,
+    "sql": "
+      SELECT ID_USU, NOMBRE_USU, APELLIDO_USU, CORREO_USU 
+      FROM USUARIOS 
+      WHERE LOWER(CORREO_USU) = LOWER(:correo) AND CONTRASENA_USU = :contrasena
+    ",
+  },
+]
+`;

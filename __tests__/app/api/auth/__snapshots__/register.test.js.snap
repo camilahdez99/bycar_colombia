@@ -1,0 +1,58 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`POST /api/auth/register (caracterización) > 201: inserta usuario normalizado, un permiso por menú y hace commit 1`] = `
+[
+  {
+    "binds": {
+      "apellido": "PÉREZ",
+      "contrasena": "Secreta1",
+      "correo": "ana@x.co",
+      "idUsu": 1760000000000,
+      "nombre": "ANA",
+      "perfilId": 2,
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "
+      INSERT INTO USUARIOS (ID_USU, NOMBRE_USU, APELLIDO_USU, CORREO_USU, CONTRASENA_USU, PERFIL_ID_PER)
+      VALUES (:idUsu, :nombre, :apellido, :correo, :contrasena, :perfilId)
+    ",
+  },
+  {
+    "binds": undefined,
+    "options": undefined,
+    "sql": "SELECT ID_ENU FROM MENUS",
+  },
+  {
+    "binds": {
+      "idUsu": 1760000000000,
+      "menuId": 1,
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "INSERT INTO PERMISOS (USUARIO_ID_USU, MENU_ID_ENU) VALUES (:idUsu, :menuId)",
+  },
+  {
+    "binds": {
+      "idUsu": 1760000000000,
+      "menuId": 2,
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "INSERT INTO PERMISOS (USUARIO_ID_USU, MENU_ID_ENU) VALUES (:idUsu, :menuId)",
+  },
+  {
+    "binds": {
+      "idUsu": 1760000000000,
+      "menuId": 5,
+    },
+    "options": {
+      "autoCommit": false,
+    },
+    "sql": "INSERT INTO PERMISOS (USUARIO_ID_USU, MENU_ID_ENU) VALUES (:idUsu, :menuId)",
+  },
+]
+`;

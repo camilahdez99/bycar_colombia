@@ -1,0 +1,54 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GET /api/marcas (caracterización) > 200 con las filas tal cual vienen de la BD 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT ID_MAR as "id", NOMBRE_MAR as "nombre"
+      FROM MARCAS
+      ORDER BY NOMBRE_MAR ASC
+    ",
+  },
+]
+`;
+
+exports[`GET /api/menus (caracterización) > 200 con las filas tal cual vienen de la BD 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT 
+        ID_ENU      as "id",
+        CAMPO_ENU   as "label",
+        URL_ENU     as "url",
+        MENU_ID_ENU as "parentId"
+      FROM MENUS
+      ORDER BY ID_ENU ASC
+    ",
+  },
+]
+`;
+
+exports[`GET /api/municipios (caracterización) > 200 con las filas tal cual vienen de la BD 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT m.ID_MUN as "id", m.NOMBRE_MUN as "nombre", d.NOMBRE_DEP as "departamento"
+      FROM MUNICIPIOS m
+      JOIN DEPARTAMENTOS d ON m.DEPARTAMENTO_ID_DEP = d.ID_DEP
+      ORDER BY m.NOMBRE_MUN ASC
+    ",
+  },
+]
+`;
