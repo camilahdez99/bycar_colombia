@@ -53,6 +53,7 @@ Limitaciones vigentes:
 - El rol admin sale del login hardcodeado (`admin@bycar.co`); el admin no tiene `userId`.
 - **IDOR (S6) sigue abierto:** con sesión válida, las rutas todavía confían en el `usuarioId`, `chatId` o `senderId` que manda el cliente.
 - El frontend sigue guardando el usuario en `localStorage` para mostrar datos. La cookie la envía el navegador de forma automática.
+- El dashboard hace todas sus llamadas con `fetchConSesion` (`lib/client/sessionFetch.js`). Ante un 401 limpia `localStorage` y navega a `/login`, una sola vez por carga de página. `/admin` todavía no lo usa.
 
 ## API
 

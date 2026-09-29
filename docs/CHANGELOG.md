@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-29 — Dashboard: redirección ante 401
+
+**Qué cambió**
+- `lib/client/sessionFetch.js`: wrapper de `fetch`. Ante un 401 limpia el usuario local y navega a `/login`, una sola vez aunque fallen varias llamadas en paralelo. Devuelve la respuesta sin tocarla.
+- `app/dashboard/page.jsx`: sus 24 llamadas usan `fetchConSesion`. No hubo otros cambios.
+
+**Tests corridos**
+- Antes del cambio, nueva caracterización de la carga inicial del dashboard: qué endpoints llama con y sin usuario. Pasa igual antes y después.
+- Tests unitarios del wrapper (9) y test de integración: el dashboard con la API respondiendo 401 redirige una sola vez.
+- `npm test`: 25 archivos, 431 tests OK. `npm run build`: OK. `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- `/admin` todavía no redirige ante un 401 (ver `BACKLOG.md`).
+- Con el flag apagado la API nunca devuelve 401 al dashboard, así que el cambio no tiene efecto hasta prender `AUTH_ENFORCED`.
+
 ## 2026-09-28 — Autenticación (detrás de flag) y fix F11
 
 **Qué cambió**
