@@ -7,9 +7,9 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 
 | # | Sev | Ubicación | Descripción |
 |---|---|---|---|
-| S1 | 🔴 | todas las rutas `app/api/**` | No hay autenticación en el servidor: sin middleware, cookies ni tokens. La "sesión" es `localStorage`. |
-| S2 | 🔴 | `app/api/admin/tablas/route.js` | CRUD genérico sin autenticación sobre cualquier tabla. `GET ?tabla=USUARIOS` expone las contraseñas. |
-| S3 | 🔴 | `app/api/admin/*`, `app/admin/page.jsx` | Ninguna ruta ni página de admin verifica rol. |
+| S1 | 🟡 | todas las rutas `app/api/**` | **Mitigado (2026-09-28) detrás de `AUTH_ENFORCED`.** Sesión con cookie firmada. Sigue abierto hasta prender el flag en producción. |
+| S2 | 🟡 | `app/api/admin/tablas/route.js` | **Mitigado detrás de `AUTH_ENFORCED`:** requiere rol admin. Un admin todavía puede leer las contraseñas con `GET ?tabla=USUARIOS` (ver S4). |
+| S3 | 🟡 | `app/api/admin/*`, `app/admin/page.jsx` | **Mitigado detrás de `AUTH_ENFORCED`:** rol admin en la API y en el proxy de `/admin`. |
 | S4 | 🔴 | `auth/login/route.js:23`, `auth/register/route.js:28`, `admin/usuarios/route.js:49` | Contraseñas almacenadas y comparadas en texto plano. |
 | S5 | 🟠 | `auth/login/route.js:14`, `scripts/create_admin_user.js:13`, `scripts/insercion_data_DML.txt:16` | Admin hardcodeado (`admin@bycar.co` / `admin`). |
 | S6 | 🟠 | `mensajes/route.js:8,64`; `solicitudes/route.js:37`; `guardian/route.js:9,133` | IDOR: cualquiera puede leer chats ajenos, suplantar al emisor, aceptar solicitudes ajenas y leer o modificar guardianes ajenos. |

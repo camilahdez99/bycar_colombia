@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-09-28 — Autenticación (detrás de flag) y fix F11
+
+**Qué cambió**
+- **F11 corregido:** `admin/tablas` responde 400 en PUT y DELETE cuando la tabla tiene PK compuesta. Antes borraba o modificaba todos los permisos del usuario. El texto del SQL no cambió.
+- **Auth en el servidor** detrás de `AUTH_ENFORCED`, apagado por defecto:
+  - cookie de sesión firmada (`jose`, nueva dependencia);
+  - guard en los 33 handlers de usuario y admin;
+  - `POST /api/auth/logout`;
+  - `proxy.js` para `/admin` y `/dashboard`.
+- El login emite la cookie solo si existe `SESSION_SECRET`. El body de la respuesta no cambia.
+- El logout del dashboard ahora llama al endpoint antes de limpiar `localStorage`.
+
+**Tests corridos**
+- `npm test`: 22 archivos, 419 tests OK. Los 263 de caracterización siguen intactos: con el flag apagado, la API responde igual que antes.
+- `auth-enforcement.test.js` recorre los 36 handlers: 401 sin sesión, 403 sin rol, y catálogos públicos.
+- `npm run build`: OK, con el proxy detectado.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+- Prueba de humo con `next start` y `AUTH_ENFORCED=true`: redirecciones, 401, login con cookie, `/admin` y logout, todo OK.
+
+**Riesgos pendientes**
+- Mientras el flag esté apagado, S1-S3 siguen abiertos en producción. Ver los pasos de rollout en `BACKLOG.md`.
+- Con el flag prendido, los usuarios logueados antes del despliegue reciben 401 hasta que vuelvan a loguearse. El dashboard todavía no redirige ante un 401.
+- La cookie es `Secure` en producción: si producción no usa HTTPS, nadie podría autenticarse.
+- IDOR (S6) sigue abierto: un usuario con sesión puede operar sobre IDs ajenos.
+
 ## 2026-09-28 — Caracterización de la API
 
 **Qué cambió**

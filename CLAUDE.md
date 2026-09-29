@@ -43,6 +43,12 @@ Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 + daisyUI · Oracl
 - Build: `npm run build`
 - Levantar local: `npm run dev` (requiere `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING` en `.env.local`)
 
+## Feature flags y variables de auth
+
+- `SESSION_SECRET`: secreto de la cookie de sesión (≥ 32 caracteres). Sin él, el login no emite cookie.
+- `AUTH_ENFORCED`: con `true`, la API exige sesión y rol (ver `docs/ARCHITECTURE.md`). Apagado por defecto.
+- Toda ruta nueva de `app/api` debe llamar a `authorize(req, …)` y figurar en `__tests__/app/api/auth-enforcement.test.js`.
+
 Suite completa antes de commitear: `npm test` + `npm run build` + lint sin errores nuevos.
 
 ## Notas de entorno

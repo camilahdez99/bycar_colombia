@@ -31,11 +31,28 @@ scripts/                DDL/DML de referencia (.txt) y scripts sueltos de manten
 
 ## Sesión y autorización
 
-- **No hay autenticación en el servidor.** Sin middleware/proxy, sin cookies ni tokens.
-- El login devuelve el usuario y el cliente lo guarda en `localStorage.user`; el logout sólo lo borra.
-- El admin está hardcodeado en `app/api/auth/login/route.js:14`.
-- Los permisos por menú se aplican sólo en el cliente (`dashboard`). `/admin` no verifica sesión.
-- Todas las rutas confían en IDs enviados por el cliente (`usuarioId`, `chatId`, `senderId`, …).
+Desde 2026-09-28 hay autenticación en el servidor, **detrás del feature flag `AUTH_ENFORCED`** (apagado por defecto).
+
+| Pieza | Archivo | Qué hace |
+|---|---|---|
+| Sesión | `lib/auth/session.js` | Cookie `bycar_session`: JWT HS256 (`jose`) con `{ userId, role }`, httpOnly, sameSite lax, 7 días. Requiere `SESSION_SECRET` (≥ 32 caracteres). |
+| Guard | `lib/auth/guard.js` | `authorize(req, { role })` → 401 / 403 / null. Con el flag apagado siempre devuelve null. |
+| Login / logout | `app/api/auth/login`, `app/api/auth/logout` | El login emite la cookie (solo si hay `SESSION_SECRET`), sin cambiar el body. El logout la borra. |
+| Proxy | `proxy.js` | Redirige `/admin` (sin rol admin) y `/dashboard` (sin sesión) a `/login`. Es un chequeo optimista; la autorización real está en cada handler. |
+
+Matriz de acceso con `AUTH_ENFORCED=true`:
+
+| Rutas | Requisito |
+|---|---|
+| `auth/*`, `marcas`, `municipios`, `menus` | públicas |
+| `viajes*`, `solicitudes*`, `mensajes*`, `guardian` | sesión |
+| `admin/*` | rol admin |
+| `GET admin/permisos?usuarioId=N` | admin, o el propio usuario N (lo usa el dashboard) |
+
+Limitaciones vigentes:
+- El rol admin sale del login hardcodeado (`admin@bycar.co`); el admin no tiene `userId`.
+- **IDOR (S6) sigue abierto:** con sesión válida, las rutas todavía confían en el `usuarioId`, `chatId` o `senderId` que manda el cliente.
+- El frontend sigue guardando el usuario en `localStorage` para mostrar datos. La cookie la envía el navegador de forma automática.
 
 ## API
 

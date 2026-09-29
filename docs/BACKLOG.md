@@ -4,7 +4,16 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
 
 ## Prioridad alta
 
-- [ ] `seguridad` Decidir estrategia de auth en servidor (sesión con cookie httpOnly + proxy/middleware de Next 16) y proteger `/api/admin/*` y `/admin`. Ver BUGS S1-S3. Requiere acordar el contrato: cambia el comportamiento de la API.
+- [x] `seguridad` Auth en servidor (cookie firmada + guard + proxy) detrás de `AUTH_ENFORCED` (2026-09-28). Ver BUGS S1-S3.
+- [ ] `seguridad` **Rollout de auth:**
+  1. Configurar `SESSION_SECRET` en producción (se genera con `openssl rand -base64 32`).
+  2. Desplegar con el flag apagado y esperar a que los usuarios vuelvan a loguearse (así reciben la cookie).
+  3. Verificar que producción sirva por HTTPS: en producción la cookie es `Secure`.
+  4. Prender `AUTH_ENFORCED=true`.
+  5. Los usuarios que no se volvieron a loguear quedan con 401 en el dashboard: agregar un aviso o redirección a `/login` ante 401.
+- [ ] `seguridad` IDOR (S6): derivar `usuarioId` y `senderId` de la sesión y validar la pertenencia de `chatId`, `solicitudId` y `guardianId`. Tarea aparte.
+- [ ] `seguridad` Quitar el admin hardcodeado (S5) y derivar el rol de `PERFIL_ID_PER` (requiere una query nueva: bd-pendiente).
+- [ ] `feat` Botón de logout en `/admin` (hoy solo existe en el dashboard).
 - [ ] `seguridad` Hash de contraseñas (bcrypt/argon2) con migración de las existentes. Ver S4. Toca BD.
 - [ ] `seguridad` Quitar el admin hardcodeado del login. Ver S5.
 - [x] `tests` Caracterizar los route handlers mockeando `@/lib/db` antes de cualquier refactor de API (2026-09-28).
