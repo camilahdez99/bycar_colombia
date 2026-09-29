@@ -1,0 +1,64 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GET /api/mensajes (caracterización) > 200: busca el par pasajero/conductor y mapea los mensajes a { senderId, text } 1`] = `
+[
+  {
+    "binds": {
+      "chatId": "9",
+    },
+    "options": undefined,
+    "sql": "
+      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId"
+      FROM SOLICITUDES s
+      JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
+      WHERE s.ID_SOL = :chatId
+    ",
+  },
+  {
+    "binds": {
+      "driverId": 7,
+      "passengerId": 42,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT TO_CHAR(CONTENIDO_MEN) as "content", USUARIOS_EMISOR_ID as "senderId"
+      FROM MENSAJES
+      WHERE (USUARIO_RECEPTOR_ID = :passengerId AND USUARIOS_EMISOR_ID = :driverId)
+         OR (USUARIO_RECEPTOR_ID = :driverId AND USUARIOS_EMISOR_ID = :passengerId)
+      ORDER BY FECHA_ENVIO_MEN ASC
+    ",
+  },
+]
+`;
+
+exports[`POST /api/mensajes (caracterización) > 201: el pasajero escribe → receptor es el conductor 1`] = `
+[
+  {
+    "binds": {
+      "chatId": 9,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId"
+      FROM SOLICITUDES s
+      JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
+      WHERE s.ID_SOL = :chatId
+    ",
+  },
+  {
+    "binds": {
+      "contenido": "hola",
+      "emisorId": 42,
+      "idMen": 1760000000000,
+      "receptorId": 7,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO MENSAJES (ID_MEN, CONTENIDO_MEN, FECHA_ENVIO_MEN, USUARIO_RECEPTOR_ID, USUARIOS_EMISOR_ID)
+      VALUES (:idMen, :contenido, SYSTIMESTAMP, :receptorId, :emisorId)
+    ",
+  },
+]
+`;

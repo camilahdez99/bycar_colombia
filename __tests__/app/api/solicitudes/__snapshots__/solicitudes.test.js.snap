@@ -1,0 +1,35 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`POST /api/solicitudes (caracterización) > 201: inserta la solicitud en estado 1 con ID = Date.now() (comportamiento actual: no valida cupos, duplicados ni auto-solicitud) 1`] = `
+[
+  {
+    "binds": {
+      "idSol": 1760000000000,
+      "usuarioId": 42,
+      "viajeId": 5,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO SOLICITUDES (ID_SOL, FECHA_SOL, ESTADO_ID_EST, VIAJES_ID_VIA, USUARIOS_ID_USU)
+      VALUES (:idSol, SYSDATE, 1, :viajeId, :usuarioId)
+    ",
+  },
+]
+`;
+
+exports[`PUT /api/solicitudes (caracterización) > 200 al aceptar: estado 2 (comportamiento actual: no descuenta cupos) 1`] = `
+[
+  {
+    "binds": {
+      "estadoId": 2,
+      "solicitudId": 9,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "UPDATE SOLICITUDES SET ESTADO_ID_EST = :estadoId WHERE ID_SOL = :solicitudId",
+  },
+]
+`;

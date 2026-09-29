@@ -1,0 +1,268 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GET /api/viajes (caracterización) > 200 con origen y destino numéricos: filtra por ID 1`] = `
+[
+  {
+    "binds": {
+      "destinoId": 7,
+      "origenId": 3,
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT v.ID_VIA as "id", 
+             mo.NOMBRE_MUN as "origen", 
+             md.NOMBRE_MUN as "destino", 
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD') as "hora", 
+             v.COSTO_PERSONA_VIA as "valor",
+             v.COMENTARIOS_VIA as "comentarios", 
+             v.CUPOS_DISPONIBLES_VIA as "puestos",
+             u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "conductor",
+             m.NOMBRE_MAR as "carro",
+             vh.PLACA_VEH as "placa"
+      FROM VIAJES v
+      INNER JOIN USUARIOS u ON v.USUARIOS_ID_USU = u.ID_USU
+      INNER JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
+      INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
+      INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+     AND v.MUNICIPIO_ORIGEN_ID = :origenId AND v.MUNICIPIOS_DESTINO_ID = :destinoId",
+  },
+]
+`;
+
+exports[`GET /api/viajes (caracterización) > 200 con origen y destino por nombre: filtra por nombre (trim) 1`] = `
+[
+  {
+    "binds": {
+      "destinoName": "Envigado",
+      "origenName": "Bello",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT v.ID_VIA as "id", 
+             mo.NOMBRE_MUN as "origen", 
+             md.NOMBRE_MUN as "destino", 
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD') as "hora", 
+             v.COSTO_PERSONA_VIA as "valor",
+             v.COMENTARIOS_VIA as "comentarios", 
+             v.CUPOS_DISPONIBLES_VIA as "puestos",
+             u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "conductor",
+             m.NOMBRE_MAR as "carro",
+             vh.PLACA_VEH as "placa"
+      FROM VIAJES v
+      INNER JOIN USUARIOS u ON v.USUARIOS_ID_USU = u.ID_USU
+      INNER JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
+      INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
+      INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+     AND UPPER(mo.NOMBRE_MUN) = UPPER(:origenName) AND UPPER(md.NOMBRE_MUN) = UPPER(:destinoName)",
+  },
+]
+`;
+
+exports[`GET /api/viajes (caracterización) > 200 sin filtros: solo viajes disponibles desde hoy 1`] = `
+[
+  {
+    "binds": {},
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT v.ID_VIA as "id", 
+             mo.NOMBRE_MUN as "origen", 
+             md.NOMBRE_MUN as "destino", 
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD') as "hora", 
+             v.COSTO_PERSONA_VIA as "valor",
+             v.COMENTARIOS_VIA as "comentarios", 
+             v.CUPOS_DISPONIBLES_VIA as "puestos",
+             u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "conductor",
+             m.NOMBRE_MAR as "carro",
+             vh.PLACA_VEH as "placa"
+      FROM VIAJES v
+      INNER JOIN USUARIOS u ON v.USUARIOS_ID_USU = u.ID_USU
+      INNER JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
+      INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
+      INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+    ",
+  },
+]
+`;
+
+exports[`POST /api/viajes (caracterización) > 201: crea municipios, marca y vehículo cuando no existen (cada insert con autoCommit) 1`] = `
+[
+  {
+    "binds": {
+      "cleanName": "MEDELLÍN",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MUN FROM MUNICIPIOS WHERE UPPER(NOMBRE_MUN) = :cleanName",
+  },
+  {
+    "binds": undefined,
+    "options": undefined,
+    "sql": "SELECT NVL(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS",
+  },
+  {
+    "binds": {
+      "name": "medellín",
+      "nextId": 100,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "INSERT INTO MUNICIPIOS (ID_MUN, NOMBRE_MUN, DEPARTAMENTO_ID_DEP) VALUES (:nextId, :name, 1)",
+  },
+  {
+    "binds": {
+      "cleanName": "ENVIGADO",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MUN FROM MUNICIPIOS WHERE UPPER(NOMBRE_MUN) = :cleanName",
+  },
+  {
+    "binds": undefined,
+    "options": undefined,
+    "sql": "SELECT NVL(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS",
+  },
+  {
+    "binds": {
+      "name": "Envigado",
+      "nextId": 101,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "INSERT INTO MUNICIPIOS (ID_MUN, NOMBRE_MUN, DEPARTAMENTO_ID_DEP) VALUES (:nextId, :name, 1)",
+  },
+  {
+    "binds": {
+      "brandName": "RENAULT",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MAR FROM MARCAS WHERE UPPER(NOMBRE_MAR) = :brandName",
+  },
+  {
+    "binds": {
+      "fullInput": "RENAULT LOGAN",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MAR FROM MARCAS WHERE UPPER(NOMBRE_MAR) = :fullInput",
+  },
+  {
+    "binds": undefined,
+    "options": undefined,
+    "sql": "SELECT NVL(MAX(ID_MAR), 0) + 1 as "nextId" FROM MARCAS",
+  },
+  {
+    "binds": {
+      "formattedBrand": "Renault",
+      "nextId": 7,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "INSERT INTO MARCAS (ID_MAR, NOMBRE_MAR) VALUES (:nextId, :formattedBrand)",
+  },
+  {
+    "binds": {
+      "cleanPlaca": "ABC123",
+    },
+    "options": undefined,
+    "sql": "SELECT PLACA_VEH FROM VEHICULOS WHERE PLACA_VEH = :cleanPlaca",
+  },
+  {
+    "binds": {
+      "capacidad": 3,
+      "cleanPlaca": "ABC123",
+      "marcaId": 7,
+      "usuarioId": 42,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "INSERT INTO VEHICULOS (PLACA_VEH, CAPACIDAD_VEH, CONDUCTOR_ID_USU, MARCA_ID_MAR)
+          VALUES (:cleanPlaca, :capacidad, :usuarioId, :marcaId)",
+  },
+  {
+    "binds": {
+      "cleanComentarios": "Salgo puntual",
+      "cleanPlaca": "ABC123",
+      "destinoId": 101,
+      "fecha": "2026-10-01",
+      "idViaje": 1760000000000,
+      "numPuestos": 3,
+      "origenId": 100,
+      "usuarioId": 42,
+      "valorNum": 5000.5,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO VIAJES (ID_VIA, MUNICIPIO_ORIGEN_ID, MUNICIPIOS_DESTINO_ID, TIEMPO_SALIDA_VIA, CUPOS_DISPONIBLES_VIA, COSTO_PERSONA_VIA, COMENTARIOS_VIA, USUARIOS_ID_USU, VEHICULO_PLACA_VEH, ESTADO_VIA_ID_EST_VIA)
+      VALUES (:idViaje, :origenId, :destinoId, TO_DATE(:fecha, 'YYYY-MM-DD'), :numPuestos, :valorNum, :cleanComentarios, :usuarioId, :cleanPlaca, 1)
+    ",
+  },
+]
+`;
+
+exports[`POST /api/viajes (caracterización) > 201: municipios, marca y vehículo ya existen → solo inserta el viaje 1`] = `
+[
+  {
+    "binds": {
+      "cleanName": "BELLO",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MUN FROM MUNICIPIOS WHERE UPPER(NOMBRE_MUN) = :cleanName",
+  },
+  {
+    "binds": {
+      "cleanName": "ENVIGADO",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MUN FROM MUNICIPIOS WHERE UPPER(NOMBRE_MUN) = :cleanName",
+  },
+  {
+    "binds": {
+      "brandName": "MAZDA",
+    },
+    "options": undefined,
+    "sql": "SELECT ID_MAR FROM MARCAS WHERE UPPER(NOMBRE_MAR) = :brandName",
+  },
+  {
+    "binds": {
+      "cleanPlaca": "ABC123",
+    },
+    "options": undefined,
+    "sql": "SELECT PLACA_VEH FROM VEHICULOS WHERE PLACA_VEH = :cleanPlaca",
+  },
+  {
+    "binds": {
+      "cleanComentarios": "Salgo puntual",
+      "cleanPlaca": "ABC123",
+      "destinoId": 20,
+      "fecha": "2026-10-01",
+      "idViaje": 1760000000000,
+      "numPuestos": 3,
+      "origenId": 10,
+      "usuarioId": 42,
+      "valorNum": 5000.5,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO VIAJES (ID_VIA, MUNICIPIO_ORIGEN_ID, MUNICIPIOS_DESTINO_ID, TIEMPO_SALIDA_VIA, CUPOS_DISPONIBLES_VIA, COSTO_PERSONA_VIA, COMENTARIOS_VIA, USUARIOS_ID_USU, VEHICULO_PLACA_VEH, ESTADO_VIA_ID_EST_VIA)
+      VALUES (:idViaje, :origenId, :destinoId, TO_DATE(:fecha, 'YYYY-MM-DD'), :numPuestos, :valorNum, :cleanComentarios, :usuarioId, :cleanPlaca, 1)
+    ",
+  },
+]
+`;

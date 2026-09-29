@@ -1,0 +1,161 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GET /api/guardian (caracterización) > 200 por email: lista de alertas tal cual vienen de la BD 1`] = `
+[
+  {
+    "binds": {
+      "email": "A@X.CO",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+        SELECT g.ID_GUA as "id", 
+               g.EMAIL_CONFIANZA_GUA as "email",
+               es.ESTADO_EST_GUA as "estado",
+               TO_CHAR(g.FECHA_INICIO_GUA, 'YYYY-MM-DD HH24:MI:SS') as "inicio",
+               mo.NOMBRE_MUN as "origen",
+               md.NOMBRE_MUN as "destino",
+               COALESCE(
+                 (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU 
+                  FROM SOLICITUDES s 
+                  JOIN USUARIOS u_pas ON s.USUARIOS_ID_USU = u_pas.ID_USU 
+                  WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 AND ROWNUM = 1),
+                 u.NOMBRE_USU || ' ' || u.APELLIDO_USU
+               ) as "pasajero",
+               vh.PLACA_VEH as "placa",
+               m.NOMBRE_MAR as "carro",
+               u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "conductor",
+               g.TIEMPO_ESTIMADO_GUA as "tiempo"
+        FROM GUARDIANES g
+        JOIN VIAJES v ON g.VIAJES_ID_VIA = v.ID_VIA
+        JOIN ESTADOS_GUA es ON g.ESTADO_ID_EST = es.ID_EST_GUA
+        JOIN USUARIOS u ON v.USUARIOS_ID_USU = u.ID_USU
+        JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
+        JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
+        JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+        JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+        WHERE UPPER(g.EMAIL_CONFIANZA_GUA) = UPPER(:email) AND g.ESTADO_ID_EST != 2
+      ",
+  },
+]
+`;
+
+exports[`GET /api/guardian (caracterización) > 200 por usuarioId: devuelve solo la primera fila (usuarioId como string) 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": "42",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+        SELECT g.ID_GUA as "id", 
+               g.EMAIL_CONFIANZA_GUA as "email",
+               es.ESTADO_EST_GUA as "estado",
+               TO_CHAR(g.FECHA_INICIO_GUA, 'YYYY-MM-DD HH24:MI:SS') as "inicio",
+               mo.NOMBRE_MUN as "origen",
+               md.NOMBRE_MUN as "destino",
+               u_cond.NOMBRE_USU || ' ' || u_cond.APELLIDO_USU as "conductor",
+               vh.PLACA_VEH as "placa",
+               m.NOMBRE_MAR as "carro",
+               g.TIEMPO_ESTIMADO_GUA as "tiempoMin",
+               v.ID_VIA as "viajeId"
+        FROM GUARDIANES g
+        JOIN VIAJES v ON g.VIAJES_ID_VIA = v.ID_VIA
+        JOIN ESTADOS_GUA es ON g.ESTADO_ID_EST = es.ID_EST_GUA
+        JOIN USUARIOS u_cond ON v.USUARIOS_ID_USU = u_cond.ID_USU
+        JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
+        JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
+        JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+        JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+        JOIN SOLICITUDES s ON s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2
+        WHERE s.USUARIOS_ID_USU = :usuarioId AND g.ESTADO_ID_EST != 2
+      ",
+  },
+]
+`;
+
+exports[`POST /api/guardian (caracterización) > 201: valida que el correo exista e inserta el guardián activo 1`] = `
+[
+  {
+    "binds": {
+      "email": "a@x.co",
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)",
+  },
+  {
+    "binds": {
+      "email": "a@x.co",
+      "idGua": 1760000000000,
+      "tiempo": 45,
+      "viajeId": 5,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA)
+      VALUES (:idGua, :email, SYSTIMESTAMP, :viajeId, 1, :tiempo)
+    ",
+  },
+]
+`;
+
+exports[`PUT /api/guardian (caracterización) > 200 con estado de texto: resuelve el ID por los primeros 6 caracteres 1`] = `
+[
+  {
+    "binds": {
+      "estadoStr": "Finalizado",
+      "id": 11,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+          UPDATE GUARDIANES 
+          SET ESTADO_ID_EST = (
+            SELECT ID_EST_GUA 
+            FROM ESTADOS_GUA 
+            WHERE UPPER(SUBSTR(ESTADO_EST_GUA, 1, 6)) = UPPER(SUBSTR(:estadoStr, 1, 6))
+            AND ROWNUM = 1
+          )
+          WHERE ID_GUA = :id
+        ",
+  },
+]
+`;
+
+exports[`PUT /api/guardian (caracterización) > 200 con estado numérico: usa el ID directo 1`] = `
+[
+  {
+    "binds": {
+      "estadoId": 2,
+      "id": 11,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "UPDATE GUARDIANES SET ESTADO_ID_EST = :estadoId WHERE ID_GUA = :id",
+  },
+]
+`;
+
+exports[`PUT /api/guardian (caracterización) > 200 con extraTiempo: suma minutos (id sin convertir) 1`] = `
+[
+  {
+    "binds": {
+      "extraTiempo": 15,
+      "id": "11",
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "UPDATE GUARDIANES SET TIEMPO_ESTIMADO_GUA = TIEMPO_ESTIMADO_GUA + :extraTiempo WHERE ID_GUA = :id",
+  },
+]
+`;

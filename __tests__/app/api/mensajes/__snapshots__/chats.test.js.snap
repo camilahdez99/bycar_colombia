@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GET /api/mensajes/chats (caracterización) > 200 con los chats aceptados tal cual vienen de la BD (usuarioId convertido a número) 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": 42,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT s.ID_SOL as "chatId",
+             CASE 
+               WHEN s.USUARIOS_ID_USU = :usuarioId THEN u_cond.NOMBRE_USU || ' ' || u_cond.APELLIDO_USU
+               ELSE u_pasajero.NOMBRE_USU || ' ' || u_pasajero.APELLIDO_USU
+             END as "nombre",
+             mo.NOMBRE_MUN || ' - ' || md.NOMBRE_MUN as "ruta",
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD') as "fecha"
+      FROM SOLICITUDES s
+      JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
+      JOIN USUARIOS u_cond ON v.USUARIOS_ID_USU = u_cond.ID_USU
+      JOIN USUARIOS u_pasajero ON s.USUARIOS_ID_USU = u_pasajero.ID_USU
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      WHERE s.ESTADO_ID_EST = 2
+        AND (s.USUARIOS_ID_USU = :usuarioId OR v.USUARIOS_ID_USU = :usuarioId)
+      ORDER BY s.ID_SOL DESC
+    ",
+  },
+]
+`;

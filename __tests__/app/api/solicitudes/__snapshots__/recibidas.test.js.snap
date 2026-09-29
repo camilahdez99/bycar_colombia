@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GET /api/solicitudes/recibidas (caracterización) > 200 con las solicitudes pendientes del conductor tal cual vienen de la BD 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": 42,
+    },
+    "options": {
+      "outFormat": 4002,
+    },
+    "sql": "
+      SELECT s.ID_SOL as "id", 
+             u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "pasajero", 
+             mo.NOMBRE_MUN || ' -> ' || md.NOMBRE_MUN as "ruta",
+             'U' as "avatar"
+      FROM SOLICITUDES s
+      JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
+      JOIN USUARIOS u ON s.USUARIOS_ID_USU = u.ID_USU
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      WHERE s.ESTADO_ID_EST = 1 
+        AND v.USUARIOS_ID_USU = :usuarioId
+    ",
+  },
+]
+`;
