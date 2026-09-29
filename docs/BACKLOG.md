@@ -7,7 +7,10 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
 - [ ] `seguridad` Decidir estrategia de auth en servidor (sesión con cookie httpOnly + proxy/middleware de Next 16) y proteger `/api/admin/*` y `/admin`. Ver BUGS S1-S3. Requiere acordar el contrato: cambia el comportamiento de la API.
 - [ ] `seguridad` Hash de contraseñas (bcrypt/argon2) con migración de las existentes. Ver S4. Toca BD.
 - [ ] `seguridad` Quitar el admin hardcodeado del login. Ver S5.
-- [ ] `tests` Caracterizar los route handlers mockeando `@/lib/db` antes de cualquier refactor de API.
+- [x] `tests` Caracterizar los route handlers mockeando `@/lib/db` antes de cualquier refactor de API (2026-09-28).
+- [ ] `seguridad` Corregir F11: DELETE sobre PK compuesta en `admin/tablas` (puede borrar permisos masivamente).
+- [ ] `tests` Caracterizar el frontend: helpers puros de `dashboard` y `DynamicForm`.
+- [ ] `tooling` Los snapshots se guardan con LF y git tiene `autocrlf`. Si un clon nuevo rompe los snapshots, agregar un `.gitattributes` con `eol=lf`.
 
 ## Tooling
 
