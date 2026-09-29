@@ -22,6 +22,12 @@ describe('createSessionFetch', () => {
     expect(onExpired).not.toHaveBeenCalled();
   });
 
+  test('sin init, llama a fetch con un solo argumento (igual que antes del wrapper)', async () => {
+    const fetchImpl = vi.fn(async () => responseWith(200));
+    await createSessionFetch({ fetchImpl, onExpired: vi.fn() })('/api/x');
+    expect(fetchImpl.mock.calls[0]).toEqual(['/api/x']);
+  });
+
   test.each([400, 403, 404, 500])('%i no dispara la expiración', async (status) => {
     const onExpired = vi.fn();
     await createSessionFetch({ fetchImpl: async () => responseWith(status), onExpired })('/api/x');
