@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
+import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
+
+// El chat es una solicitud: solo su pasajero y el conductor del viaje participan
+const isParticipant = (userId, passengerId, driverId) =>
+  sameUser(userId, passengerId) || sameUser(userId, driverId);
 
 export async function GET(req) {
   const denied = await authorize(req);
@@ -31,6 +36,9 @@ export async function GET(req) {
     }
 
     const { passengerId, driverId } = resSol.rows[0];
+
+    const notParticipant = await checkOwnership(req, (userId) => isParticipant(userId, passengerId, driverId));
+    if (notParticipant) return notParticipant;
 
     // 2. Obtener mensajes asociados a este par
     const sqlMsgs = `
@@ -74,6 +82,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
     }
 
+    const notSender = await requireSelf(req, senderId);
+    if (notSender) return notSender;
+
     connection = await getConnection();
 
     // 1. Obtener passengerId y driverId de la Solicitud
@@ -90,6 +101,9 @@ export async function POST(req) {
     }
 
     const { passengerId, driverId } = resSol.rows[0];
+
+    const notParticipant = await checkOwnership(req, (userId) => isParticipant(userId, passengerId, driverId));
+    if (notParticipant) return notParticipant;
 
     const emisorId = parseInt(senderId, 10);
     const receptorId = (emisorId === parseInt(passengerId, 10)) ? parseInt(driverId, 10) : parseInt(passengerId, 10);

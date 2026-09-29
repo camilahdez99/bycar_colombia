@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
+import { requireSelf } from '@/lib/auth/ownership';
 
 export async function GET(req) {
   const denied = await authorize(req);
@@ -51,6 +52,9 @@ export async function GET(req) {
     }
 
     if (usuarioId) {
+      const notOwner = await requireSelf(req, usuarioId);
+      if (notOwner) return notOwner;
+
       // Buscar el guardián activo del propio usuario (conductor/creador o pasajero con solicitud aceptada)
       const sql = `
         SELECT g.ID_GUA as "id", 

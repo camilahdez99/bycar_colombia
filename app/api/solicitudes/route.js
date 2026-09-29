@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
+import { requireSelf } from '@/lib/auth/ownership';
 
 export async function POST(req) {
   const denied = await authorize(req);
@@ -13,6 +14,9 @@ export async function POST(req) {
     if (!viajeId || !usuarioId) {
       return NextResponse.json({ error: 'ID de viaje y usuario son requeridos' }, { status: 400 });
     }
+
+    const notOwner = await requireSelf(req, usuarioId);
+    if (notOwner) return notOwner;
 
     connection = await getConnection();
     const idSol = Date.now();

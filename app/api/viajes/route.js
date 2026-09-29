@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
+import { requireSelf } from '@/lib/auth/ownership';
 
 async function getOrCreateMunicipio(connection, name) {
   if (!name) return 1;
@@ -150,6 +151,9 @@ export async function POST(req) {
     if (!origen || !destino || !placa || !fecha || !puestos || !valor || !usuarioId) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
+
+    const notOwner = await requireSelf(req, usuarioId);
+    if (notOwner) return notOwner;
 
     const cleanPlaca = placa.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase();
     const numPuestos = parseInt(puestos, 10);

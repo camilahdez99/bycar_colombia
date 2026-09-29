@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { authorize } from '@/lib/auth/guard';
+import { requireSelf } from '@/lib/auth/ownership';
 
 export async function GET(req) {
   const denied = await authorize(req);
@@ -14,6 +15,9 @@ export async function GET(req) {
     if (!usuarioId) {
       return NextResponse.json({ error: 'ID de usuario es requerido' }, { status: 400 });
     }
+
+    const notOwner = await requireSelf(req, usuarioId);
+    if (notOwner) return notOwner;
 
     connection = await getConnection();
 
