@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
 
 export async function POST(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { viajeId, usuarioId } = await req.json();
@@ -32,6 +36,9 @@ export async function POST(req) {
 }
 
 export async function PUT(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { solicitudId, estado } = await req.json();

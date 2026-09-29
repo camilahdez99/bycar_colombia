@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
+import { ROLES } from '@/lib/auth/session';
 
 export async function GET(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     connection = await getConnection();
@@ -34,6 +39,9 @@ export async function GET(req) {
 }
 
 export async function DELETE(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);
@@ -59,6 +67,9 @@ export async function DELETE(req) {
 }
 
 export async function PUT(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);

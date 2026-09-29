@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
 
 export async function GET(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);

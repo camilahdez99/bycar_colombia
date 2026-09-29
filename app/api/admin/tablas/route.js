@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
+import { ROLES } from '@/lib/auth/session';
 
 const sanitizeTable = (name) => {
   if (!/^[A-Z0-9_]+$/i.test(name)) {
@@ -58,6 +60,9 @@ const getColumnsInfo = async (connection, tabla) => {
 };
 
 export async function GET(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   const { searchParams } = new URL(req.url);
 
   const tabla = searchParams.get('tabla');
@@ -131,6 +136,9 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   const { searchParams } = new URL(req.url);
 
   const tabla = searchParams.get('tabla');
@@ -232,6 +240,9 @@ export async function POST(req) {
 }
 
 export async function PUT(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   const { searchParams } = new URL(req.url);
 
   const tabla = searchParams.get('tabla');
@@ -308,6 +319,9 @@ export async function PUT(req) {
 }
 
 export async function DELETE(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   const { searchParams } = new URL(req.url);
 
   const tabla = searchParams.get('tabla');

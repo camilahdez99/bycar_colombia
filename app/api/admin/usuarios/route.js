@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
+import { ROLES } from '@/lib/auth/session';
 
 // SELECT - Obtener todos los usuarios
 export async function GET(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     connection = await getConnection();
@@ -25,6 +30,9 @@ export async function GET(req) {
 
 // INSERT - Crear nuevo usuario
 export async function POST(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { nombre, apellido, correo, contrasena } = await req.json();
@@ -66,6 +74,9 @@ export async function POST(req) {
 
 // UPDATE - Actualizar usuario
 export async function PUT(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);
@@ -102,6 +113,9 @@ export async function PUT(req) {
 
 // DELETE - Eliminar usuario y sus dependencias
 export async function DELETE(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);

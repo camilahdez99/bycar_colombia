@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
 
 export async function GET(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);
@@ -85,6 +89,9 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { viajeId, email, tiempo } = await req.json();
@@ -128,6 +135,9 @@ export async function POST(req) {
 }
 
 export async function PUT(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { id, estado, extraTiempo } = await req.json();

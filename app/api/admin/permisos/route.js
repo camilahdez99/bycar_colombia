@@ -1,9 +1,25 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { authorize, forbidden, getSession, isAuthEnforced, unauthenticated } from '@/lib/auth/guard';
+import { ROLES } from '@/lib/auth/session';
+
+// El dashboard consulta los permisos del propio usuario; cualquier otra lectura requiere admin
+async function authorizeRead(req) {
+  if (!isAuthEnforced()) return null;
+  const session = await getSession(req);
+  if (!session) return unauthenticated();
+  if (session.role === ROLES.ADMIN) return null;
+  const usuarioId = new URL(req.url).searchParams.get('usuarioId');
+  const esPropio = usuarioId !== null && String(session.userId) === usuarioId;
+  return esPropio ? null : forbidden();
+}
 
 // GET — obtener permisos de un perfil (menús asignados)
 export async function GET(req) {
+  const denied = await authorizeRead(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);
@@ -46,6 +62,9 @@ export async function GET(req) {
 
 // POST — asignar un menú a un usuario
 export async function POST(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { usuarioId, menuId } = await req.json();
@@ -70,6 +89,9 @@ export async function POST(req) {
 
 // DELETE — revocar un menú de un usuario
 export async function DELETE(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);

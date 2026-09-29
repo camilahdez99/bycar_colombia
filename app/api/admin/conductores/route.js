@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
+import { ROLES } from '@/lib/auth/session';
 
 // SELECT - Obtener todos los conductores (usuarios que tienen vehículos registrados)
 // En el esquema 3FN no existe tabla CONDUCTOR; un conductor es un usuario con vehículos.
 export async function GET(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     connection = await getConnection();
@@ -36,6 +41,9 @@ export async function GET(req) {
 // En el nuevo esquema 3FN, no se necesita crear un "conductor" separado.
 // Un usuario se convierte en conductor al registrar un vehículo o publicar un viaje.
 export async function POST(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   return NextResponse.json({ 
     message: 'En el esquema actual, un usuario se convierte en conductor al registrar un vehículo o publicar un viaje.' 
   }, { status: 200 });
@@ -43,6 +51,9 @@ export async function POST(req) {
 
 // DELETE - Eliminar los vehículos y viajes de un conductor (usuario)
 export async function DELETE(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);

@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
+import { ROLES } from '@/lib/auth/session';
 
 // SELECT - Obtener todos los vehículos con datos del conductor
 export async function GET(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     connection = await getConnection();
@@ -31,6 +36,9 @@ export async function GET(req) {
 
 // INSERT - Registrar un nuevo vehículo
 export async function POST(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { placa, marcaId, capacidad, idConductor } = await req.json();
@@ -79,6 +87,9 @@ export async function POST(req) {
 
 // UPDATE - Actualizar datos del vehículo
 export async function PUT(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);
@@ -115,6 +126,9 @@ export async function PUT(req) {
 
 // DELETE - Eliminar vehículo
 export async function DELETE(req) {
+  const denied = await authorize(req, { role: ROLES.ADMIN });
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);

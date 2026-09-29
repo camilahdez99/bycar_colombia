@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { authorize } from '@/lib/auth/guard';
 
 async function getOrCreateMunicipio(connection, name) {
   if (!name) return 1;
@@ -74,6 +75,9 @@ async function getOrCreateMarca(connection, carroInput) {
 }
 
 export async function GET(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const { searchParams } = new URL(req.url);
@@ -135,6 +139,9 @@ export async function GET(req) {
 }
 
 export async function POST(req) {
+  const denied = await authorize(req);
+  if (denied) return denied;
+
   let connection;
   try {
     const body = await req.json();
