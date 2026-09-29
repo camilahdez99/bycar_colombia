@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AdminPage from '@/app/admin/page';
 import PermisosManager from '@/app/components/admin/PermisosManager';
+import { toast } from 'react-hot-toast';
 
 vi.mock('react-hot-toast', () => ({
   toast: { error: vi.fn(), success: vi.fn(), loading: vi.fn(() => 'toast-id') },
@@ -47,6 +48,43 @@ describe('AdminPage (caracterización de la carga inicial)', () => {
       ['/api/admin/tablas?metadata=1&tabla=USUARIOS', 'GET'],
       ['/api/admin/tablas?tabla=USUARIOS', 'GET'],
     ]);
+  });
+});
+
+describe('AdminPage ante errores de la API (F27)', () => {
+  const errorResponse = (status) => jsonResponse({ error: 'ORA-00942' }, status);
+
+  test('si falla la lista de tablas: avisa, no se rompe y no pide metadata', async () => {
+    fetch.mockImplementation(async (url) => (url === '/api/admin/tablas?list=1' ? errorResponse(500) : respuestaPorDefecto(url)));
+    render(<AdminPage />);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error al obtener lista de tablas'));
+    expect(screen.getByText('Bycar ADMIN')).toBeTruthy();
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  test('si falla la metadata al cambiar de tabla: avisa y no deja filas de la tabla anterior', async () => {
+    fetch.mockImplementation(async (url) =>
+      url === '/api/admin/tablas?metadata=1&tabla=VIAJES' ? errorResponse(500) : respuestaPorDefecto(url),
+    );
+    render(<AdminPage />);
+    await screen.findByRole('columnheader', { name: 'ID_USU' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'VIAJES' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error al cargar datos de VIAJES'));
+    expect(screen.queryByRole('columnheader', { name: 'ID_USU' })).toBeNull();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(fetch).not.toHaveBeenCalledWith('/api/admin/tablas?tabla=VIAJES');
+  });
+
+  test('si falla la metadata, abrir "Nuevo" no rompe el formulario', async () => {
+    fetch.mockImplementation(async (url) =>
+      url.startsWith('/api/admin/tablas?metadata=1') ? errorResponse(500) : respuestaPorDefecto(url),
+    );
+    render(<AdminPage />);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error al cargar datos de USUARIOS'));
+    fireEvent.click(screen.getByRole('button', { name: /Nuevo/ }));
+    expect(screen.getByRole('heading', { level: 2 })).toBeTruthy();
   });
 });
 

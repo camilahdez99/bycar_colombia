@@ -3,6 +3,7 @@ import { Component } from 'react';
 import { afterEach, expect, test, vi } from 'vitest';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import AdminPage from '@/app/admin/page';
+import { toast } from 'react-hot-toast';
 
 vi.mock('react-hot-toast', () => ({
   toast: { error: vi.fn(), success: vi.fn(), loading: vi.fn(() => 'toast-id') },
@@ -46,7 +47,7 @@ test('si la API responde 401, redirige a /login una sola vez', async () => {
   await waitFor(() => expect(assign).toHaveBeenCalledWith('/login'));
   expect(assign).toHaveBeenCalledOnce();
 
-  // Comportamiento actual (BUGS F27): el panel guarda el body de error como lista de tablas y el render falla
-  await waitFor(() => expect(onError).toHaveBeenCalled());
-  expect(onError.mock.calls[0][0].message).toBe('tablesList.map is not a function');
+  // F27 corregido: el body de error no se guarda como lista y el render no falla
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error al obtener lista de tablas'));
+  expect(onError).not.toHaveBeenCalled();
 });

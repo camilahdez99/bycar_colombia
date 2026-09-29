@@ -35,6 +35,15 @@ function Modal({ title, children, onClose }) {
   );
 }
 
+/** Lee una respuesta que debe ser un array; un body de error ({ error }) no se guarda como lista (F27) */
+async function readList(response) {
+  const data = await response.json();
+  if (!response.ok || !Array.isArray(data)) {
+    throw new Error(data?.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
 /** Admin page that dynamically lists every table defined in the schema and provides generic CRUD */
 export default function AdminPage() {
   // ==== Global state ==== 
@@ -55,7 +64,7 @@ export default function AdminPage() {
     const fetchTables = async () => {
       try {
         const res = await fetchConSesion('/api/admin/tablas?list=1');
-        const data = await res.json();
+        const data = await readList(res);
         setTablesList(data);
         if (data.length) setActiveTable(data[0]);
       } catch (e) {
@@ -72,12 +81,15 @@ export default function AdminPage() {
       setLoading(true);
       try {
         const metaRes = await fetchConSesion(`/api/admin/tablas?metadata=1&tabla=${activeTable}`);
-        const cols = await metaRes.json();
+        const cols = await readList(metaRes);
         setColumnsInfo(cols);
         const dataRes = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`);
         const rows = await dataRes.json();
         setRowsData(Array.isArray(rows) ? rows : []);
       } catch (e) {
+        // No dejar columnas/filas de la tabla anterior: acciones sobre ellas irían a la tabla activa
+        setColumnsInfo([]);
+        setRowsData([]);
         toast.error(`Error al cargar datos de ${activeTable}`);
       } finally {
         setLoading(false);

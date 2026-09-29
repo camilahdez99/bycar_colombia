@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-29 — Fix F27: panel admin ante errores de la API
+
+**Qué cambió**
+- `app/admin/page.jsx`: la lista de tablas y la metadata se leen con `readList`, que exige `res.ok` y un array. Si no se cumple, se muestra el toast de error que ya existía en lugar de guardar `{ error }` como lista.
+- Si falla la carga de una tabla, se vacían columnas y filas. Antes quedaban las de la tabla anterior bajo el nombre de la nueva, y un "Eliminar" podía mandar un id de una tabla a otra.
+
+**Tests corridos**
+- 3 tests nuevos, escritos antes del fix y fallando con el código viejo: falla la lista, falla la metadata al cambiar de tabla, y "Nuevo" con la metadata caída.
+- `admin-sesion.test.jsx` se actualizó a propósito: ya no fija el crash, verifica que no ocurra.
+- `npm test`: 27 archivos, 440 tests OK. `npm run build`: OK. `npm run lint`: igual que la línea base.
+
+**Riesgos pendientes**
+- Si falla la lista de tablas, el panel queda con "Cargando datos..." indefinidamente, igual que antes cuando no había tablas. Es cosmético.
+
 ## 2026-09-29 — /admin: redirección ante 401
 
 **Qué cambió**
