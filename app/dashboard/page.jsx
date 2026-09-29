@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
+import { fetchConSesion } from '@/lib/client/sessionFetch';
 
 const normalizar = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
@@ -168,9 +169,9 @@ export default function DashboardPage() {
   // Cargar catálogos dinámicos (menús, marcas, municipios)
   useEffect(() => {
     Promise.all([
-      fetch('/api/menus').then(r => r.ok ? r.json() : []),
-      fetch('/api/marcas').then(r => r.ok ? r.json() : []),
-      fetch('/api/municipios').then(r => r.ok ? r.json() : []),
+      fetchConSesion('/api/menus').then(r => r.ok ? r.json() : []),
+      fetchConSesion('/api/marcas').then(r => r.ok ? r.json() : []),
+      fetchConSesion('/api/municipios').then(r => r.ok ? r.json() : []),
     ]).then(([menus, marcasData, municipiosData]) => {
       setMenuItems(menus);
       setMarcas(marcasData);
@@ -194,11 +195,11 @@ export default function DashboardPage() {
         if (!uIdChat) return;
 
         const [resRutas, resSol, resMensajes, resGuardian, resPermisos] = await Promise.all([
-          fetch(`/api/viajes/mis-rutas?usuarioId=${uIdChat}`),
-          fetch(`/api/solicitudes/recibidas?usuarioId=${uIdChat}`),
-          fetch(`/api/mensajes/chats?usuarioId=${uIdChat}`),
-          fetch(`/api/guardian?usuarioId=${uIdChat}`),
-          fetch(`/api/admin/permisos?usuarioId=${uIdChat}`)
+          fetchConSesion(`/api/viajes/mis-rutas?usuarioId=${uIdChat}`),
+          fetchConSesion(`/api/solicitudes/recibidas?usuarioId=${uIdChat}`),
+          fetchConSesion(`/api/mensajes/chats?usuarioId=${uIdChat}`),
+          fetchConSesion(`/api/guardian?usuarioId=${uIdChat}`),
+          fetchConSesion(`/api/admin/permisos?usuarioId=${uIdChat}`)
         ]);
         if (resRutas.ok) {
           const dataRutas = await resRutas.json();
@@ -261,14 +262,14 @@ export default function DashboardPage() {
     const refreshTabs = () => {
       // Refresh solicitudes
       if (activePage === 'solicitudes') {
-        fetch(`/api/solicitudes/recibidas?usuarioId=${uId}`)
+        fetchConSesion(`/api/solicitudes/recibidas?usuarioId=${uId}`)
           .then(res => res.json())
           .then(data => setSolicitudesRecibidas(Array.isArray(data) ? data : []))
           .catch(err => console.error(err));
       }
       
       // Refresh mis rutas SIEMPRE en background para detectar cambios de estado y activar el badge
-      fetch(`/api/viajes/mis-rutas?usuarioId=${uId}`)
+      fetchConSesion(`/api/viajes/mis-rutas?usuarioId=${uId}`)
         .then(res => res.json())
         .then(data => {
           if (data && typeof data === 'object') {
@@ -280,7 +281,7 @@ export default function DashboardPage() {
 
       // Refresh chat list SIEMPRE (en background) para detectar nuevos chats tanto
       // para el conductor que acepta como para el pasajero cuya solicitud fue aceptada
-      fetch(`/api/mensajes/chats?usuarioId=${uId}`)
+      fetchConSesion(`/api/mensajes/chats?usuarioId=${uId}`)
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -299,7 +300,7 @@ export default function DashboardPage() {
       if (activePage === 'guardian') {
         if (currentUser?.CORREO_USU || currentUser?.correo_usu) {
           const email = currentUser.CORREO_USU || currentUser.correo_usu;
-          fetch(`/api/guardian?email=${email}`)
+          fetchConSesion(`/api/guardian?email=${email}`)
             .then(res => res.json())
             .then(data => setAlertasRecibidas(Array.isArray(data) ? data : []))
             .catch(err => console.error(err));
@@ -354,7 +355,7 @@ export default function DashboardPage() {
           // Sincronizar estado con la BD
           const gId = guardianIdRef.current;
           if (gId) {
-            fetch('/api/guardian', {
+            fetchConSesion('/api/guardian', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ id: gId, estado: 'Alerta' })
@@ -380,7 +381,7 @@ export default function DashboardPage() {
     const vId = viaje.viajeId || viaje.id;
     
     try {
-      const res = await fetch('/api/guardian', {
+      const res = await fetchConSesion('/api/guardian', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -416,7 +417,7 @@ export default function DashboardPage() {
 
   const finalizarGuardian = async () => {
     if (guardianId) {
-      await fetch('/api/guardian', {
+      await fetchConSesion('/api/guardian', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: guardianId, estado: 'Inactivo' })
@@ -431,7 +432,7 @@ export default function DashboardPage() {
 
   const reajustarTiempo = async () => {
     if (guardianId) {
-      await fetch('/api/guardian', {
+      await fetchConSesion('/api/guardian', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: guardianId, extraTiempo: 15 })
@@ -468,7 +469,7 @@ export default function DashboardPage() {
   const fetchChatMsgs = async (chatId) => {
     if (!chatId) return;
     try {
-      const res = await fetch(`/api/mensajes?chatId=${chatId}`);
+      const res = await fetchConSesion(`/api/mensajes?chatId=${chatId}`);
       if (res.ok) {
         const data = await res.json();
         const myId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id;
@@ -504,7 +505,7 @@ export default function DashboardPage() {
     setMsgInput('');
 
     try {
-      await fetch('/api/mensajes', {
+      await fetchConSesion('/api/mensajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -525,7 +526,7 @@ export default function DashboardPage() {
       if (searchParams.origen) url.searchParams.append('origen', searchParams.origen);
       if (searchParams.destino) url.searchParams.append('destino', searchParams.destino);
       
-      const res = await fetch(url);
+      const res = await fetchConSesion(url);
       const data = await res.json();
       
       if (res.ok) {
@@ -545,7 +546,7 @@ export default function DashboardPage() {
     const toastId = toast.loading('Enviando solicitud...');
     try {
       const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id || 1;
-      const res = await fetch('/api/solicitudes', {
+      const res = await fetchConSesion('/api/solicitudes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ viajeId: id, usuarioId: uId })
@@ -567,7 +568,7 @@ export default function DashboardPage() {
     
     try {
       const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id || 1;
-      const res = await fetch('/api/viajes', {
+      const res = await fetchConSesion('/api/viajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...nuevaRuta, usuarioId: uId })
@@ -595,7 +596,7 @@ export default function DashboardPage() {
   const gestionarSolicitud = async (id, estado) => {
     const toastId = toast.loading(estado === 'Aceptado' ? 'Aceptando solicitud...' : 'Rechazando solicitud...');
     try {
-      const res = await fetch('/api/solicitudes', {
+      const res = await fetchConSesion('/api/solicitudes', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ solicitudId: id, estado })
@@ -608,7 +609,7 @@ export default function DashboardPage() {
         if (estado === 'Aceptado') {
           const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id;
           if (uId) {
-            fetch(`/api/mensajes/chats?usuarioId=${uId}`)
+            fetchConSesion(`/api/mensajes/chats?usuarioId=${uId}`)
               .then(r => r.json())
               .then(data => setMensajes(data || []));
           }
@@ -627,7 +628,7 @@ export default function DashboardPage() {
   // Borra la cookie de sesión en el servidor; si la red falla, igual se cierra la sesión local
   const cerrarSesion = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetchConSesion('/api/auth/logout', { method: 'POST' });
     } catch (error) {
       console.error('Error al cerrar sesión en el servidor:', error);
     }
