@@ -11,7 +11,24 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
   3. Verificar que producción sirva por HTTPS: en producción la cookie es `Secure`.
   4. Prender `AUTH_ENFORCED=true`.
   5. ~~Redirección del dashboard ante 401~~: resuelto el 2026-09-29 (`lib/client/sessionFetch.js`).
-- [ ] `seguridad` IDOR (S6): derivar `usuarioId` y `senderId` de la sesión y validar la pertenencia de `chatId`, `solicitudId` y `guardianId`. Tarea aparte.
+- [ ] `seguridad` **IDOR (S6).** Plan aprobado el 2026-09-29, detrás de `AUTH_ENFORCED`.
+  - **Decisiones:**
+    - un ID ajeno responde 403 (no se reemplaza en silencio);
+    - el admin saltea la pertenencia;
+    - solicitudes: el conductor acepta o rechaza, el pasajero cancela, y "Pendiente" no se puede asignar por API;
+    - se autorizan SELECTs nuevos de solo lectura, sin tocar queries existentes.
+  1. Helper `lib/auth/ownership.js` con tests.
+  2. Fase A, sin SQL nuevo:
+     - `usuarioId` en `mis-rutas`, `recibidas`, `chats` y `guardian?usuarioId`;
+     - `usuarioId` del body en `POST viajes` y `POST solicitudes`;
+     - `mensajes`: validar que seas participante usando la query existente, y que `senderId` sea el de la sesión.
+  3. Fase B, con SELECTs nuevos:
+     - `PUT solicitudes`: roles según el estado;
+     - `POST guardian`: participás del `viajeId`;
+     - `PUT guardian`: el guardián es de tu viaje;
+     - `GET guardian?email`: el correo es el tuyo.
+  4. Test de IDOR sobre todas las rutas: el dueño pasa; otro usuario recibe 403 sin que se ejecute ninguna escritura.
+  5. Docs.
 - [ ] `seguridad` Quitar el admin hardcodeado (S5) y derivar el rol de `PERFIL_ID_PER` (requiere una query nueva: bd-pendiente).
 - [ ] `feat` Botón de logout en `/admin` (hoy solo existe en el dashboard).
 - [x] `feat` `/admin` y `PermisosManager` usan `fetchConSesion` (2026-09-29).
