@@ -37,7 +37,7 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual".
 
 | # | Sev | Ubicación | Descripción |
 |---|---|---|---|
-| F11 | 🔴 | `admin/tablas/route.js:30,317-327` | `getPrimaryKey` toma solo la primera columna de la PK. En tablas con PK compuesta (PERMISOS), `DELETE ?id=` borra todas las filas que coinciden con esa columna. |
+| ~~F11~~ | ✅ | `admin/tablas/route.js` | **Resuelto 2026-09-28.** PUT/DELETE con PK compuesta (PERMISOS) afectaban todas las filas del usuario. Ahora responden 400 sin ejecutar SQL. Los permisos se gestionan desde `admin/permisos`. |
 | F12 | 🟠 | `admin/tablas/route.js:172-193` | Un INSERT en MENUS sin `ID_ENU` corre con `autoCommit: false`, nunca se commitea y aun así devuelve 201. Probablemente se pierde al cerrar la conexión. |
 | F13 | 🟡 | `admin/tablas/route.js:30,96,271,321` | Si la tabla no tiene PK se genera `WHERE undefined = :id`. |
 | F14 | 🟡 | `admin/tablas/route.js:101,326` | GET y DELETE por id usan `Number(id)`, así que las claves de texto (placa) quedan NaN. PUT la envía como string: los tres métodos son inconsistentes. |

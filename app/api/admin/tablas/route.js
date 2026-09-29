@@ -11,7 +11,9 @@ const sanitizeTable = (name) => {
   return name.toUpperCase();
 };
 
-const getPrimaryKey = async (connection, tabla) => {
+const ERROR_PK_COMPUESTA = 'La tabla tiene clave primaria compuesta: no se puede modificar por id';
+
+const getPrimaryKeyColumns = async (connection, tabla) => {
   const pkSql = `
     SELECT cols.column_name
     FROM user_constraints cons
@@ -27,8 +29,17 @@ const getPrimaryKey = async (connection, tabla) => {
     { outFormat: oracledb.OUT_FORMAT_OBJECT }
   );
 
-  return res.rows[0]?.COLUMN_NAME;
+  return res.rows.map((row) => row.COLUMN_NAME);
 };
+
+const getPrimaryKey = async (connection, tabla) => {
+  const [firstColumn] = await getPrimaryKeyColumns(connection, tabla);
+  return firstColumn;
+};
+
+// Con PK compuesta un único "id" no identifica una fila: PUT/DELETE afectarían varias (F11)
+const compositeKeyResponse = () =>
+  NextResponse.json({ error: ERROR_PK_COMPUESTA }, { status: 400 });
 
 const getColumnsInfo = async (connection, tabla) => {
   const sql = `
@@ -241,7 +252,9 @@ export async function PUT(req) {
   try {
     connection = await getConnection();
 
-    const pk = await getPrimaryKey(connection, t);
+    const pkColumns = await getPrimaryKeyColumns(connection, t);
+    if (pkColumns.length > 1) return compositeKeyResponse();
+    const [pk] = pkColumns;
 
     const colsInfo = await getColumnsInfo(connection, t);
 
@@ -314,7 +327,9 @@ export async function DELETE(req) {
   try {
     connection = await getConnection();
 
-    const pk = await getPrimaryKey(connection, t);
+    const pkColumns = await getPrimaryKeyColumns(connection, t);
+    if (pkColumns.length > 1) return compositeKeyResponse();
+    const [pk] = pkColumns;
 
     const sql = `
       DELETE FROM ${t}

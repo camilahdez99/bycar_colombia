@@ -20,7 +20,9 @@ const COLS_VIAJES = columnas(
   ['CREADO_VIA', 'TIMESTAMP(6)'],
   ['NOTA_VIA', 'VARCHAR2'],
 );
-const COLS_MENUS = columnas(['ID_ENU', 'NUMBER', 'N'], ['CAMPO_ENU', 'VARCHAR2'], ['URL_ENU', 'VARCHAR2']);
+const PK_PERMISOS = { rows: [{ COLUMN_NAME: 'USUARIO_ID_USU' }, { COLUMN_NAME: 'MENU_ID_ENU' }] };
+const ERROR_PK_COMPUESTA = 'La tabla tiene clave primaria compuesta: no se puede modificar por id';
+const COLS_MENUS =columnas(['ID_ENU', 'NUMBER', 'N'], ['CAMPO_ENU', 'VARCHAR2'], ['URL_ENU', 'VARCHAR2']);
 
 const get = (query) => GET(makeRequest(RUTA, { query }));
 const post = (query, body) => POST(makeRequest(RUTA, { method: 'POST', query, body }));
@@ -296,6 +298,17 @@ describe('PUT /api/admin/tablas (caracterización)', () => {
     expect(conn.calls[2].sql).toMatch(/UPDATE VIAJES\s+SET \s+WHERE ID_VIA = :id/);
   });
 
+  test('PK compuesta: 400 sin ejecutar el UPDATE (F11)', async () => {
+    const conn = createFakeConnection([PK_PERMISOS]);
+    getConnection.mockResolvedValue(conn);
+    expect(await readResponse(await put({ tabla: 'PERMISOS', id: '1' }, { MENU_ID_ENU: 3 }))).toEqual({
+      status: 400,
+      body: { error: ERROR_PK_COMPUESTA },
+    });
+    expect(conn.execute).toHaveBeenCalledOnce();
+    expect(conn.close).toHaveBeenCalledOnce();
+  });
+
   test('500 con el mensaje de Oracle si falla el UPDATE', async () => {
     const conn = createFakeConnection([pk('ID_VIA'), COLS_VIAJES, new Error('ORA-01722')]);
     getConnection.mockResolvedValue(conn);
@@ -335,14 +348,15 @@ describe('DELETE /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('PK compuesta: usa solo la primera columna (comportamiento actual: puede borrar varias filas)', async () => {
-    const conn = createFakeConnection([
-      { rows: [{ COLUMN_NAME: 'USUARIO_ID_USU' }, { COLUMN_NAME: 'MENU_ID_ENU' }] },
-      { rowsAffected: 5 },
-    ]);
+  test('PK compuesta: 400 sin ejecutar el DELETE (F11)', async () => {
+    const conn = createFakeConnection([PK_PERMISOS]);
     getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await del({ tabla: 'PERMISOS', id: '1' }))).status).toBe(200);
-    expect(conn.calls[1].sql).toMatch(/DELETE FROM PERMISOS\s+WHERE USUARIO_ID_USU = :id/);
+    expect(await readResponse(await del({ tabla: 'PERMISOS', id: '1' }))).toEqual({
+      status: 400,
+      body: { error: ERROR_PK_COMPUESTA },
+    });
+    expect(conn.execute).toHaveBeenCalledOnce();
+    expect(conn.close).toHaveBeenCalledOnce();
   });
 
   test('200 aunque no se borre ninguna fila', async () => {

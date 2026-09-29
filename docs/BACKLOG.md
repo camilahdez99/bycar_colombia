@@ -8,7 +8,7 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
 - [ ] `seguridad` Hash de contraseñas (bcrypt/argon2) con migración de las existentes. Ver S4. Toca BD.
 - [ ] `seguridad` Quitar el admin hardcodeado del login. Ver S5.
 - [x] `tests` Caracterizar los route handlers mockeando `@/lib/db` antes de cualquier refactor de API (2026-09-28).
-- [ ] `seguridad` Corregir F11: DELETE sobre PK compuesta en `admin/tablas` (puede borrar permisos masivamente).
+- [x] `seguridad` Corregir F11: DELETE sobre PK compuesta en `admin/tablas` (2026-09-28).
 - [ ] `tests` Caracterizar el frontend: helpers puros de `dashboard` y `DynamicForm`.
 - [ ] `tooling` Los snapshots se guardan con LF y git tiene `autocrlf`. Si un clon nuevo rompe los snapshots, agregar un `.gitattributes` con `eol=lf`.
 
