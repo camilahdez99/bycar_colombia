@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
-
-const normalizar = (str) => {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-};
+import { formatCurrency, formatTiempo, normalizar } from '@/lib/client/formato';
+import { getUserId } from '@/lib/client/usuario';
+import { getBadgeCount } from '@/lib/client/badges';
 
 const Autocomplete = ({ placeholder, value, onChange, opciones = [] }) => {
   const [show, setShow] = useState(false);
@@ -189,7 +188,7 @@ export default function DashboardPage() {
       } catch(e) {}
 
       try {
-        const uIdChat = storedUser ? (storedUser.ID_USU || storedUser.id_usu || storedUser.id) : null;
+        const uIdChat = getUserId(storedUser);
         const pId = storedUser ? (storedUser.PERFIL_ID_PER || storedUser.perfil_id_per) : null;
         
         if (!uIdChat) return;
@@ -257,7 +256,7 @@ export default function DashboardPage() {
   // Re-fetch data when opening tabs or periodically
   useEffect(() => {
     if (!currentUser) return;
-    const uId = currentUser.ID_USU || currentUser.id_usu || currentUser.id;
+    const uId = getUserId(currentUser);
 
     const refreshTabs = () => {
       // Refresh solicitudes
@@ -377,7 +376,7 @@ export default function DashboardPage() {
       return;
     }
 
-    const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id;
+    const uId = getUserId(currentUser);
     const vId = viaje.viajeId || viaje.id;
     
     try {
@@ -446,17 +445,6 @@ export default function DashboardPage() {
   };
 
 
-  const formatTiempo = (seg) => {
-    const m = Math.floor(seg / 60);
-    const s = seg % 60;
-    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  };
-
-  const formatCurrency = (value) => {
-    const cleanValue = value.replace(/\D/g, "");
-    return cleanValue.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     if (name === 'valor') {
@@ -472,7 +460,7 @@ export default function DashboardPage() {
       const res = await fetchConSesion(`/api/mensajes?chatId=${chatId}`);
       if (res.ok) {
         const data = await res.json();
-        const myId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id;
+        const myId = getUserId(currentUser);
         const formatted = data.map(m => ({
           sender: m.senderId == myId ? 'me' : 'other',
           text: m.text
@@ -497,7 +485,7 @@ export default function DashboardPage() {
 
   const enviarMensajeChat = async () => {
     if (!msgInput.trim() || !chatData.chatId) return;
-    const myId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id;
+    const myId = getUserId(currentUser);
     
     // Add locally immediately for fast UI
     const newMsg = { sender: 'me', text: msgInput.trim() };
@@ -545,7 +533,7 @@ export default function DashboardPage() {
   const solicitarViaje = async (id) => {
     const toastId = toast.loading('Enviando solicitud...');
     try {
-      const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id || 1;
+      const uId = getUserId(currentUser) || 1;
       const res = await fetchConSesion('/api/solicitudes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -567,7 +555,7 @@ export default function DashboardPage() {
     const toastId = toast.loading('Publicando tu ruta...');
     
     try {
-      const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id || 1;
+      const uId = getUserId(currentUser) || 1;
       const res = await fetchConSesion('/api/viajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -607,7 +595,7 @@ export default function DashboardPage() {
         
         // Refresh chat list immediately if accepted
         if (estado === 'Aceptado') {
-          const uId = currentUser?.ID_USU || currentUser?.id_usu || currentUser?.id;
+          const uId = getUserId(currentUser);
           if (uId) {
             fetchConSesion(`/api/mensajes/chats?usuarioId=${uId}`)
               .then(r => r.json())
@@ -636,30 +624,15 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  const getBadgeCount = (url) => {
-    if (url === '/solicitudes') {
-      return solicitudesRecibidas.length;
-    }
-    if (url === '/mis-rutas') {
-      return activePage !== 'mis-rutas'
-        ? rutasSolicitadas.filter(r => {
-            const esCambio = r.estado?.toUpperCase().startsWith('ACEPTAD') || r.estado?.toUpperCase().startsWith('RECHAZAD');
-            if (!esCambio) return false;
-            // Mostrar badge solo si el estado actual es diferente al que el usuario vio/leyó
-            return rutasSolicitadasLeidas[r.id] !== r.estado;
-          }).length
-        : 0;
-    }
-    if (url === '/mensajes') {
-      // Mostrar la cantidad de chats NUEVOS que aún no ha visto
-      const nuevos = mensajes.length - mensajesLeidos;
-      return activePage !== 'mensajes' && nuevos > 0 ? nuevos : 0;
-    }
-    if (url === '/guardian') {
-      return alertasRecibidas.filter(a => a.estado?.toUpperCase() === 'ALERTA').length;
-    }
-    return 0;
-  };
+  const badgeDe = (url) => getBadgeCount(url, {
+    activePage,
+    solicitudesRecibidas,
+    rutasSolicitadas,
+    rutasSolicitadasLeidas,
+    mensajes,
+    mensajesLeidos,
+    alertasRecibidas,
+  });
 
   // Construir navItems dinámicamente desde la BD (MENUS)
   const navItems = menuItems.length > 0 && userPermisos !== null
@@ -673,14 +646,14 @@ export default function DashboardPage() {
           id: m.url ? m.url.replace('/', '') : m.id,
           label: m.label,
           icon: MENU_ICONS[m.url] || 'M3 12h18M3 6h18M3 18h18',
-          badge: getBadgeCount(m.url),
+          badge: badgeDe(m.url),
         }))
     : [
         { id: 'inicio',      label: 'Inicio',      icon: MENU_ICONS['/inicio'],      badge: 0 },
-        { id: 'mis-rutas',   label: 'Mis Rutas',   icon: MENU_ICONS['/mis-rutas'],   badge: getBadgeCount('/mis-rutas') },
-        { id: 'solicitudes', label: 'Solicitudes',  icon: MENU_ICONS['/solicitudes'], badge: getBadgeCount('/solicitudes') },
-        { id: 'mensajes',    label: 'Mensajes',     icon: MENU_ICONS['/mensajes'],    badge: getBadgeCount('/mensajes') },
-        { id: 'guardian',    label: 'Guardian',     icon: MENU_ICONS['/guardian'],    badge: getBadgeCount('/guardian') },
+        { id: 'mis-rutas',   label: 'Mis Rutas',   icon: MENU_ICONS['/mis-rutas'],   badge: badgeDe('/mis-rutas') },
+        { id: 'solicitudes', label: 'Solicitudes',  icon: MENU_ICONS['/solicitudes'], badge: badgeDe('/solicitudes') },
+        { id: 'mensajes',    label: 'Mensajes',     icon: MENU_ICONS['/mensajes'],    badge: badgeDe('/mensajes') },
+        { id: 'guardian',    label: 'Guardian',     icon: MENU_ICONS['/guardian'],    badge: badgeDe('/guardian') },
       ];
 
   return (
