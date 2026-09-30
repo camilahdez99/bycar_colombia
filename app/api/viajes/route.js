@@ -5,6 +5,7 @@ import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
+import { limpiarDatosViaje } from '@/lib/domain/viajes';
 
 async function getOrCreateMunicipio(connection, name) {
   if (!name) return 1;
@@ -155,9 +156,7 @@ export async function POST(req) {
     const notOwner = await requireSelf(req, usuarioId);
     if (notOwner) return notOwner;
 
-    const cleanPlaca = placa.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase();
-    const numPuestos = parseInt(puestos, 10);
-    const cleanComentarios = comentarios ? String(comentarios).substring(0, 500) : null;
+    const { cleanPlaca, numPuestos, cleanComentarios, valorNum } = limpiarDatosViaje({ placa, puestos, valor, comentarios });
 
     connection = await getConnection();
 
@@ -182,7 +181,6 @@ export async function POST(req) {
     }
 
     const idViaje = Date.now();
-    const valorNum = parseFloat(String(valor).replace(/,/g, ''));
 
     // Estado 1 = Disponible
     const sql = `

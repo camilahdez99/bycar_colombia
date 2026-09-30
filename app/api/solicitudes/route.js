@@ -3,19 +3,9 @@ import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError, logInfo } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
-import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
+import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
 import { findSolicitudParticipants } from '@/lib/auth/ownershipQueries';
-
-// Quién puede llevar una solicitud a cada estado (1 = Pendiente no se asigna por API)
-const ESTADOS_DEL_CONDUCTOR = [2, 3]; // Aceptada, Rechazada
-const ESTADOS_DEL_PASAJERO = [4]; // Cancelada
-
-function canChangeSolicitud(userId, estadoId, participants) {
-  if (!participants) return false;
-  if (ESTADOS_DEL_CONDUCTOR.includes(estadoId)) return sameUser(userId, participants.driverId);
-  if (ESTADOS_DEL_PASAJERO.includes(estadoId)) return sameUser(userId, participants.passengerId);
-  return false;
-}
+import { canChangeSolicitud, resolverEstadoSolicitud } from '@/lib/domain/solicitudes';
 
 export async function POST(req) {
   const denied = await authorize(req);
@@ -65,20 +55,7 @@ export async function PUT(req) {
 
     connection = await getConnection();
 
-    // Mapa directo de texto → ID de estado (según ESTADOS_SOL)
-    const estadoMap = {
-      'Pendiente': 1,
-      'Aceptado': 2,
-      'Aceptada': 2,
-      'Rechazado': 3,
-      'Rechazada': 3,
-      'Cancelado': 4,
-      'Cancelada': 4,
-    };
-
-    const estadoId = isNaN(estado)
-      ? (estadoMap[estado] ?? null)
-      : Number(estado);
+    const estadoId = resolverEstadoSolicitud(estado);
 
     if (!estadoId) {
       return NextResponse.json({ error: `Estado desconocido: ${estado}` }, { status: 400 });

@@ -4,6 +4,7 @@ import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
+import { calcularParticipantesMensaje } from '@/lib/domain/mensajes';
 
 // El chat es una solicitud: solo su pasajero y el conductor del viaje participan
 const isParticipant = (userId, passengerId, driverId) =>
@@ -105,8 +106,7 @@ export async function POST(req) {
     const notParticipant = await checkOwnership(req, (userId) => isParticipant(userId, passengerId, driverId));
     if (notParticipant) return notParticipant;
 
-    const emisorId = parseInt(senderId, 10);
-    const receptorId = (emisorId === parseInt(passengerId, 10)) ? parseInt(driverId, 10) : parseInt(passengerId, 10);
+    const { emisorId, receptorId } = calcularParticipantesMensaje(senderId, passengerId, driverId);
 
     // 2. Insertar mensaje
     const idMen = Date.now();
