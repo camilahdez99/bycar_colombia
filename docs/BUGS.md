@@ -11,7 +11,7 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 | S2 | 🟡 | `app/api/admin/tablas/route.js` | **Mitigado detrás de `AUTH_ENFORCED`:** requiere rol admin. Un admin todavía puede leer las contraseñas con `GET ?tabla=USUARIOS` (ver S4). |
 | S3 | 🟡 | `app/api/admin/*`, `app/admin/page.jsx` | **Mitigado detrás de `AUTH_ENFORCED`:** rol admin en la API y en el proxy de `/admin`. |
 | S4 | 🔴 | `auth/login/route.js:23`, `auth/register/route.js:28`, `admin/usuarios/route.js:49` | Contraseñas almacenadas y comparadas en texto plano. |
-| S5 | 🟠 | `auth/login/route.js:14`, `scripts/create_admin_user.js:13`, `scripts/insercion_data_DML.txt:16` | Admin hardcodeado (`admin@bycar.co` / `admin`). |
+| S5 | 🟠 | `auth/login/route.js:30-36`, `scripts/insercion_data_DML.txt:16` | Admin hardcodeado (`admin@bycar.co` / `admin`). |
 | S6 | 🟡 | ver abajo | **Mitigado (2026-09-29) detrás de `AUTH_ENFORCED`:** cada ruta de usuario valida la pertenencia del recurso (ver `ARCHITECTURE.md`). Sigue abierto hasta prender el flag. Descripción original: |
 | S6 (orig.) | 🟠 | `mensajes/route.js:8,64`; `solicitudes/route.js:37`; `guardian/route.js:9,133` | IDOR: cualquiera puede leer chats ajenos, suplantar al emisor, aceptar solicitudes ajenas y leer o modificar guardianes ajenos. |
 | S7 | 🟠 | `scripts/fix_guardian.js:1-3` | Credenciales de BD hardcodeadas. Está excluido de git, pero conviene rotar la contraseña si se reutiliza en otro lado. |
@@ -68,7 +68,7 @@ Encontrados leyendo el código; ninguno tiene test que lo fije todavía.
 | F29 | 🟡 | `dashboard/page.jsx:498-520` | El mensaje de chat se agrega a la lista antes de enviarlo y no se revisa `res.ok`: si la API responde 403 o 500, queda en pantalla como enviado hasta el próximo refresco (3 s), donde desaparece sin aviso. |
 | F30 | ⚪ | `dashboard/page.jsx:584-586` | Tras publicar, el reinicio de `nuevaRuta` omite `marca` (el `select` pasa de controlado a no controlado) y la ruta nueva se agrega al final de una lista ordenada de forma descendente, con los datos crudos del formulario, hasta el próximo refresco. |
 | F31 | 🟡 | `admin/page.jsx:234-236` | `getRowId` usa una lista manual de PKs que no incluye `ID_SOL` ni `ID_EST_VIA`. Para SOLICITUDES y ESTADOS_VIA cae en "la primera columna" de una consulta de metadatos sin orden garantizado: editar o borrar puede mandar como id el valor de otra columna. Además, un id con valor 0 se trata como ausente. |
-| F32 | ⚪ | `scripts/create_admin_user.js:2, 31` | El script no puede ejecutarse: importa con el alias `@/` e inserta en columnas inexistentes (`NOMBRE`, `APELLIDO`, `CORREO`, `CONTRASENA`). Usa `admin@bycar.com`, distinto del `admin@bycar.co` del login. |
+| ~~F32~~ | ✅ | `scripts/create_admin_user.js` | **Resuelto 2026-09-30:** se eliminó el script, que no podía ejecutarse (DT-23). |
 | E6 | ⚪ | `admin/page.jsx:103-107, 119-131` | Si el registro se guarda pero falla la recarga posterior (`refreshData` no valida `res.ok`), se muestra "Registro creado" y enseguida "Error de red", y el modal queda abierto. |
 
 ## Manejo de errores
