@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
+import { MENU_INICIO_ID } from '@/lib/domain/constantes';
 
 /**
  * PermisosManager
@@ -64,8 +65,8 @@ export default function PermisosManager() {
     }
   };
 
-  const menusPrincipales = menus.filter(m => !m.parentId && m.id !== 1);
-  const subMenusInicio = menus.filter(m => m.parentId === 1);
+  const menusPrincipales = menus.filter(m => !m.parentId && m.id !== MENU_INICIO_ID);
+  const subMenusInicio = menus.filter(m => m.parentId === MENU_INICIO_ID);
 
   return (
     <div style={{ background: '#111', borderRadius: '16px', padding: '2rem', boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>

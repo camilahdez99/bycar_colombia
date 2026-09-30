@@ -8,6 +8,13 @@ import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { formatCurrency, formatTiempo, normalizar } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
+import { MENU_INICIO_ID, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+
+// Refresco en segundo plano y temporizador del guardián
+const REFRESCO_MS = 10000;
+const REFRESCO_CHAT_MS = 3000;
+const PRE_ALERTA_SEG = 5 * 60;
+const EXTENSION_GUARDIAN_MIN = 15;
 
 const Autocomplete = ({ placeholder, value, onChange, opciones = [] }) => {
   const [show, setShow] = useState(false);
@@ -141,7 +148,7 @@ export default function DashboardPage() {
 
   // --- ESTADO PARA GUARDIÁN ---
   const [guardianViaje, setGuardianViaje] = useState(null);
-  const [guardianConfig, setGuardianConfig] = useState({ email: '', tiempoMin: 30 });
+  const [guardianConfig, setGuardianConfig] = useState({ email: '', tiempoMin: TIEMPO_GUARDIAN_POR_DEFECTO_MIN });
   const [guardianActivo, setGuardianActivo] = useState(false);
   const [guardianTiempoRestante, setGuardianTiempoRestante] = useState(0);
   const [guardianAlertaEnviada, setGuardianAlertaEnviada] = useState(false);
@@ -308,7 +315,7 @@ export default function DashboardPage() {
 
     refreshTabs();
 
-    const interval = setInterval(refreshTabs, 10000);
+    const interval = setInterval(refreshTabs, REFRESCO_MS);
     return () => clearInterval(interval);
   }, [activePage, currentUser]);
 
@@ -338,8 +345,8 @@ export default function DashboardPage() {
       setGuardianTiempoRestante(prev => {
         const next = prev - 1;
 
-        // 5 minutos antes (300 seg) → pre-alerta
-        if (next === 300 && !guardianPreAlertaRef.current) {
+        // PRE_ALERTA_SEG antes de terminar → pre-alerta
+        if (next === PRE_ALERTA_SEG && !guardianPreAlertaRef.current) {
           setGuardianPreAlerta(true);
           setShowReadjustModal(true);
           toast('⚠️ ¿Has llegado? Tu tiempo está por terminar.', { duration: 10000, icon: '🔔' });
@@ -430,13 +437,13 @@ export default function DashboardPage() {
       await fetchConSesion('/api/guardian', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: guardianId, extraTiempo: 15 })
+        body: JSON.stringify({ id: guardianId, extraTiempo: EXTENSION_GUARDIAN_MIN })
       });
       
-      setGuardianTiempoRestante(prev => prev + (15 * 60));
+      setGuardianTiempoRestante(prev => prev + (EXTENSION_GUARDIAN_MIN * 60));
       setGuardianPreAlerta(false);
       setShowReadjustModal(false);
-      toast.success('⏱️ Tiempo extendido 15 minutos');
+      toast.success(`⏱️ Tiempo extendido ${EXTENSION_GUARDIAN_MIN} minutos`);
     }
   };
 
@@ -474,7 +481,7 @@ export default function DashboardPage() {
       fetchChatMsgs(chatData.chatId);
       interval = setInterval(() => {
         fetchChatMsgs(chatData.chatId);
-      }, 3000);
+      }, REFRESCO_CHAT_MS);
     }
     return () => clearInterval(interval);
   }, [chatOpen, chatData.chatId]);
@@ -634,8 +641,8 @@ export default function DashboardPage() {
   const navItems = menuItems.length > 0 && userPermisos !== null
     ? menuItems
         .filter(m => {
-          if (!m.parentId && m.id !== 1) return userPermisos.includes(m.url);
-          if (m.id === 1) return userPermisos.includes('/inicio/crear') || userPermisos.includes('/inicio/buscar') || userPermisos.includes('/inicio');
+          if (!m.parentId && m.id !== MENU_INICIO_ID) return userPermisos.includes(m.url);
+          if (m.id === MENU_INICIO_ID) return userPermisos.includes('/inicio/crear') || userPermisos.includes('/inicio/buscar') || userPermisos.includes('/inicio');
           return false;
         })
         .map(m => ({
@@ -959,8 +966,8 @@ export default function DashboardPage() {
               <div style={{ background: 'linear-gradient(135deg, rgba(229,34,34,0.08), rgba(229,34,34,0.02))', border: '2px solid rgba(229,34,34,0.3)', borderRadius: '24px', padding: '2rem', marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontFamily: 'Syne', fontSize: '1.2rem' }}>Viaje en Curso</h3>
-                  <span style={{ background: guardianTiempoRestante <= 300 ? 'rgba(255,50,50,0.2)' : 'rgba(74,222,128,0.1)', color: guardianTiempoRestante <= 300 ? '#ff4444' : '#4ade80', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                    {guardianTiempoRestante <= 0 ? '⚠️ TIEMPO AGOTADO' : guardianTiempoRestante <= 300 ? '⚠️ POR EXPIRAR' : '✅ EN CAMINO'}
+                  <span style={{ background: guardianTiempoRestante <= PRE_ALERTA_SEG ? 'rgba(255,50,50,0.2)' : 'rgba(74,222,128,0.1)', color: guardianTiempoRestante <= PRE_ALERTA_SEG ? '#ff4444' : '#4ade80', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                    {guardianTiempoRestante <= 0 ? '⚠️ TIEMPO AGOTADO' : guardianTiempoRestante <= PRE_ALERTA_SEG ? '⚠️ POR EXPIRAR' : '✅ EN CAMINO'}
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -983,7 +990,7 @@ export default function DashboardPage() {
                 </div>
                 <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                   <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '8px' }}>Tiempo restante para confirmar llegada</p>
-                  <div style={{ fontFamily: 'Syne', fontSize: '3.5rem', fontWeight: 800, color: guardianTiempoRestante <= 300 ? '#ff4444' : '#fff', letterSpacing: '4px', textShadow: guardianTiempoRestante <= 300 ? '0 0 20px rgba(255,50,50,0.4)' : 'none', transition: 'color 0.5s' }}>
+                  <div style={{ fontFamily: 'Syne', fontSize: '3.5rem', fontWeight: 800, color: guardianTiempoRestante <= PRE_ALERTA_SEG ? '#ff4444' : '#fff', letterSpacing: '4px', textShadow: guardianTiempoRestante <= PRE_ALERTA_SEG ? '0 0 20px rgba(255,50,50,0.4)' : 'none', transition: 'color 0.5s' }}>
                     {formatTiempo(guardianTiempoRestante)}
                   </div>
                   {guardianHoraInicio && <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '8px' }}>Iniciado: {guardianHoraInicio.toLocaleTimeString()}</p>}
@@ -1256,7 +1263,7 @@ export default function DashboardPage() {
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <button className="btn-red" onClick={finalizarGuardian} style={{ width: '100%', justifyContent: 'center', padding: '1rem' }}>✅ Sí, he llegado</button>
-                <button onClick={reajustarTiempo} style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border)', width: '100%', padding: '1rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold' }}>🕒 No, hay retraso (+15 min)</button>
+                <button onClick={reajustarTiempo} style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border)', width: '100%', padding: '1rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold' }}>🕒 No, hay retraso (+{EXTENSION_GUARDIAN_MIN} min)</button>
               </div>
             </div>
           </div>

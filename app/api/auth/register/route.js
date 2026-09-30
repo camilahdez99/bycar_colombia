@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { PERFIL } from '@/lib/domain/constantes';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 
@@ -28,7 +29,7 @@ export async function POST(req) {
       apellido: String(apellido).toUpperCase(),
       correo: String(correo).trim().toLowerCase(),
       contrasena,
-      perfilId: 2 // 2 = Usuario Estándar (según script seed_3fn)
+      perfilId: PERFIL.USUARIO_ESTANDAR
     };
 
     await connection.execute(sql, binds, { autoCommit: false });

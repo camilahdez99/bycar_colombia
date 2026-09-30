@@ -5,6 +5,7 @@ import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
 import { findUserEmail, isGuardianParticipant, isViajeParticipant } from '@/lib/auth/ownershipQueries';
+import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
 
 // El correo del contacto de confianza se compara igual que en la query: sin distinguir mayúsculas
 const sameEmail = (a, b) => a !== null && b !== null && String(a).toUpperCase() === String(b).toUpperCase();
@@ -139,7 +140,7 @@ export async function POST(req) {
       idGua: Number(idGua), 
       viajeId: Number(viajeId), 
       email,
-      tiempo: Number(tiempo || 30)
+      tiempo: Number(tiempo || TIEMPO_GUARDIAN_POR_DEFECTO_MIN)
     }, { autoCommit: true });
 
     return NextResponse.json({ message: 'Guardián activado', id: idGua }, { status: 201 });
