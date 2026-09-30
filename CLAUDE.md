@@ -35,7 +35,7 @@ Leé este archivo completo antes de cualquier tarea. Estas reglas tienen priorid
 
 ## Stack
 
-Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 + daisyUI · Oracle vía `oracledb` (`lib/db.js`) · Vitest + Testing Library.
+Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 · Oracle vía `oracledb` (`lib/db.js`) · Vitest + Testing Library.
 
 ## Comandos
 

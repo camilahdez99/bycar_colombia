@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-09-30 — DT-11, CI y deuda técnica bloque 3 (riesgo bajo · impacto bajo)
+
+Rama `refactor/deuda-bloque-3`, creada sobre `refactor/deuda-bloque-2`. Un commit por cambio lógico.
+
+**Qué cambió**
+- DT-11 (acordado): el dashboard cierra sesión con `lib/client/logout.js`, así que pasa de `router.push('/')` a una navegación completa. Tiene un test nuevo.
+- DT-19: `.github/workflows/ci.yml` con tests, build y lint informativo, en Node 24.
+- DT-20 a DT-23 (borrados acordados): `FormularioConductor`, `FormularioVehiculo`, `lib/municipios.js` y su test, los 5 SVG de plantilla y `scripts/create_admin_user.js` (cierra F32).
+- DT-24, DT-25: fuera `tailwind.config.js`, `daisyui` y `geist`. El CSS compilado es idéntico byte a byte antes y después, y el lockfile solo pierde esas dos entradas.
+- DT-27: `scripts/README.md`.
+- Reclasificados con su motivo en el backlog: DT-26 (tipografías, pasa a riesgo medio), DT-28 (imagen externa, a decidir), DT-29 y DT-30 (`bd-pendiente` y bug).
+- Bug nuevo **S9** 🔴: `scripts/diagrama.txt` tiene en texto plano las contraseñas de SYSTEM y de `US_BYCAR`, y está versionado.
+
+**Tests corridos (antes de cada commit)**
+- `npm test`: 609 tests, 37 archivos, todos OK. Bajó de 612 a 609 porque se borraron los tests de `lib/municipios.js`.
+- `npm run build`: OK.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- S9: rotar las contraseñas de SYSTEM y `US_BYCAR` y sacarlas del historial de git. Lo tiene que hacer una persona.
+- El repo local no comparte historia con `github.com/camilahdez99/bycar_colombia` (`main` remoto en `736903d`). Antes de pushear hay que decidir cómo unirlos. El CI recién va a correr cuando esté en GitHub.
+
 ## 2026-09-30 — Deuda técnica, bloque 2 (riesgo bajo · impacto medio)
 
 Rama `refactor/deuda-bloque-2`, creada sobre `refactor/deuda-bloque-1`. Un commit por cambio lógico.

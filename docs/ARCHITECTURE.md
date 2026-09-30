@@ -7,7 +7,7 @@ Plataforma de carpooling intermunicipal (Colombia). Relevamiento inicial: 2026-0
 | Capa | Tecnología |
 |---|---|
 | Framework | Next.js 16 (App Router), JavaScript (sin TypeScript) |
-| UI | React 19, Tailwind 4 + daisyUI, `lucide-react`, `react-hot-toast`; mucho CSS inline vía `<style>` en páginas |
+| UI | React 19, Tailwind 4 (sin config JS; solo `globals.css`), `lucide-react`, `react-hot-toast`; mucho CSS inline vía `<style>` en páginas |
 | Datos | Oracle (`oracledb` 6), conexión por request en `lib/db.js` (sin pool, `autoCommit` global = true) |
 | Tests | Vitest + jsdom + Testing Library (`__tests__/`) |
 
@@ -23,14 +23,15 @@ app/
   admin/page.jsx        CRUD genérico sobre tablas + gestor de permisos
   components/admin/     PermisosManager
   api/**/route.js       Route handlers (ver abajo)
-components/             DynamicForm (form a partir de metadata de columnas), admin/*
+components/             DynamicForm (form a partir de metadata de columnas), admin/HydrationWrapper
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers
-lib/domain/             Reglas puras del dominio (estados de solicitud, limpieza de viaje, receptor de mensajes)
+lib/domain/             Reglas puras y constantes del dominio (estados, perfil, solicitudes, viajes, mensajes)
+lib/api/cache.js        Caché HTTP opcional de catálogos (CATALOG_CACHE_SECONDS)
 lib/client/             Código de navegador: fetchConSesion, logout, formato, usuario, badges
-lib/municipios.js       Lista estática de 1021 municipios (sin uso en la app)
-scripts/                DDL/DML de referencia (.txt) y scripts sueltos de mantenimiento
+scripts/                DDL/DML de referencia y utilidades (ver scripts/README.md)
+.github/workflows/      CI: tests, build y lint informativo
 ```
 
 ## Sesión y autorización
@@ -99,7 +100,7 @@ L = lectura, E = escritura.
 | `viajes` | GET POST | Buscar viajes; publicar (crea municipio/marca/vehículo al vuelo) | VIAJES, VEHICULOS, MUNICIPIOS, MARCAS |
 | `viajes/mis-rutas` | GET | Viajes publicados y solicitados por el usuario | L |
 
-Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viajes` no son usadas por ninguna UI actual (sus formularios `components/admin/Formulario*.jsx` no se importan).
+Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viajes` no son usadas por ninguna UI actual (BACKLOG DT-46).
 
 ## Frontend
 
