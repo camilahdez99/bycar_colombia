@@ -34,11 +34,6 @@ const getPrimaryKeyColumns = async (connection, tabla) => {
   return res.rows.map((row) => row.COLUMN_NAME);
 };
 
-const getPrimaryKey = async (connection, tabla) => {
-  const [firstColumn] = await getPrimaryKeyColumns(connection, tabla);
-  return firstColumn;
-};
-
 // Con PK compuesta un único "id" no identifica una fila: PUT/DELETE afectarían varias (F11)
 const compositeKeyResponse = () =>
   NextResponse.json({ error: ERROR_PK_COMPUESTA }, { status: 400 });
@@ -108,8 +103,9 @@ export async function GET(req) {
 
     const id = searchParams.get('id');
 
+    // Con PK compuesta, GET usa la primera columna (a diferencia de PUT/DELETE, que responden 400)
     const sql = id
-      ? `SELECT * FROM ${t} WHERE ${await getPrimaryKey(connection, t)} = :id`
+      ? `SELECT * FROM ${t} WHERE ${(await getPrimaryKeyColumns(connection, t))[0]} = :id`
       : `SELECT * FROM ${t}`;
 
     const result = await connection.execute(
