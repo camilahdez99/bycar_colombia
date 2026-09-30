@@ -31,7 +31,7 @@ Los pasos que tocan configuración o despliegue los ejecuta una persona del equi
    - [ ] A ve la solicitud en "Solicitudes" y la acepta. B ve el cambio de estado en "Mis rutas".
    - [ ] Chat A↔B en los dos sentidos.
    - [ ] B activa el guardián (viaje aceptado de hoy), suma +15 min y lo finaliza. El contacto de confianza ve la alerta.
-   - [ ] Login de admin: `/admin` carga, se edita una tabla y se gestionan permisos.
+   - [ ] Login de admin: `/admin` carga, se edita una tabla y se gestionan permisos. "Cerrar sesión" vuelve al inicio y `/admin` redirige a `/login`.
    - [ ] Borrar la cookie `bycar_session` con el dashboard abierto: en ≤ 10 s redirige a `/login`.
    - [ ] Logout: la cookie desaparece y `/dashboard` redirige a `/login`.
    - [ ] En los logs no aparece ningún `ownership_denied` durante este recorrido. Si aparece uno, hay un flujo legítimo que la regla bloquea: **no seguir**.

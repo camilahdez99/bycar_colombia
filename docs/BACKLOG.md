@@ -30,7 +30,8 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
   4. Test de IDOR sobre todas las rutas: el dueño pasa; otro usuario recibe 403 sin que se ejecute ninguna escritura.
   5. Docs.
 - [ ] `seguridad` Quitar el admin hardcodeado (S5) y derivar el rol de `PERFIL_ID_PER` (requiere una query nueva: bd-pendiente).
-- [ ] `feat` Botón de logout en `/admin` (hoy solo existe en el dashboard).
+- [x] `feat` Botón de logout en `/admin` (2026-09-30, `lib/client/logout.js`).
+- [ ] `refactor` El dashboard tiene su propio `cerrarSesion`; podría usar `lib/client/logout.js` (cambia `router.push('/')` por una navegación completa).
 - [x] `feat` `/admin` y `PermisosManager` usan `fetchConSesion` (2026-09-29).
 - [x] `fix` F27: el panel admin se rompía ante respuestas de error (2026-09-29).
 - [ ] `seguridad` Hash de contraseñas (bcrypt/argon2) con migración de las existentes. Ver S4. Toca BD.
@@ -38,7 +39,7 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
 - [x] `tests` Caracterizar los route handlers mockeando `@/lib/db` antes de cualquier refactor de API (2026-09-28).
 - [x] `seguridad` Corregir F11: DELETE sobre PK compuesta en `admin/tablas` (2026-09-28).
 - [ ] `tests` Caracterizar el frontend: helpers puros de `dashboard` y `DynamicForm`.
-- [ ] `tooling` Los snapshots se guardan con LF y git tiene `autocrlf`. Si un clon nuevo rompe los snapshots, agregar un `.gitattributes` con `eol=lf`.
+- [x] `tooling` `.gitattributes` con `eol=lf` (2026-09-30); verificado con un clon nuevo.
 
 ## Tooling
 

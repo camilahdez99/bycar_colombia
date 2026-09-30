@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-09-30 — Cierre de la etapa "base de trabajo + seguridad de acceso"
+
+**Qué cambió (últimos dos ítems)**
+- Botón "Cerrar sesión" en `/admin`, con `lib/client/logout.js`: llama al endpoint, limpia el usuario local y vuelve al inicio aunque falle la red.
+- `.gitattributes` con `* text=auto eol=lf`. La renormalización no modificó ningún archivo y un clon nuevo queda con 0 archivos en CRLF.
+
+**Tests corridos**
+- `npm test`: 31 archivos, 520 tests OK. `npm run build`: OK. `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Estado al cierre de la etapa**
+- Hecho:
+  - repo propio y suite de tests (de 0 a 520);
+  - caracterización de las 17 rutas de la API y de la carga del dashboard y del panel admin;
+  - fixes F11 y F27;
+  - autenticación, roles y pertenencia de recursos (S1, S2, S3 y S6), detrás de `AUTH_ENFORCED`;
+  - redirección ante 401 y logout en dashboard y admin;
+  - runbook de rollout y verificador de consultas.
+- **Pendiente, a cargo del equipo:** ejecutar `docs/ROLLOUT_AUTH.md`. Hasta prender el flag, producción sigue sin autenticación.
+- Pendiente para próximas etapas (ver `BACKLOG.md`):
+  - S4 (contraseñas en texto plano) y S5 (admin hardcodeado), que requieren trabajar la BD;
+  - los errores de lint de la línea base;
+  - el refactor del dashboard;
+  - los ítems `bd-pendiente`;
+  - los bugs funcionales F1–F26 que siguen abiertos.
+
+**Riesgos pendientes**
+- Las consultas de pertenencia no se probaron contra Oracle real (paso 1.3 del runbook).
+- Los tests usan una BD simulada: no validan la semántica real de Oracle.
+
 ## 2026-09-29 — Preparación del rollout de auth
 
 **Qué cambió**
