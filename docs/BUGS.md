@@ -15,6 +15,7 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 | S6 | 🟡 | ver abajo | **Mitigado (2026-09-29) detrás de `AUTH_ENFORCED`:** cada ruta de usuario valida la pertenencia del recurso (ver `ARCHITECTURE.md`). Sigue abierto hasta prender el flag. Descripción original: |
 | S6 (orig.) | 🟠 | `mensajes/route.js:8,64`; `solicitudes/route.js:37`; `guardian/route.js:9,133` | IDOR: cualquiera puede leer chats ajenos, suplantar al emisor, aceptar solicitudes ajenas y leer o modificar guardianes ajenos. |
 | S7 | 🟠 | `scripts/fix_guardian.js:1-3` | Credenciales de BD hardcodeadas. Está excluido de git, pero conviene rotar la contraseña si se reutiliza en otro lado. |
+| S9 | 🔴 | `scripts/diagrama.txt:7, 25, 34` | Credenciales de Oracle en texto plano y versionadas: el usuario SYSTEM y el usuario de la aplicación (`US_BYCAR`). A diferencia de S7, este archivo sí está en git, y probablemente también en el repo de GitHub. Hay que rotar ambas contraseñas y sacarlas del historial (tarea de una persona: toca credenciales). Detectado el 2026-09-30. |
 | S8 | 🟡 | `admin/permisos/route.js:41`, `guardian/route.js:81`, `viajes/route.js:187`, `admin/*` | Se devuelve `error.message` de Oracle al cliente. |
 
 ## Funcionales
