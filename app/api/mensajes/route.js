@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
 
@@ -61,12 +63,10 @@ export async function GET(req) {
     return NextResponse.json(messages, { status: 200 });
 
   } catch (error) {
-    console.error('Error al obtener mensajes:', error);
+    logError('api_error', error, { route: 'GET /api/mensajes', mensaje: 'Error al obtener mensajes' });
     return NextResponse.json({ error: 'Error al obtener mensajes' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/mensajes');
   }
 }
 
@@ -121,11 +121,9 @@ export async function POST(req) {
     return NextResponse.json({ success: true }, { status: 201 });
 
   } catch (error) {
-    console.error('Error al enviar mensaje:', error);
+    logError('api_error', error, { route: 'POST /api/mensajes', mensaje: 'Error al enviar mensaje' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'POST /api/mensajes');
   }
 }

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
 
@@ -41,11 +43,9 @@ export async function GET(req) {
     const solicitudes = result.rows || [];
     return NextResponse.json(solicitudes, { status: 200 });
   } catch (error) {
-    console.error('Error al obtener solicitudes:', error);
+    logError('api_error', error, { route: 'GET /api/solicitudes/recibidas', mensaje: 'Error al obtener solicitudes' });
     return NextResponse.json({ error: 'Error al obtener solicitudes' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/solicitudes/recibidas');
   }
 }

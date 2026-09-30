@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
 
@@ -130,12 +132,10 @@ export async function GET(req) {
     const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener viajes:', error);
+    logError('api_error', error, { route: 'GET /api/viajes', mensaje: 'Error al obtener viajes' });
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/viajes');
   }
 }
 
@@ -194,11 +194,9 @@ export async function POST(req) {
 
     return NextResponse.json({ message: 'Viaje publicado correctamente', id: idViaje }, { status: 201 });
   } catch (error) {
-    console.error('Error al publicar viaje:', error);
+    logError('api_error', error, { route: 'POST /api/viajes', mensaje: 'Error al publicar viaje' });
     return NextResponse.json({ error: 'Error BD: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'POST /api/viajes');
   }
 }

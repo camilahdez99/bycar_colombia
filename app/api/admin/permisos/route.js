@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { logError } from '@/lib/log';
+import { closeConnection } from '@/lib/api/connection';
 import { authorize, forbidden, getSession, isAuthEnforced, unauthenticated } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -53,10 +55,10 @@ export async function GET(req) {
     const result = await connection.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error en GET /api/admin/permisos:', error);
+    logError('api_error', error, { route: 'GET /api/admin/permisos' });
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
-    if (connection) try { await connection.close(); } catch {}
+    await closeConnection(connection, 'GET /api/admin/permisos');
   }
 }
 
@@ -80,10 +82,10 @@ export async function POST(req) {
     if (error.message?.includes('ORA-00001')) {
       return NextResponse.json({ error: 'Este permiso ya existe' }, { status: 409 });
     }
-    console.error('Error en POST /api/admin/permisos:', error);
+    logError('api_error', error, { route: 'POST /api/admin/permisos' });
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
-    if (connection) try { await connection.close(); } catch {}
+    await closeConnection(connection, 'POST /api/admin/permisos');
   }
 }
 
@@ -107,9 +109,9 @@ export async function DELETE(req) {
     await connection.execute(sql, { usuarioId: Number(usuarioId), menuId: Number(menuId) }, { autoCommit: true });
     return NextResponse.json({ message: 'Permiso revocado' }, { status: 200 });
   } catch (error) {
-    console.error('Error en DELETE /api/admin/permisos:', error);
+    logError('api_error', error, { route: 'DELETE /api/admin/permisos' });
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
-    if (connection) try { await connection.close(); } catch {}
+    await closeConnection(connection, 'DELETE /api/admin/permisos');
   }
 }

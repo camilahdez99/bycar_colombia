@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 
 // GET - Obtener todos los municipios con su departamento
 export async function GET(req) {
@@ -16,11 +18,9 @@ export async function GET(req) {
     const result = await connection.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener municipios:', error);
+    logError('api_error', error, { route: 'GET /api/municipios', mensaje: 'Error al obtener municipios' });
     return NextResponse.json({ error: 'Error al obtener municipios' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/municipios');
   }
 }

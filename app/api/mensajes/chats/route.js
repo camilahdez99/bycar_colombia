@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError, logInfo } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
 
@@ -46,14 +48,12 @@ export async function GET(req) {
 
     // Convertir a número para que Oracle compare correctamente con columnas NUMBER
     const result = await connection.execute(sql, { usuarioId: Number(usuarioId) });
-    console.log('[GET /api/mensajes/chats] usuarioId:', usuarioId, '| chats encontrados:', result.rows?.length ?? 0);
+    logInfo('chats_consultados', { route: 'GET /api/mensajes/chats', usuarioId, total: result.rows?.length ?? 0 });
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener chats:', error);
+    logError('api_error', error, { route: 'GET /api/mensajes/chats', mensaje: 'Error al obtener chats' });
     return NextResponse.json({ error: 'Error al obtener chats' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/mensajes/chats');
   }
 }

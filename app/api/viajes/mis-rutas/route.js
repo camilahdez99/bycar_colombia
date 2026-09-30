@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
 
@@ -67,11 +69,9 @@ export async function GET(req) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('Error al obtener mis rutas:', error);
+    logError('api_error', error, { route: 'GET /api/viajes/mis-rutas', mensaje: 'Error al obtener mis rutas' });
     return NextResponse.json({ error: 'Error al obtener rutas' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/viajes/mis-rutas');
   }
 }

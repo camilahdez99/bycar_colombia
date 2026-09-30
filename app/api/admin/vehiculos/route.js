@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -25,12 +27,10 @@ export async function GET(req) {
     const result = await connection.execute(sql);
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener vehículos:', error);
+    logError('api_error', error, { route: 'GET /api/admin/vehiculos', mensaje: 'Error al obtener vehículos' });
     return NextResponse.json({ error: 'Error al obtener vehículos' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/admin/vehiculos');
   }
 }
 
@@ -73,15 +73,13 @@ export async function POST(req) {
 
     return NextResponse.json({ message: 'Vehículo registrado exitosamente', placa }, { status: 201 });
   } catch (error) {
-    console.error('Error al crear vehículo:', error);
+    logError('api_error', error, { route: 'POST /api/admin/vehiculos', mensaje: 'Error al crear vehículo' });
     if (error.message && error.message.includes('PK_VEHICULOS')) {
       return NextResponse.json({ error: 'Ya existe un vehículo con esa placa' }, { status: 409 });
     }
     return NextResponse.json({ error: 'Error al crear vehículo: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'POST /api/admin/vehiculos');
   }
 }
 
@@ -115,12 +113,10 @@ export async function PUT(req) {
 
     return NextResponse.json({ message: 'Vehículo actualizado exitosamente' }, { status: 200 });
   } catch (error) {
-    console.error('Error al actualizar vehículo:', error);
+    logError('api_error', error, { route: 'PUT /api/admin/vehiculos', mensaje: 'Error al actualizar vehículo' });
     return NextResponse.json({ error: 'Error al actualizar vehículo' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'PUT /api/admin/vehiculos');
   }
 }
 
@@ -143,11 +139,9 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Vehículo eliminado correctamente' }, { status: 200 });
   } catch (error) {
-    console.error('Error al eliminar vehículo:', error);
+    logError('api_error', error, { route: 'DELETE /api/admin/vehiculos', mensaje: 'Error al eliminar vehículo' });
     return NextResponse.json({ error: 'Error al eliminar vehículo: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'DELETE /api/admin/vehiculos');
   }
 }

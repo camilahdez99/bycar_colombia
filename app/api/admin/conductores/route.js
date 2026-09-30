@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -29,12 +31,10 @@ export async function GET(req) {
     const result = await connection.execute(sql);
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener conductores:', error);
+    logError('api_error', error, { route: 'GET /api/admin/conductores', mensaje: 'Error al obtener conductores' });
     return NextResponse.json({ error: 'Error al obtener conductores' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/admin/conductores');
   }
 }
 
@@ -70,11 +70,9 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Datos de conductor eliminados correctamente' }, { status: 200 });
   } catch (error) {
-    console.error('Error al eliminar conductor:', error);
+    logError('api_error', error, { route: 'DELETE /api/admin/conductores', mensaje: 'Error al eliminar conductor' });
     return NextResponse.json({ error: 'Error al eliminar conductor: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'DELETE /api/admin/conductores');
   }
 }

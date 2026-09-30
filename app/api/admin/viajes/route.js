@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -29,12 +31,10 @@ export async function GET(req) {
     const result = await connection.execute(sql);
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener viajes admin:', error);
+    logError('api_error', error, { route: 'GET /api/admin/viajes', mensaje: 'Error al obtener viajes admin' });
     return NextResponse.json({ error: 'Error al obtener viajes' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/admin/viajes');
   }
 }
 
@@ -57,12 +57,10 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Viaje y sus dependencias eliminados' }, { status: 200 });
   } catch (error) {
-    console.error('Error al eliminar viaje:', error);
+    logError('api_error', error, { route: 'DELETE /api/admin/viajes', mensaje: 'Error al eliminar viaje' });
     return NextResponse.json({ error: 'Error al eliminar viaje: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'DELETE /api/admin/viajes');
   }
 }
 
@@ -104,11 +102,9 @@ export async function PUT(req) {
 
     return NextResponse.json({ message: 'Viaje actualizado' }, { status: 200 });
   } catch (error) {
-    console.error('Error al actualizar viaje:', error);
+    logError('api_error', error, { route: 'PUT /api/admin/viajes', mensaje: 'Error al actualizar viaje' });
     return NextResponse.json({ error: 'Error al actualizar viaje' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'PUT /api/admin/viajes');
   }
 }

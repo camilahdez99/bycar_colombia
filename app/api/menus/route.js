@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 
 // GET - Obtener todos los ítems del menú desde la tabla MENUS
 export async function GET() {
@@ -19,11 +21,9 @@ export async function GET() {
     const result = await connection.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener menús:', error);
+    logError('api_error', error, { route: 'GET /api/menus', mensaje: 'Error al obtener menús' });
     return NextResponse.json({ error: 'Error al obtener menús' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (_) {}
-    }
+    await closeConnection(connection, 'GET /api/menus');
   }
 }

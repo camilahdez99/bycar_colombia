@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -121,7 +122,7 @@ export async function GET(req) {
     return NextResponse.json(result.rows);
 
   } catch (e) {
-    console.error('Error API tablas:', e);
+    logError('api_error', e, { route: 'GET /api/admin/tablas', mensaje: 'Error API tablas' });
 
     return NextResponse.json(
       { error: e.message },
@@ -205,7 +206,7 @@ export async function POST(req) {
               { autoCommit: false }
             );
           } catch (permError) {
-            console.error('Error insertando permiso por defecto:', permError);
+            logError('permiso_por_defecto_fallido', permError, { route: 'POST /api/admin/tablas' });
           }
         }
         await connection.commit();
@@ -222,10 +223,10 @@ export async function POST(req) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
-        console.error('Error en rollback:', rollbackError);
+        logError('db_rollback_failed', rollbackError, { route: 'POST /api/admin/tablas' });
       }
     }
-    console.error('POST tabla error:', e);
+    logError('api_error', e, { route: 'POST /api/admin/tablas', mensaje: 'POST tabla error' });
 
     return NextResponse.json(
       { error: e.message },
@@ -304,7 +305,7 @@ export async function PUT(req) {
     return NextResponse.json({ ok: true });
 
   } catch (e) {
-    console.error('PUT tabla error:', e);
+    logError('api_error', e, { route: 'PUT /api/admin/tablas', mensaje: 'PUT tabla error' });
 
     return NextResponse.json(
       { error: e.message },
@@ -359,7 +360,7 @@ export async function DELETE(req) {
     return NextResponse.json({ ok: true });
 
   } catch (e) {
-    console.error('DELETE tabla error:', e);
+    logError('api_error', e, { route: 'DELETE /api/admin/tablas', mensaje: 'DELETE tabla error' });
 
     return NextResponse.json(
       { error: e.message },

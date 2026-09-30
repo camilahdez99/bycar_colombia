@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError, logInfo } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
 import { findSolicitudParticipants } from '@/lib/auth/ownershipQueries';
@@ -42,12 +44,10 @@ export async function POST(req) {
 
     return NextResponse.json({ message: 'Solicitud enviada', id: idSol }, { status: 201 });
   } catch (error) {
-    console.error('Error al solicitar viaje:', error);
+    logError('api_error', error, { route: 'POST /api/solicitudes', mensaje: 'Error al solicitar viaje' });
     return NextResponse.json({ error: 'Error interno del servidor al crear solicitud' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'POST /api/solicitudes');
   }
 }
 
@@ -95,15 +95,13 @@ export async function PUT(req) {
       { estadoId: Number(estadoId), solicitudId: Number(solicitudId) },
       { autoCommit: true }
     );
-    console.log(`[PUT /solicitudes] id=${solicitudId} → estadoId=${estadoId}, filas afectadas=${result.rowsAffected}`);
+    logInfo('solicitud_actualizada', { route: 'PUT /api/solicitudes', solicitudId, estadoId, rowsAffected: result.rowsAffected });
 
     return NextResponse.json({ message: 'Solicitud actualizada' }, { status: 200 });
   } catch (error) {
-    console.error('Error al actualizar solicitud:', error);
+    logError('api_error', error, { route: 'PUT /api/solicitudes', mensaje: 'Error al actualizar solicitud' });
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'PUT /api/solicitudes');
   }
 }

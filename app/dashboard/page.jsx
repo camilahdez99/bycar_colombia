@@ -185,7 +185,10 @@ export default function DashboardPage() {
         const userStr = localStorage.getItem('user');
         if (userStr) storedUser = JSON.parse(userStr);
         setCurrentUser(storedUser);
-      } catch(e) {}
+      } catch (error) {
+        // JSON corrupto en localStorage: se sigue como si no hubiera usuario
+        console.error('Usuario guardado inválido en localStorage:', error);
+      }
 
       try {
         const uIdChat = getUserId(storedUser);

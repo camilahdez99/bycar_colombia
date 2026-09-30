@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import {
   ROLES,
   SESSION_COOKIE,
@@ -55,15 +57,9 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Credenciales incorrectas' }, { status: 401 });
     }
   } catch (error) {
-    console.error('Error al iniciar sesión:', error);
+    logError('api_error', error, { route: 'POST /api/auth/login', mensaje: 'Error al iniciar sesión' });
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+    await closeConnection(connection, 'POST /api/auth/login');
   }
 }

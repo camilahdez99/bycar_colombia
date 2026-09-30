@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
 import { findUserEmail, isGuardianParticipant, isViajeParticipant } from '@/lib/auth/ownershipQueries';
@@ -94,7 +95,7 @@ export async function GET(req) {
 
     return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
   } catch (error) {
-    console.error('Error en GET Guardian:', error);
+    logError('api_error', error, { route: 'GET /api/guardian', mensaje: 'Error en GET Guardian' });
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
     if (connection) await connection.close();
@@ -143,7 +144,7 @@ export async function POST(req) {
 
     return NextResponse.json({ message: 'Guardián activado', id: idGua }, { status: 201 });
   } catch (error) {
-    console.error('Error en POST Guardian:', error);
+    logError('api_error', error, { route: 'POST /api/guardian', mensaje: 'Error en POST Guardian' });
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
     if (connection) await connection.close();
@@ -198,7 +199,7 @@ export async function PUT(req) {
 
     return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
   } catch (error) {
-    console.error('Error en PUT Guardian:', error);
+    logError('api_error', error, { route: 'PUT /api/guardian', mensaje: 'Error en PUT Guardian' });
     return NextResponse.json({ error: error.message }, { status: 500 });
   } finally {
     if (connection) await connection.close();

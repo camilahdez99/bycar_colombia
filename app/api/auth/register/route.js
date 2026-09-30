@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 
 export async function POST(req) {
   let connection;
@@ -52,7 +54,7 @@ export async function POST(req) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
-        console.error('Error en rollback:', rollbackError);
+        logError('db_rollback_failed', rollbackError, { route: 'POST /api/auth/register' });
       }
     }
     // Detect duplicate email (unique‑constraint violation)
@@ -65,15 +67,9 @@ export async function POST(req) {
       // ORA‑02291: integrity constraint (FK) violated
       return NextResponse.json({ error: 'Perfil no válido o datos faltantes' }, { status: 400 });
     }
-    console.error('Error al registrar usuario:', error);
+    logError('api_error', error, { route: 'POST /api/auth/register', mensaje: 'Error al registrar usuario' });
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+    await closeConnection(connection, 'POST /api/auth/register');
   }
 }

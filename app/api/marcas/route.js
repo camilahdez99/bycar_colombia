@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 
 // GET - Obtener todas las marcas registradas
 export async function GET(req) {
@@ -15,11 +17,9 @@ export async function GET(req) {
     const result = await connection.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener marcas:', error);
+    logError('api_error', error, { route: 'GET /api/marcas', mensaje: 'Error al obtener marcas' });
     return NextResponse.json({ error: 'Error al obtener marcas' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/marcas');
   }
 }

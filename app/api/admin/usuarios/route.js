@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
+import { logError } from '@/lib/log';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -19,12 +21,10 @@ export async function GET(req) {
     const result = await connection.execute(sql);
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
-    console.error('Error al obtener usuarios:', error);
+    logError('api_error', error, { route: 'GET /api/admin/usuarios', mensaje: 'Error al obtener usuarios' });
     return NextResponse.json({ error: 'Error al obtener usuarios' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'GET /api/admin/usuarios');
   }
 }
 
@@ -60,15 +60,13 @@ export async function POST(req) {
 
     return NextResponse.json({ message: 'Usuario creado exitosamente', id: nextId }, { status: 201 });
   } catch (error) {
-    console.error('Error al crear usuario:', error);
+    logError('api_error', error, { route: 'POST /api/admin/usuarios', mensaje: 'Error al crear usuario' });
     if (error.message && error.message.includes('UN_CORREO_USU')) {
       return NextResponse.json({ error: 'El correo ya está registrado' }, { status: 409 });
     }
     return NextResponse.json({ error: 'Error al crear usuario: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'POST /api/admin/usuarios');
   }
 }
 
@@ -102,12 +100,10 @@ export async function PUT(req) {
 
     return NextResponse.json({ message: 'Usuario actualizado exitosamente' }, { status: 200 });
   } catch (error) {
-    console.error('Error al actualizar usuario:', error);
+    logError('api_error', error, { route: 'PUT /api/admin/usuarios', mensaje: 'Error al actualizar usuario' });
     return NextResponse.json({ error: 'Error al actualizar usuario' }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'PUT /api/admin/usuarios');
   }
 }
 
@@ -130,11 +126,9 @@ export async function DELETE(req) {
 
     return NextResponse.json({ message: 'Usuario eliminado correctamente' }, { status: 200 });
   } catch (error) {
-    console.error('Error al eliminar usuario:', error);
+    logError('api_error', error, { route: 'DELETE /api/admin/usuarios', mensaje: 'Error al eliminar usuario' });
     return NextResponse.json({ error: 'Error al eliminar usuario: ' + error.message }, { status: 500 });
   } finally {
-    if (connection) {
-      try { await connection.close(); } catch (err) {}
-    }
+    await closeConnection(connection, 'DELETE /api/admin/usuarios');
   }
 }
