@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
+import { logout } from '@/lib/client/logout';
 import { formatCurrency, formatTiempo, normalizar } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
@@ -606,17 +607,6 @@ export default function DashboardPage() {
   const aceptarSolicitud = (id) => gestionarSolicitud(id, 'Aceptado');
   const rechazarSolicitud = (id) => gestionarSolicitud(id, 'Rechazado');
 
-  // Borra la cookie de sesión en el servidor; si la red falla, igual se cierra la sesión local
-  const cerrarSesion = async () => {
-    try {
-      await fetchConSesion('/api/auth/logout', { method: 'POST' });
-    } catch (error) {
-      console.error('Error al cerrar sesión en el servidor:', error);
-    }
-    localStorage.removeItem('user');
-    router.push('/');
-  };
-
   const badgeDe = (url) => getBadgeCount(url, {
     activePage,
     solicitudesRecibidas,
@@ -737,7 +727,7 @@ export default function DashboardPage() {
 
         <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)' }}>
           <button 
-            onClick={cerrarSesion}
+            onClick={logout}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', background: 'transparent', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '0.9rem', padding: '10px' }}
             onMouseEnter={(e) => e.target.style.color = '#fff'}
             onMouseLeave={(e) => e.target.style.color = 'var(--muted)'}
