@@ -1,0 +1,36 @@
+# Suite completa del proyecto (ver CLAUDE.md): tests, build y lint.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # El lint falla en la línea base (5 errores y 3 warnings, BACKLOG DT-38).
+      # Se corre para dejar el reporte, sin bloquear, hasta que DT-38 lo deje en verde.
+      - name: Lint (informativo)
+        run: npm run lint
+        continue-on-error: true
