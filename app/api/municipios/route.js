@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { catalogCacheHeaders } from '@/lib/api/cache';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 
@@ -16,7 +17,7 @@ export async function GET() {
       ORDER BY m.NOMBRE_MUN ASC
     `;
     const result = await connection.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });
-    return NextResponse.json(result.rows || [], { status: 200 });
+    return NextResponse.json(result.rows || [], { status: 200, headers: catalogCacheHeaders() });
   } catch (error) {
     logError('api_error', error, { route: 'GET /api/municipios', mensaje: 'Error al obtener municipios' });
     return NextResponse.json({ error: 'Error al obtener municipios' }, { status: 500 });

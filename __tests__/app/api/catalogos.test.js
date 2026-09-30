@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getConnection } from '@/lib/db';
 import { GET as getMarcas } from '@/app/api/marcas/route';
 import { GET as getMunicipios } from '@/app/api/municipios/route';
@@ -40,10 +40,32 @@ describe.each([
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('si close() falla igual responde 200 (el error se traga)', async () => {
+  test('si close() falla igual responde 200 (el error se registra)', async () => {
     const conn = createFakeConnection([{ rows }]);
     conn.close.mockRejectedValue(new Error('close'));
     getConnection.mockResolvedValue(conn);
     expect((await readResponse(await call())).status).toBe(200);
+  });
+
+  describe('caché (feature flag CATALOG_CACHE_SECONDS)', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    test.each([undefined, '', '0', '-5', 'abc', '1.5'])('con %j no envía Cache-Control', async (valor) => {
+      if (valor !== undefined) vi.stubEnv('CATALOG_CACHE_SECONDS', valor);
+      getConnection.mockResolvedValue(createFakeConnection([{ rows }]));
+      expect((await call()).headers.get('cache-control')).toBeNull();
+    });
+
+    test('con un entero positivo envía Cache-Control público', async () => {
+      vi.stubEnv('CATALOG_CACHE_SECONDS', '300');
+      getConnection.mockResolvedValue(createFakeConnection([{ rows }]));
+      expect((await call()).headers.get('cache-control')).toBe('public, max-age=300');
+    });
+
+    test('las respuestas de error nunca se cachean', async () => {
+      vi.stubEnv('CATALOG_CACHE_SECONDS', '300');
+      getConnection.mockResolvedValue(createFakeConnection([new Error('ORA-00942')]));
+      expect((await call()).headers.get('cache-control')).toBeNull();
+    });
   });
 });
