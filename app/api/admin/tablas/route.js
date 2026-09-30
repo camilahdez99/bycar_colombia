@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';

@@ -5,7 +5,7 @@ import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 
 // GET - Obtener todas las marcas registradas
-export async function GET(req) {
+export async function GET() {
   let connection;
   try {
     connection = await getConnection();

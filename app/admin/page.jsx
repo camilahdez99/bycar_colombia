@@ -295,7 +295,6 @@ export default function AdminPage() {
     if (modalTipo === 'edit') {
       return (
         <DynamicForm
-          table={activeTable}
           columns={columnsInfo}
           initialData={editRow}
           onSubmit={(data) => handleUpdate(getRowId(editRow), data)}
@@ -306,7 +305,6 @@ export default function AdminPage() {
     }
     return (
       <DynamicForm
-        table={activeTable}
         columns={columnsInfo}
         onSubmit={handleCreate}
         onCancel={cerrarModal}

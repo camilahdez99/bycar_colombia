@@ -5,7 +5,7 @@ import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 
 // GET - Obtener todos los municipios con su departamento
-export async function GET(req) {
+export async function GET() {
   let connection;
   try {
     connection = await getConnection();

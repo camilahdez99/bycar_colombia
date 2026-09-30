@@ -1,17 +1,16 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-hot-toast';
 
 /**
- * DynamicForm renders inputs for any table based on its column metadata.
+ * Formulario de alta o edición para cualquier tabla, armado desde la metadata de sus columnas.
  * Props:
- *  - tabla: name of the table (string)
- *  - columnaMeta: array of {COLUMN_NAME, DATA_TYPE}
- *  - registroInicial: object with existing values (for edit) or null
- *  - onClose: function to close modal
- *  - onRefresh: function to reload data after successful save
+ *  - columns: array de { COLUMN_NAME, DATA_TYPE, NULLABLE }
+ *  - initialData: valores del registro a editar, o null para un alta
+ *  - onSubmit(form): recibe el formulario completo
+ *  - onCancel(): cierra sin guardar
+ *  - loading: deshabilita los botones mientras se guarda
  */
-export default function DynamicForm({ table, columns, initialData, onSubmit, onCancel, loading }) {
+export default function DynamicForm({ columns, initialData, onSubmit, onCancel, loading }) {
   const [form, setForm] = useState({});
 
   useEffect(() => {
@@ -33,7 +32,7 @@ export default function DynamicForm({ table, columns, initialData, onSubmit, onC
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmitInternal = async e => {
+  const handleSubmitInternal = e => {
     e.preventDefault();
     if (onSubmit) {
       onSubmit(form);

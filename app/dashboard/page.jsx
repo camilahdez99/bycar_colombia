@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
@@ -146,7 +146,6 @@ export default function DashboardPage() {
   const [guardianTiempoRestante, setGuardianTiempoRestante] = useState(0);
   const [guardianAlertaEnviada, setGuardianAlertaEnviada] = useState(false);
   const [guardianPreAlerta, setGuardianPreAlerta] = useState(false);
-  const [guardianFinalizado, setGuardianFinalizado] = useState(false);
   const [guardianHoraInicio, setGuardianHoraInicio] = useState(null);
   const [guardianConfigOpen, setGuardianConfigOpen] = useState(false);
   const [alertasRecibidas, setAlertasRecibidas] = useState([]);
@@ -192,7 +191,6 @@ export default function DashboardPage() {
 
       try {
         const uIdChat = getUserId(storedUser);
-        const pId = storedUser ? (storedUser.PERFIL_ID_PER || storedUser.perfil_id_per) : null;
         
         if (!uIdChat) return;
 
@@ -256,7 +254,6 @@ export default function DashboardPage() {
   }, []);
 
   // Re-fetch data when opening tabs or periodically
-  // Re-fetch data when opening tabs or periodically
   useEffect(() => {
     if (!currentUser) return;
     const uId = getUserId(currentUser);
@@ -287,13 +284,11 @@ export default function DashboardPage() {
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
-            setMensajes(prev => {
-              // Si el usuario está en la pestaña mensajes, marcar como leídos automáticamente
-              if (activePage === 'mensajes') {
-                setMensajesLeidos(data.length);
-              }
-              return data;
-            });
+            // Si el usuario está en la pestaña mensajes, marcar como leídos automáticamente
+            if (activePage === 'mensajes') {
+              setMensajesLeidos(data.length);
+            }
+            setMensajes(data);
           }
         })
         .catch(err => console.error(err));
@@ -401,7 +396,6 @@ export default function DashboardPage() {
         setGuardianId(data.id);
         setGuardianViaje(viaje);
         setGuardianActivo(true);
-        setGuardianFinalizado(false);
         setGuardianAlertaEnviada(false);
         setGuardianPreAlerta(false);
         setGuardianHoraInicio(horaInicio);
@@ -426,7 +420,6 @@ export default function DashboardPage() {
       });
     }
     setGuardianActivo(false);
-    setGuardianFinalizado(true);
     setGuardianTiempoRestante(0);
     setGuardianId(null);
     toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
