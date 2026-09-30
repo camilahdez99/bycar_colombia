@@ -58,6 +58,19 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual".
 | E4 | 🟡 | `mensajes/route.js:25,81`; `guardian/route.js:75` | Lee `rows.length` o `rows[0]` sin guarda: si el resultado no trae `rows` da 500, y en guardian expone el mensaje de JS. |
 | E5 | ⚪ | `guardian/route.js:12,135`; `admin/usuarios/route.js:73-75` | Abren la conexión o parsean el JSON antes de validar parámetros. |
 
+### Detectados en el relevamiento de deuda técnica (2026-09-30)
+
+Encontrados leyendo el código; ninguno tiene test que lo fije todavía.
+
+| # | Sev | Ubicación | Descripción |
+|---|---|---|---|
+| F28 | 🟠 | `dashboard/page.jsx:238-240, 336-372` | La alerta del guardián depende de que el viajero tenga el dashboard abierto: el estado `Alerta` solo se escribe desde el temporizador del navegador. Si cierra la pestaña o se queda sin señal, el contacto nunca ve la alerta. Al recargar con el tiempo vencido se marca "alerta enviada" en pantalla sin hacer el `PUT`. Tampoco se envía ningún correo, aunque la UI dice "Se envió una alerta a…". |
+| F29 | 🟡 | `dashboard/page.jsx:498-520` | El mensaje de chat se agrega a la lista antes de enviarlo y no se revisa `res.ok`: si la API responde 403 o 500, queda en pantalla como enviado hasta el próximo refresco (3 s), donde desaparece sin aviso. |
+| F30 | ⚪ | `dashboard/page.jsx:584-586` | Tras publicar, el reinicio de `nuevaRuta` omite `marca` (el `select` pasa de controlado a no controlado) y la ruta nueva se agrega al final de una lista ordenada de forma descendente, con los datos crudos del formulario, hasta el próximo refresco. |
+| F31 | 🟡 | `admin/page.jsx:234-236` | `getRowId` usa una lista manual de PKs que no incluye `ID_SOL` ni `ID_EST_VIA`. Para SOLICITUDES y ESTADOS_VIA cae en "la primera columna" de una consulta de metadatos sin orden garantizado: editar o borrar puede mandar como id el valor de otra columna. Además, un id con valor 0 se trata como ausente. |
+| F32 | ⚪ | `scripts/create_admin_user.js:2, 31` | El script no puede ejecutarse: importa con el alias `@/` e inserta en columnas inexistentes (`NOMBRE`, `APELLIDO`, `CORREO`, `CONTRASENA`). Usa `admin@bycar.com`, distinto del `admin@bycar.co` del login. |
+| E6 | ⚪ | `admin/page.jsx:103-107, 119-131` | Si el registro se guarda pero falla la recarga posterior (`refreshData` no valida `res.ok`), se muestra "Registro creado" y enseguida "Error de red", y el modal queda abierto. |
+
 ## Manejo de errores
 
 | # | Sev | Ubicación | Descripción |

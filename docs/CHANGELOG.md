@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-09-30 — Relevamiento de deuda técnica
+
+**Qué cambió**
+- `docs/BACKLOG.md` reescrito: 48 ítems de deuda (`DT-01` a `DT-48`) con categoría, riesgo, impacto, esfuerzo y archivos, ordenados de riesgo bajo + impacto alto en adelante; 18 ítems `bd-pendiente` sin priorizar (`BD-01` a `BD-18`). Los ítems abiertos del backlog anterior quedaron integrados y los cerrados pasaron al historial.
+- `docs/BUGS.md`: bugs nuevos F28 a F32 y E6, encontrados durante la lectura. No se corrigió ninguno.
+- No se modificó código, tests ni configuración.
+
+**Tests corridos**
+- Ninguno: el cambio es solo de documentación.
+
+**Riesgos pendientes**
+- Las referencias de línea de `BUGS.md` anteriores al 2026-09-30 quedaron corridas por los cambios de auth (por ejemplo, F1 apunta a `:547,569` y hoy es `:548,570`). No se actualizaron en esta tarea.
+- DT-24 y DT-25 (`tailwind.config.js`, `daisyui`, `geist` sin uso) se dedujeron por lectura; falta confirmarlo con un build antes de tocar nada.
+- F28 afecta a la función de seguridad del producto (el guardián) y conviene evaluarlo pronto.
+
 ## 2026-09-30 — Cierre de la etapa "base de trabajo + seguridad de acceso"
 
 **Qué cambió (últimos dos ítems)**
