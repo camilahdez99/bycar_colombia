@@ -74,7 +74,7 @@ Las consultas nuevas de solo lectura viven en `lib/auth/ownershipQueries.js` y e
 Limitaciones vigentes:
 - El rol admin sale del login hardcodeado (`admin@bycar.co`); el admin no tiene `userId`.
 - El frontend sigue guardando el usuario en `localStorage` para mostrar datos. La cookie la envía el navegador de forma automática.
-- El dashboard, `/admin` y `PermisosManager` hacen todas sus llamadas con `fetchConSesion` (`lib/client/sessionFetch.js`). Ante un 401 limpia `localStorage` y navega a `/login`, una sola vez por carga de página. Todo `fetch` nuevo del frontend a la API debería usarlo.
+- El dashboard, `/admin` y `PermisosManager` hacen todas sus llamadas con `fetchConSesion` (`lib/client/sessionFetch.js`). Ante un 401 limpia `localStorage` y navega a `/login`, una sola vez por carga de página. Todo `fetch` nuevo del frontend a la API debería usarlo. Excepción: `app/login` y `app/register` usan `fetch` directo, porque ahí un 401 significa credenciales inválidas y `expireSession` recargaría la página.
 
 ## API
 

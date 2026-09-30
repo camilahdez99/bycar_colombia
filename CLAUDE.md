@@ -52,7 +52,7 @@ Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 + daisyUI · Oracl
 - `CATALOG_CACHE_SECONDS`: entero positivo = segundos de `Cache-Control` en `menus`, `marcas` y `municipios`. Apagado por defecto (sin header). Con caché, un menú nuevo tarda ese tiempo en verse.
 - Toda ruta nueva de `app/api` debe llamar a `authorize(req, …)` y figurar en `__tests__/app/api/auth-enforcement.test.js`.
 - Toda ruta de usuario que reciba IDs debe validar la pertenencia (`requireSelf` o `checkOwnership` de `lib/auth/ownership.js`) y declarar su regla en `COBERTURA` de `__tests__/app/api/idor.test.js`.
-- Todo `fetch` del frontend a la API debe usar `fetchConSesion` (`lib/client/sessionFetch.js`).
+- Todo `fetch` del frontend a la API debe usar `fetchConSesion` (`lib/client/sessionFetch.js`). Única excepción: `login` y `register`, que usan `fetch` directo porque sus 401 son credenciales inválidas, no una sesión vencida (con `fetchConSesion` se recargaría la página).
 
 Suite completa antes de commitear: `npm test` + `npm run build` + lint sin errores nuevos.
 
