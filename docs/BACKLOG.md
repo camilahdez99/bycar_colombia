@@ -5,7 +5,7 @@ Categorías: `seguridad` · `refactor` · `tests` · `tooling` · `bd-pendiente`
 ## Prioridad alta
 
 - [x] `seguridad` Auth en servidor (cookie firmada + guard + proxy) detrás de `AUTH_ENFORCED` (2026-09-28). Ver BUGS S1-S3.
-- [ ] `seguridad` **Rollout de auth:**
+- [ ] `seguridad` **Rollout de auth:** runbook completo en [`ROLLOUT_AUTH.md`](ROLLOUT_AUTH.md) (lo ejecuta una persona; toca configuración de producción). Resumen:
   1. Configurar `SESSION_SECRET` en producción (se genera con `openssl rand -base64 32`).
   2. Desplegar con el flag apagado y esperar a que los usuarios vuelvan a loguearse (así reciben la cookie).
   3. Verificar que producción sirva por HTTPS: en producción la cookie es `Secure`.

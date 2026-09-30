@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-29 — Preparación del rollout de auth
+
+**Qué cambió**
+- `lib/auth/guard.js`: si `AUTH_ENFORCED=true` y falta `SESSION_SECRET`, se registra `auth_misconfigured` una vez por proceso. Sigue fallando cerrado (401): no desactiva la seguridad.
+- `scripts/verificar-consultas-auth.mjs`: corre las consultas de pertenencia contra un Oracle de prueba en una transacción `READ ONLY` que termina con rollback. Lee las credenciales solo de variables de entorno.
+- `docs/ROLLOUT_AUTH.md`: runbook con precondiciones, prueba en staging, las dos fases en producción, verificación, monitoreo y rollback.
+
+**Tests corridos**
+- Test nuevo para `auth_misconfigured`: 401 y un único log. `npm test`: 517 OK. `npm run build`: OK.
+- Script: probado sin variables (exit 2 con mensaje) y contra una BD inalcanzable con valores ficticios (exit 1 sin exponer datos). **No se corrió contra Oracle real:** no hay credenciales de prueba disponibles y la regla 7 impide usarlas.
+
+**Riesgos pendientes**
+- El rollout en sí (secreto, despliegue y flag) queda en manos del equipo, siguiendo el runbook.
+
 ## 2026-09-29 — IDOR (S6): pertenencia de recursos, detrás de `AUTH_ENFORCED`
 
 **Qué cambió**
