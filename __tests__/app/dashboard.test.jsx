@@ -38,14 +38,16 @@ describe('DashboardPage (caracterización de la carga inicial)', () => {
     expect(urlsPedidas()).toEqual(['/api/menus', '/api/marcas', '/api/municipios']);
   });
 
-  test('con usuario: catálogos, datos del usuario y refresco inicial', async () => {
+  test('con usuario: catálogos, datos del usuario y refresco inicial, cada uno una sola vez (DT-13)', async () => {
     localStorage.setItem('user', JSON.stringify(USUARIO));
     render(<DashboardPage />);
     await waitFor(() => expect(urlsPedidas()).toContain('/api/mensajes/chats?usuarioId=7'));
-    await waitFor(() => expect(fetch.mock.calls.length).toBeGreaterThanOrEqual(10));
+    await waitFor(() => expect(fetch.mock.calls.length).toBeGreaterThanOrEqual(8));
+    // Margen para que aparezca un pedido duplicado si lo hubiera
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
-    expect(new Set(urlsPedidas())).toEqual(
-      new Set([
+    expect([...urlsPedidas()].sort()).toEqual(
+      [
         '/api/menus',
         '/api/marcas',
         '/api/municipios',
@@ -54,7 +56,7 @@ describe('DashboardPage (caracterización de la carga inicial)', () => {
         '/api/mensajes/chats?usuarioId=7',
         '/api/guardian?usuarioId=7',
         '/api/admin/permisos?usuarioId=7',
-      ]),
+      ].sort(),
     );
     expect(push).not.toHaveBeenCalled();
   });

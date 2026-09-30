@@ -201,25 +201,15 @@ export default function DashboardPage() {
         
         if (!uIdChat) return;
 
-        const [resRutas, resSol, resMensajes, resGuardian, resPermisos] = await Promise.all([
-          fetchConSesion(`/api/viajes/mis-rutas?usuarioId=${uIdChat}`),
+        // Mis rutas y chats no se piden acá: los trae el efecto de refresco apenas hay currentUser
+        const [resSol, resGuardian, resPermisos] = await Promise.all([
           fetchConSesion(`/api/solicitudes/recibidas?usuarioId=${uIdChat}`),
-          fetchConSesion(`/api/mensajes/chats?usuarioId=${uIdChat}`),
           fetchConSesion(`/api/guardian?usuarioId=${uIdChat}`),
           fetchConSesion(`/api/admin/permisos?usuarioId=${uIdChat}`)
         ]);
-        if (resRutas.ok) {
-          const dataRutas = await resRutas.json();
-          setRutasPublicadas((Array.isArray(dataRutas.publicadas) ? dataRutas.publicadas : []).sort((a, b) => b.id - a.id));
-          setRutasSolicitadas((Array.isArray(dataRutas.solicitadas) ? dataRutas.solicitadas : []).sort((a, b) => b.id - a.id));
-        }
         if (resSol.ok) {
           const dataSol = await resSol.json();
           setSolicitudesRecibidas(Array.isArray(dataSol) ? dataSol : []);
-        }
-        if (resMensajes && resMensajes.ok) {
-          const dataMensajes = await resMensajes.json();
-          setMensajes(Array.isArray(dataMensajes) ? dataMensajes : []);
         }
         if (resGuardian && resGuardian.ok) {
           const dataGuardian = await resGuardian.json();
