@@ -1,5 +1,32 @@
 # Changelog
 
+## 2026-09-30 — Deuda técnica, bloque 2 (riesgo bajo · impacto medio)
+
+Rama `refactor/deuda-bloque-2`, creada sobre `refactor/deuda-bloque-1`. Un commit por cambio lógico.
+
+**Qué cambió**
+- DT-01: tests de caracterización de `DynamicForm` y del CRUD del panel admin (alta, edición, baja y errores, incluido E6).
+- DT-10: código muerto menor fuera: `useCallback`, `pId`, el estado `guardianFinalizado`, un comentario duplicado, un `setState` anidado en el updater de `setMensajes`, el import `toast` y la prop `table` de `DynamicForm`, el `req` sin uso en catálogos.
+- DT-16: `admin/tablas` usa una sola función de clave primaria.
+- DT-14, DT-15: el CRUD admin pasa por una única `ejecutarMutacion`, con los mismos textos. La `key` de respaldo de las filas deja de ser `Math.random()`.
+- DT-08, DT-09: `lib/domain/constantes.js` (estados de solicitud, perfil, menú Inicio, tiempo del guardián) y constantes de refresco y del guardián en el dashboard. El SQL no se tocó.
+- DT-13: el dashboard deja de pedir `mis-rutas` y `chats` dos veces al cargar, así que son 2 requests y 2 conexiones a Oracle menos por carga.
+- DT-12: caché HTTP opcional de los catálogos con el flag `CATALOG_CACHE_SECONDS`, apagado por defecto.
+- DT-17, DT-18: README propio del proyecto y la excepción de login/register a `fetchConSesion` documentada.
+
+**Cambios de comportamiento a propósito**
+- DT-13: se pide cada URL una sola vez al cargar el dashboard. El test de carga se actualizó para exigirlo, y se verificó que falla con el código anterior.
+- DT-12: solo si se configura el flag.
+
+**Tests corridos (antes de cada commit)**
+- `npm test`: de 571 a 611 tests, 37 archivos, todos OK.
+- `npm run build`: OK.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- DT-11 (logout del dashboard) no se hizo: pasar a `lib/client/logout.js` cambia `router.push('/')` por una navegación completa.
+- DT-19 (CI) no se hizo: el repositorio no tiene remoto configurado, así que falta definir dónde correría.
+
 ## 2026-09-30 — Deuda técnica, bloque 1 (riesgo bajo · impacto alto)
 
 Rama `refactor/deuda-bloque-1`, un commit por cambio lógico.
