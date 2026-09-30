@@ -36,6 +36,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.clearAllMocks();
 });
 
@@ -48,6 +49,20 @@ describe('AdminPage (caracterización de la carga inicial)', () => {
       ['/api/admin/tablas?metadata=1&tabla=USUARIOS', 'GET'],
       ['/api/admin/tablas?tabla=USUARIOS', 'GET'],
     ]);
+  });
+});
+
+describe('AdminPage: cerrar sesión', () => {
+  test('el botón llama al endpoint de logout y vuelve al inicio', async () => {
+    const assign = vi.fn();
+    vi.spyOn(window, 'location', 'get').mockReturnValue({ assign });
+    render(<AdminPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(3));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/'));
+    expect(llamadas().at(-1)).toEqual(['/api/auth/logout', 'POST']);
   });
 });
 

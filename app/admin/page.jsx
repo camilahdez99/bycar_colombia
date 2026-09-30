@@ -4,7 +4,8 @@ import PermisosManager from '@/app/components/admin/PermisosManager';
 import DynamicForm from '@/components/DynamicForm';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
-import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, LogOut } from 'lucide-react';
+import { logout } from '@/lib/client/logout';
 import { toast } from 'react-hot-toast';
 
 /** Modal component used throughout the admin panel */
@@ -210,6 +211,12 @@ export default function AdminPage() {
             PERMISOS
           </button>
         </nav>
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-sm hover:bg-white/5 text-white/50 border-t border-white/10 mt-4"
+        >
+          <LogOut size={16} /> Cerrar sesión
+        </button>
       </aside>
   );
 
