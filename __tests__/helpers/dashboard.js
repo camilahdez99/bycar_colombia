@@ -22,7 +22,8 @@ function respuestaPorDefecto(url) {
 
 /**
  * Reemplaza fetch. Cada clave es un prefijo de URL, opcionalmente precedido del método
- * ("PUT /api/solicitudes"); con "$" al final la URL tiene que coincidir exacta.
+ * ("PUT /api/solicitudes"); una clave sin método responde a cualquier método que no tenga
+ * la suya. Con "$" al final la URL tiene que coincidir exacta.
  * El valor es el body JSON, una Response, o una función (url, init) => body | Response.
  */
 export function stubApi(rutas = {}) {
@@ -35,7 +36,9 @@ export function stubApi(rutas = {}) {
   const mock = vi.fn(async (input, init = {}) => {
     const url = rutaDe(input);
     const metodo = init.method || 'GET';
-    const entrada = entradas.find((e) => (!e.metodo || e.metodo === metodo) && coincide(e.patron, url));
+    // Una clave con método gana sobre una sin método, sin importar el orden en que se declaren
+    const entrada = entradas.find((e) => e.metodo === metodo && coincide(e.patron, url))
+      ?? entradas.find((e) => !e.metodo && coincide(e.patron, url));
     if (!entrada) return respuestaPorDefecto(url);
     const valor = typeof entrada.valor === 'function' ? await entrada.valor(url, init) : entrada.valor;
     return valor instanceof Response ? valor : jsonResponse(valor);
