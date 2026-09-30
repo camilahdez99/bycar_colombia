@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-09-30 — Tests de caracterización de módulos críticos
+
+Rama `refactor/deuda-bloque-3`. Solo se agregaron tests: no se tocó código de producción. Un commit por módulo (`test(caracterizacion): …`). La BD se mockea siempre (`oracledb` o `fetch`); ningún test abre una conexión real.
+
+**Qué cambió**
+- `lib/db`: configuración del driver, una conexión por llamada con las variables de entorno del momento, y log de error sin credenciales.
+- `login` y `register`: validación, cuerpo enviado, `localStorage`, redirección, mensajes y estado del botón.
+- `dashboard` (7 archivos + `__tests__/helpers/dashboard.js`): publicar viaje (valor, puestos, marca), buscar y solicitar cupo, aceptar o rechazar solicitudes, chat, guardián (temporizador con reloj falso, pre-alerta, extensión, alerta, retomar al recargar), menú según permisos y refresco periódico cada 10 s. Cierra DT-01.
+- `PermisosManager`: submenús de Inicio, errores de carga y de asignación o revocación.
+- Bugs nuevos fijados por test: **F33** (el login del admin deja el usuario anterior en `localStorage`), **F34** (un municipio sin nombre rompe el autocompletado), **F35** (sin pre-alerta si el guardián dura 5 min o menos), **F36**, **F37**. Quedaron fijados también F1, F9, F28, F29 y F30, que antes no tenían test.
+- Backlog: DT-01 ✅ y DT-49 nuevo (sumar `@vitest/coverage-v8` al repo, requiere confirmación).
+
+**Cobertura (sentencias / ramas)**
+
+Medida con `@vitest/coverage-v8@5.0.2` instalado en un clon temporal fuera del repo (sin tocar `package.json` ni `node_modules`), sobre `app/`, `lib/`, `components/` y `proxy.js`, sin contar `app/layout.js`.
+
+| | Antes | Después |
+|---|---|---|
+| Total | 82,87 % / 75,22 % | 96,81 % / 93,25 % |
+| `app/dashboard/page.jsx` | 53,5 % / 42,1 % | 95,2 % / 91,0 % |
+| `app/login/page.jsx` | 0 % | 100 % |
+| `app/register/page.jsx` | 0 % | 100 % |
+| `lib/db.js` | 0 % | 100 % |
+| `app/components/admin/PermisosManager.jsx` | 84,2 % / 69,0 % | 98,2 % / 93,1 % |
+
+**Tests corridos (antes de cada commit)**
+- `npm test`: de 609 a 722 tests (37 → 47 archivos), todos OK. Los archivos con temporizadores se corrieron 8 veces seguidas sin fallos (hubo dos carreras en los tests que se corrigieron antes de commitear).
+- `npm run build`: OK.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base; los archivos nuevos no tienen errores.
+
+**Riesgos pendientes**
+- Sin cubrir: la landing (`app/page.jsx`, 58 %: contador animado y scroll del nav, sin lógica de negocio) y, en el dashboard, los `catch` de los refrescos (solo loguean) y los estilos de hover y el focus/blur del autocompletado.
+- Los tests del dashboard dependen de textos y emojis de la UI: un cambio de copy los rompe a propósito, porque fijan lo que ve el usuario.
+- F34 puede romper el dashboard en producción si en `MUNICIPIOS` hay un registro sin nombre. Conviene revisarlo (consulta de solo lectura) antes de priorizar el fix.
+
 ## 2026-09-30 — DT-11, CI y deuda técnica bloque 3 (riesgo bajo · impacto bajo)
 
 Rama `refactor/deuda-bloque-3`, creada sobre `refactor/deuda-bloque-2`. Un commit por cambio lógico.

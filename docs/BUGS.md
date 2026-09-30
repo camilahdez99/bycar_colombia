@@ -72,6 +72,18 @@ Encontrados leyendo el código; ninguno tiene test que lo fije todavía.
 | ~~F32~~ | ✅ | `scripts/create_admin_user.js` | **Resuelto 2026-09-30:** se eliminó el script, que no podía ejecutarse (DT-23). |
 | E6 | ⚪ | `admin/page.jsx:103-107, 119-131` | Si el registro se guarda pero falla la recarga posterior (`refreshData` no valida `res.ok`), se muestra "Registro creado" y enseguida "Error de red", y el modal queda abierto. |
 
+### Detectados al caracterizar el frontend (2026-09-30)
+
+Cada uno está fijado por un test cuyo nombre dice "comportamiento actual". F28, F29 y F30 (tabla anterior) también quedaron fijados en `__tests__/app/dashboard-*.test.jsx`.
+
+| # | Sev | Ubicación | Descripción |
+|---|---|---|---|
+| F33 | 🟡 | `login/page.jsx:31-33`, `auth/login/route.js` | El login del admin no devuelve `user`, así que no pisa el `user` de `localStorage`: si antes había entrado un usuario, sus datos quedan guardados durante la sesión del admin y el dashboard los sigue usando. Test: `__tests__/app/login.test.jsx`. |
+| F34 | 🟡 | `dashboard/page.jsx:27, 184` | Un municipio sin nombre (`NOMBRE_MUN` nulo) queda como `nombre: ''`. Al filtrar, `normalizar(m.nombre \|\| m)` recibe el objeto entero y lanza `str.normalize is not a function`: el dashboard se rompe al escribir en Origen o Destino. Test: `dashboard-navegacion.test.jsx`. |
+| F35 | 🟡 | `dashboard/page.jsx:340` | La pre-alerta del guardián solo se dispara si el contador pasa exactamente por 300 s (`next === PRE_ALERTA_SEG`). Con un tiempo de 5 minutos o menos, o al recargar con menos de 5 minutos restantes, el aviso "¿Has llegado?" nunca aparece. Test: `dashboard-guardian.test.jsx`. |
+| F36 | ⚪ | `dashboard/page.jsx:412-424` | "Sí, he llegado" desde el modal de pre-alerta finaliza el guardián pero no cierra el modal (`finalizarGuardian` no llama a `setShowReadjustModal(false)`). Además, si la API no devolvió `id` al activar, finalizar no hace el `PUT` y aun así avisa "Guardián desactivado". Test: `dashboard-guardian.test.jsx`. |
+| F37 | ⚪ | `dashboard/page.jsx:588` | El aviso usa el estado en masculino: "Solicitud aceptado" / "Solicitud rechazado". Test: `dashboard-solicitudes.test.jsx`. |
+
 ## Manejo de errores
 
 | # | Sev | Ubicación | Descripción |
