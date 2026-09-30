@@ -123,6 +123,15 @@ describe('guard', () => {
   describe('flag prendido', () => {
     beforeEach(() => vi.stubEnv('AUTH_ENFORCED', 'true'));
 
+    test('sin SESSION_SECRET: falla cerrado (401) y loguea la mala configuración una sola vez', async () => {
+      vi.stubEnv('SESSION_SECRET', '');
+      const token = 'cualquiera';
+      expect((await authorize(requestWithCookie(token))).status).toBe(401);
+      expect((await authorize(requestWithCookie(token))).status).toBe(401);
+      const logs = console.error.mock.calls.map(([linea]) => JSON.parse(linea));
+      expect(logs).toEqual([{ event: 'auth_misconfigured', reason: expect.stringContaining('SESSION_SECRET') }]);
+    });
+
     test('sin cookie → 401', async () => {
       expect(await readResponse(await authorize(requestWithCookie()))).toEqual({
         status: 401,
