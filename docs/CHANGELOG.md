@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-09-30 — Deuda técnica, bloque 1 (riesgo bajo · impacto alto)
+
+Rama `refactor/deuda-bloque-1`, un commit por cambio lógico.
+
+**Qué cambió**
+- DT-01 (parcial): 8 tests de caracterización del dashboard a través de la UI (formato de valor, mayúsculas, autocompletado, temporizador, badges, ID de usuario, incluido el `|| 1` de F1).
+- DT-02: `normalizar`, `formatTiempo`, `formatCurrency`, `getUserId` y `getBadgeCount` salieron del dashboard a `lib/client/`, con tests unitarios. La expresión del ID de usuario estaba copiada 8 veces.
+- DT-03 (parcial), DT-04, DT-05: `lib/log.js` (logs en una línea JSON) y `lib/api/connection.js` (`closeConnection`). Los 59 `console.*` del servidor pasaron al logger, y no quedan `catch` vacíos en `app/` ni `lib/`. `tablas` y `guardian` conservan su cierre sin proteger: cambiarlo sería corregir E2.
+- DT-07 (parcial): reglas de solicitudes, limpieza de datos de viaje y cálculo del receptor en `lib/domain/`, con tests.
+- Docs: `ARCHITECTURE.md` (módulos nuevos, sección de logs), `CLAUDE.md` (convenciones de logs, cierre y `lib/domain`), `BACKLOG.md` (estado de cada ítem).
+
+**Sin cambio de comportamiento:** respuestas, códigos HTTP, SQL (los snapshots no cambiaron) y requests del frontend. Lo único que cambia es el formato de los logs del servidor.
+
+**Tests corridos (antes de cada commit)**
+- `npm test`: de 520 a 571 tests, 35 archivos, todos OK.
+- `npm run build`: OK.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- Quien lea los logs en producción (alertas, grep) tiene que adaptarse al formato JSON nuevo: `event: 'api_error'` y `route`.
+- DT-06 (no exponer `error.message`) queda sin hacer: cambia el body de error y corrige S8, así que va en tarea aparte.
+
 ## 2026-09-30 — Relevamiento de deuda técnica
 
 **Qué cambió**

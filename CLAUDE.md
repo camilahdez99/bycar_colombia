@@ -28,7 +28,9 @@ Leé este archivo completo antes de cualquier tarea. Estas reglas tienen priorid
 - Nombres descriptivos, funciones cortas con una sola responsabilidad.
 - Sin código comentado ni muerto: si no se usa, se elimina (previa confirmación).
 - Manejo de errores explícito; nada de `catch` vacíos.
-- Logs estructurados, sin datos sensibles (contraseñas, tokens, documentos de identidad).
+- Logs estructurados, sin datos sensibles (contraseñas, tokens, documentos de identidad). En el servidor, con `logError` / `logInfo` de `lib/log.js`; nada de `console.*` sueltos.
+- En los route handlers, cerrar la conexión con `closeConnection(connection, 'MÉTODO /api/ruta')` de `lib/api/connection.js`.
+- Lógica de negocio pura en `lib/domain/`, con tests propios; los handlers solo orquestan.
 - Features nuevas detrás de feature flags, apagadas por defecto.
 
 ## Stack

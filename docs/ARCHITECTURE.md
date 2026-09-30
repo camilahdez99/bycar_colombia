@@ -25,7 +25,11 @@ app/
   api/**/route.js       Route handlers (ver abajo)
 components/             DynamicForm (form a partir de metadata de columnas), admin/*
 lib/db.js               getConnection()
-lib/municipios.js       Lista estática de 1021 municipios
+lib/log.js              logError / logInfo: logs en una línea JSON
+lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers
+lib/domain/             Reglas puras del dominio (estados de solicitud, limpieza de viaje, receptor de mensajes)
+lib/client/             Código de navegador: fetchConSesion, logout, formato, usuario, badges
+lib/municipios.js       Lista estática de 1021 municipios (sin uso en la app)
 scripts/                DDL/DML de referencia (.txt) y scripts sueltos de mantenimiento
 ```
 
@@ -102,12 +106,17 @@ Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viaj
 - `dashboard/page.jsx` consume casi toda la API; hace polling cada 10 s y cada 3 s en el chat.
 - `admin/page.jsx` usa `/api/admin/tablas` + `DynamicForm` + `PermisosManager`.
 
+## Logs
+
+Los handlers registran con `lib/log.js`: `logError('api_error', error, { route: 'GET /api/x' })`. Cada log es una línea JSON con `event`, el contexto y, del error, solo `name`, `message`, `code` y `errorNum` (sin stack). `lib/auth` emite el mismo formato. No se loguean contraseñas, tokens ni cookies.
+
 ## Candidatos a tests unitarios (lógica pura)
 
-- `app/dashboard/page.jsx`: `normalizar` (:8), `formatTiempo` (:448), `formatCurrency` (:454), `getBadgeCount` (:627)
-- `app/admin/page.jsx`: `getRowId` (:214)
-- `components/DynamicForm.jsx`: `typeForColumn` (:44)
-- `app/api/admin/tablas/route.js`: `sanitizeTable` (:6)
-- Lógica embebida en handlers (extraer con tests previos): mapa de estados en `solicitudes` (:46-58), limpieza de placa/puestos/valor en `viajes` (:147-174), cálculo de receptor en `mensajes` (:87-88)
+Ya extraídos y con tests (2026-09-30): los helpers del dashboard (`lib/client/`) y la lógica de solicitudes, viajes y mensajes (`lib/domain/`).
+
+Pendientes:
+- `app/admin/page.jsx`: `getRowId`
+- `components/DynamicForm.jsx`: `typeForColumn`
+- `app/api/admin/tablas/route.js`: `sanitizeTable`
 
 Los route handlers dependen de `getConnection`; para caracterizarlos hay que mockear `@/lib/db` con `vi.mock`.
