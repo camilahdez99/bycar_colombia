@@ -107,69 +107,59 @@ export default function AdminPage() {
   };
 
   // ---------- CRUD ----------
-  const handleCreate = async (formData) => {
-    setGuardando(true);
-    const t = toast.loading('Creando registro...');
+  // Llama a la API con su toast de progreso; si responde OK, recarga las filas y ejecuta alTerminar
+  const ejecutarMutacion = async ({ url, init, mensajes, alTerminar }) => {
+    const t = toast.loading(mensajes.cargando);
     try {
-      const r = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const r = await fetchConSesion(url, init);
       if (r.ok) {
-        toast.success('Registro creado', { id: t });
+        toast.success(mensajes.exito, { id: t });
         await refreshData();
-        cerrarModal();
+        alTerminar?.();
       } else {
         const err = await r.json();
-        toast.error(err.error || 'Error al crear', { id: t });
+        toast.error(err.error || mensajes.error, { id: t });
       }
     } catch (e) {
       toast.error('Error de red', { id: t });
+    }
+  };
+
+  const conBody = (method, formData) => ({
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(formData),
+  });
+
+  // Alta y edición deshabilitan el formulario mientras se guarda
+  const guardar = async (mutacion) => {
+    setGuardando(true);
+    try {
+      await ejecutarMutacion({ ...mutacion, alTerminar: cerrarModal });
     } finally {
       setGuardando(false);
     }
   };
 
-  const handleUpdate = async (id, formData) => {
-    setGuardando(true);
-    const t = toast.loading('Actualizando registro...');
-    try {
-      const r = await fetchConSesion(`/api/admin/tablas?id=${id}&tabla=${activeTable}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      if (r.ok) {
-        toast.success('Registro actualizado', { id: t });
-        await refreshData();
-        cerrarModal();
-      } else {
-        const err = await r.json();
-        toast.error(err.error || 'Error al actualizar', { id: t });
-      }
-    } catch (e) {
-      toast.error('Error de red', { id: t });
-    } finally {
-      setGuardando(false);
-    }
-  };
+  const handleCreate = (formData) => guardar({
+    url: `/api/admin/tablas?tabla=${activeTable}`,
+    init: conBody('POST', formData),
+    mensajes: { cargando: 'Creando registro...', exito: 'Registro creado', error: 'Error al crear' },
+  });
+
+  const handleUpdate = (id, formData) => guardar({
+    url: `/api/admin/tablas?id=${id}&tabla=${activeTable}`,
+    init: conBody('PUT', formData),
+    mensajes: { cargando: 'Actualizando registro...', exito: 'Registro actualizado', error: 'Error al actualizar' },
+  });
 
   const handleDelete = async (id) => {
     if (!confirm('¿Eliminar este registro?')) return;
-    const t = toast.loading('Eliminando...');
-    try {
-      const r = await fetchConSesion(`/api/admin/tablas?id=${id}&tabla=${activeTable}`, { method: 'DELETE' });
-      if (r.ok) {
-        toast.success('Eliminado', { id: t });
-        await refreshData();
-      } else {
-        const err = await r.json();
-        toast.error(err.error || 'Error al eliminar', { id: t });
-      }
-    } catch (e) {
-      toast.error('Error de red', { id: t });
-    }
+    await ejecutarMutacion({
+      url: `/api/admin/tablas?id=${id}&tabla=${activeTable}`,
+      init: { method: 'DELETE' },
+      mensajes: { cargando: 'Eliminando...', exito: 'Eliminado', error: 'Error al eliminar' },
+    });
   };
 
   // ---------- UI helpers ----------
@@ -255,9 +245,9 @@ export default function AdminPage() {
                 <td colSpan={columnsInfo.length + 1} className="p-8 text-center text-white/30 text-sm">No se encontraron registros</td>
               </tr>
             ) : (
-              filtroRows.map(row => (
+              filtroRows.map((row, index) => (
                 <tr
-                  key={getRowId(row) || Math.random()}
+                  key={getRowId(row) || `fila-${index}`}
                   className="border-t border-white/5 hover:bg-white/[0.02] transition-colors"
                 >
                   {columnsInfo.map(col => (
