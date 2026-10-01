@@ -335,6 +335,19 @@ describe('Dashboard · guardián: temporizador (caracterización)', () => {
     expect(llamadas('PUT', '/api/guardian').map((c) => c.body)).toEqual([{ id: 77, estado: 'Alerta' }]);
   });
 
+  test('al agotarse el tiempo se cierra el modal de pre-alerta y ya no se puede extender (F40)', async () => {
+    await activarCon(6);
+    pasarSegundos(60);
+    expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
+
+    pasarSegundos(300);
+    expect(screen.getByText('🚨 ALERTA ENVIADA')).toBeTruthy();
+    expect(screen.queryByText('¿Has llegado a tu destino?')).toBeNull();
+    expect(screen.queryByText('🕒 No, hay retraso (+15 min)')).toBeNull();
+    // "He llegado" sigue disponible en el panel
+    expect(screen.getByText('✅ He llegado a mi destino')).toBeTruthy();
+  });
+
   test('al llegar a 0: PUT con estado Alerta una sola vez, aviso y "ALERTA ENVIADA" en pantalla', async () => {
     await activarCon(6);
     pasarSegundos(360);

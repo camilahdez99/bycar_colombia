@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-01 — Fix de F40 (extender el guardián después de la alerta)
+
+Rama `fix/f40-extender-tras-alerta`, desde `main` (`1e2e682`). Opción elegida: después de la alerta ya no se puede extender.
+
+**Qué cambió**
+- Cuando el tiempo se agota se cierra el modal de pre-alerta, y `reajustarTiempo` no hace nada si la alerta ya salió. Antes, "+15 min" registraba la extensión pero el contador quedaba congelado en 15:00 con "ALERTA ENVIADA" en pantalla. "He llegado" sigue disponible en el panel.
+
+**Tests corridos**
+- Primero se escribió un test nuevo en `dashboard-guardian.test.jsx` y se verificó que fallaba con el código anterior.
+- `npx vitest run --maxWorkers=4`: 782 tests en 54 archivos, todos OK.
+- `npm run build`: OK. `npm run lint`: en el código del repo, los mismos 3 errores y 3 warnings (DT-38). ESLint también recorre `.claude/worktrees/migracion-postgres`, un worktree de otra sesión, y duplica esos hallazgos y suma los de su `.next`. No es de este cambio.
+
+**Riesgos pendientes**
+- La extensión ya no se ofrece después de la alerta: si el viajero sigue en camino, solo puede confirmar la llegada.
+
 ## 2026-10-01 — Fix de F39 (contador del guardián)
 
 Rama `fix/f39-contador-guardian`, desde `main` (`9719ed4`).
