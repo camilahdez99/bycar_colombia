@@ -27,7 +27,9 @@ components/             DynamicForm (form a partir de metadata de columnas), adm
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers
-lib/domain/             Reglas puras y constantes del dominio (estados, perfil, solicitudes, viajes, mensajes)
+lib/api/errores.js      mensajeDeError(): mensaje seguro para los 500 (nunca el texto de Oracle)
+lib/api/validacion.js   badRequest(), readJson(): respuestas 400 y lectura segura del body
+lib/domain/             Reglas puras y constantes del dominio (estados, perfil, solicitudes, viajes, mensajes, validadores)
 lib/api/cache.js        Caché HTTP opcional de catálogos (CATALOG_CACHE_SECONDS)
 lib/client/             Código de navegador: fetchConSesion, logout, formato, usuario, badges
 scripts/                DDL/DML de referencia y utilidades (ver scripts/README.md)
@@ -65,7 +67,7 @@ Con `AUTH_ENFORCED`, además de la sesión, cada ruta de usuario verifica que el
 | `GET/POST mensajes` | ser pasajero o conductor del chat; en POST, además, `senderId` = sesión |
 | `PUT solicitudes` | el conductor acepta o rechaza (2, 3), el pasajero cancela (4); cualquier otro estado, solo el admin |
 | `POST guardian` | participar del viaje: ser el conductor o un pasajero con solicitud aceptada |
-| `PUT guardian` | participar del viaje del guardián; sin `id` responde 403 |
+| `PUT guardian` | participar del viaje del guardián; sin `id` (o con uno que no es entero) responde 400 antes de chequear la pertenencia |
 | `GET guardian?email` | el correo es el de la sesión (sin distinguir mayúsculas) |
 
 Las consultas nuevas de solo lectura viven en `lib/auth/ownershipQueries.js` y están fijadas por snapshot. `checkOwnership` solo las ejecuta con el flag prendido y para usuarios no admin.
@@ -106,6 +108,13 @@ Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viaj
 
 - `dashboard/page.jsx` consume casi toda la API; hace polling cada 10 s y cada 3 s en el chat.
 - `admin/page.jsx` usa `/api/admin/tablas` + `DynamicForm` + `PermisosManager`.
+
+## Validación y errores de la API
+
+Desde 2026-10-01 (DT-31, DT-06):
+- **Entrada:** antes de abrir la conexión, cada handler valida con `lib/domain/validadores.js` (`enteroPositivo`, `numeroPositivo`, `textoNoVacio`) y responde 400 con `badRequest(mensaje)`. Un body que no es JSON responde 400 (`readJson` + `invalidJsonResponse`). Las reglas de un viaje están en `validarDatosViaje` y las de un estado de solicitud en `resolverEstadoSolicitud`.
+- **Orden de las respuestas:** 400 (datos inválidos) → 401/403 (sesión y pertenencia) → 404 (`rowsAffected = 0`) → 500.
+- **Errores 500:** el body lleva `mensajeDeError(error, porDefecto)`: un mensaje en español para los códigos de Oracle comunes (duplicado, campo obligatorio, FK) o el genérico de la ruta. El texto original va solo al log.
 
 ## Logs
 

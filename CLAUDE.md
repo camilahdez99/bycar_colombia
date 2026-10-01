@@ -31,6 +31,7 @@ Leé este archivo completo antes de cualquier tarea. Estas reglas tienen priorid
 - Logs estructurados, sin datos sensibles (contraseñas, tokens, documentos de identidad). En el servidor, con `logError` / `logInfo` de `lib/log.js`; nada de `console.*` sueltos.
 - En los route handlers, cerrar la conexión con `closeConnection(connection, 'MÉTODO /api/ruta')` de `lib/api/connection.js`.
 - Lógica de negocio pura en `lib/domain/`, con tests propios; los handlers solo orquestan.
+- En los route handlers, validar la entrada antes de abrir la conexión (`lib/domain/validadores.js` + `badRequest` / `readJson` de `lib/api/validacion.js`), y en los 500 devolver `mensajeDeError(error, 'mensaje')` de `lib/api/errores.js`, nunca `error.message`.
 - Features nuevas detrás de feature flags, apagadas por defecto.
 
 ## Stack

@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-10-01 — API: errores seguros, validación de entrada y bugs de la API
+
+Rama `fix/api-backlog` (worktree `../bycar_colombia-api`), creada desde `7e19e1b`. Un commit por cambio lógico. Trabajo coordinado con las otras sesiones: frontend en `fix/frontend-bugs` (sesión 3), DT-46 en `chore/dt46-rutas-admin` (sesión 5), dependencias y S5 en `chore/deps-seguridad` (sesión 8), organización en `refactor/organizacion` (sesión 4) y varios en `mejoras/varios` (sesión 6).
+
+**Qué cambió (cambios de comportamiento a propósito: son fixes)**
+- **S8 / DT-06:** los 500 ya no devuelven el texto de Oracle. El body lleva un mensaje seguro (`lib/api/errores.js`).
+- **E1:** en `admin/tablas`, un nombre de tabla o un JSON inválidos → 400 (antes 500 sin control).
+- **E2:** `tablas` y `guardian` cierran con `closeConnection`; un fallo al cerrar ya no tapa la respuesta.
+- **E4:** un resultado sin `rows` se trata como vacío en `mensajes` y `guardian` (antes 500).
+- **E5:** `guardian` y `solicitudes` validan antes de abrir la conexión.
+- **DT-31:** validación de entrada en todas las rutas de usuario y en `admin/tablas` y `admin/permisos` (`lib/domain/validadores.js`, `lib/api/validacion.js`). Resuelve F6, F20, F22, F23 y F24: IDs no enteros, estados fuera de catálogo, NaN en puestos, valor y tiempo, placas de más de 6 caracteres (antes se recortaban y podían colisionar), `extraTiempo: null` y filtros de solo espacios.
+- **`admin/tablas`:** F12 (el INSERT en MENUS sin `ID_ENU` ahora se confirma), F13 (tabla sin PK → 400), F14 (id como texto en los tres métodos) y F15 (sin columnas válidas → 400).
+- **F19:** `rowsAffected = 0` → 404 en `admin/tablas`, `solicitudes` y `guardian`.
+- Un body que no es JSON → 400 en `solicitudes`, `guardian`, `mensajes` y `permisos` (antes 500).
+- El texto del SQL no cambió en ningún commit: los snapshots solo cambian el tipo del id en `tablas`.
+- DT-03 y DT-07 quedan cerrados. Docs: `ARCHITECTURE.md` (validación y errores; `PUT guardian` sin id ahora es 400) y `CLAUDE.md` (convención de validación y errores).
+
+**Tests corridos (antes de cada commit)**
+- `npx vitest run --maxWorkers=2` (suite completa): de 738 a 850 tests, 50 archivos, todos OK. Con los workers por defecto, los tests de UI superan el timeout por la carga de la máquina (varias sesiones corriendo suites a la vez), así que se limitó el paralelismo.
+- `npm run build`: OK. `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- El dashboard muestra en un toast el `error` de la API: ahora el usuario ve los mensajes de validación (por ejemplo, «La placa debe tener entre 1 y 6 letras o números») en lugar de un error genérico o de un viaje guardado con NaN.
+- Integración: esta rama y `chore/dt46-rutas-admin` tocan `__tests__/app/api/auth-enforcement.test.js`, `docs/BUGS.md` y `docs/BACKLOG.md`. Al mergear puede haber conflictos de texto, no de lógica.
+- Siguen abiertos los bugs que requieren SQL o la BD: F2–F5, F10, F21, S4 y S5 (este último lo está tomando la sesión 8).
+
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 
 Rama `refactor/deuda-bloque-3`, en un commit propio (`fix`), separado de la caracterización.
