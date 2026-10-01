@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, test } from 'vitest';
-import { badRequest } from '@/lib/api/validacion';
+import { JSON_INVALIDO, badRequest, invalidJsonResponse, readJson } from '@/lib/api/validacion';
 import { enteroPositivo, numeroPositivo, textoNoVacio } from '@/lib/domain/validadores';
 
 describe('enteroPositivo', () => {
@@ -44,5 +44,23 @@ describe('badRequest', () => {
     const respuesta = badRequest('Dato inválido');
     expect(respuesta.status).toBe(400);
     expect(await respuesta.json()).toEqual({ error: 'Dato inválido' });
+  });
+});
+
+describe('readJson', () => {
+  const req = (body) => new Request('http://localhost/x', { method: 'POST', body });
+
+  test('devuelve el body parseado', async () => {
+    expect(await readJson(req('{"a":1}'))).toEqual({ a: 1 });
+  });
+
+  test('con JSON inválido devuelve JSON_INVALIDO en lugar de lanzar', async () => {
+    expect(await readJson(req('{no json'))).toBe(JSON_INVALIDO);
+  });
+
+  test('invalidJsonResponse: 400 con mensaje fijo', async () => {
+    const respuesta = invalidJsonResponse();
+    expect(respuesta.status).toBe(400);
+    expect(await respuesta.json()).toEqual({ error: 'El cuerpo no es un JSON válido' });
   });
 });

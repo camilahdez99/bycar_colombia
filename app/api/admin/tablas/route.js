@@ -4,6 +4,7 @@ import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
+import { JSON_INVALIDO, invalidJsonResponse, readJson } from '@/lib/api/validacion';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -12,20 +13,6 @@ const sanitizeTable = (name) => (/^[A-Z0-9_]+$/i.test(name) ? name.toUpperCase()
 
 const invalidTableResponse = () =>
   NextResponse.json({ error: 'Nombre de tabla inválido' }, { status: 400 });
-
-const invalidJsonResponse = () =>
-  NextResponse.json({ error: 'El cuerpo no es un JSON válido' }, { status: 400 });
-
-const JSON_INVALIDO = Symbol('json-invalido');
-
-/** Body parseado, o JSON_INVALIDO si no se puede leer (antes se escapaba como 500, BUGS E1). */
-async function readJson(req) {
-  try {
-    return await req.json();
-  } catch {
-    return JSON_INVALIDO;
-  }
-}
 
 const ERROR_PK_COMPUESTA = 'La tabla tiene clave primaria compuesta: no se puede modificar por id';
 
