@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-10-01 — Correcciones pendientes dentro del alcance
+
+Rama `fix/correcciones-pendientes`, desde `main` (`402f064`).
+
+**Qué cambió**
+- **F41:** tocar el chat que ya está abierto no hace nada. Antes vaciaba la conversación hasta el siguiente refresco. Se invirtió el test de caracterización y se verificó que fallaba con el código anterior.
+- **Logs:** los 4 `console.*` sueltos del servidor (`lib/auth/ownership.js`, `guard.js`, `session.js` y `auth/login`) pasan a `logWarn` / `logAlerta`, nuevos en `lib/log.js` y con tests. La salida es idéntica.
+- **BUGS al día:** F7 ya estaba resuelto por DT-10 (`bff9b6b`), y F25 está mitigado detrás de `AUTH_ENFORCED` (`isViajeParticipant`).
+
+**Tests corridos**
+- `npx vitest run --maxWorkers=4`: 786 tests en 54 archivos, todos OK.
+- `npm run build`: OK. `npm run lint`: 0 errores y 0 warnings.
+
+**Riesgos pendientes (fuera del alcance de esta tarea)**
+- Requieren cambiar SQL o la BD (regla 8): F2, F3, F4, F5, F10, F21, S4 y la parte de servidor de F28 (además necesita un proceso programado y el envío de correo).
+- Requieren una persona: rotar las credenciales de S7 y S9 y limpiar el historial; prender `AUTH_ENFORCED` en producción (S1, S2, S3, S6, F25); cambiar la contraseña del admin del seed (S5).
+
 ## 2026-10-01 — Lint en verde (DT-38, DT-51) y obligatorio en CI
 
 Rama `chore/lint-dt38`, desde `main` (`5abb90f`).
