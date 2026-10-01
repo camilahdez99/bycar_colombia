@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-10-01 — Migración de Oracle a PostgreSQL (Supabase)
+
+Rama `feat/migracion-postgres`, desde `main` (`1e2e682`). Pedido explícito: levantar la regla de "BD fuera de alcance" y reemplazar `oracledb` por `pg` para esta tarea. Guía: `docs/MIGRACION_POSTGRES.md`.
+
+**Qué cambió**
+- `lib/db.js` usa un pool de `pg` con `DATABASE_URL`. El nuevo `lib/pg/` conserva el contrato de oracledb que usan las rutas: binds `:nombre`, columnas en MAYÚSCULAS salvo alias entre comillas, `rowsAffected`, `autoCommit`/`commit`/`rollback` con savepoint por sentencia (en Oracle un error solo deshace la sentencia), `''` como `NULL`, `NUMERIC`/`BIGINT` como número, `errorNum` de Oracle a partir del SQLSTATE y sesión en hora de Colombia.
+- Rutas: solo el SQL propio de Oracle (`ROWNUM`, `SYSDATE`, `SYSTIMESTAMP`, `TRUNC(SYSDATE)`, `NVL`, `TO_CHAR(clob)` y el diccionario `user_*` → `information_schema`). `admin/permisos` detecta el duplicado por `errorNum` en vez del texto `ORA-00001`. Dejan de pasar `outFormat`.
+- `scripts/postgres/01–04`: esquema (con RLS), índices, datos iniciales y el admin aparte. Los `.txt` de Oracle quedan como históricos.
+- `scripts/verificar-consultas-auth.mjs` usa `DATABASE_URL` y una conexión sin `autoCommit`.
+- Dependencias: `oracledb` desinstalado y `pg` 8.23 instalado.
+
+**Tests corridos**
+- `npm test`: 817 tests en 56 archivos, todos OK (antes 781 en 54). Nuevos: `__tests__/lib/pg/sql.test.js` y `conexion.test.js`. `db.test.js` se reescribió para `pg`. Los snapshots solo cambian en `outFormat` y en el SQL traducido; `permisos.test.js` simula el duplicado con `errorNum` 1.
+- Integración fuera del repo: los route handlers reales contra Postgres 17 (PGlite) con los 4 scripts cargados, 11 casos: catálogos, registro (transacción) y login, publicar viaje con municipio y marca nuevos, solicitudes, chat, guardián (hora de Colombia, extensión, estado por texto), CRUD de `admin/tablas` (incluido `MENUS` en transacción y los errores de FK y de largo), `admin/permisos` (409) y las consultas de pertenencia en READ ONLY. Ahí apareció que `SET TRANSACTION READ ONLY` se perdía dentro del savepoint; quedó corregido (`0fdbcd3`).
+- `npm run build`: OK. `npm run lint`: 3 errores y 5 warnings, los mismos de la línea base (DT-38, DT-51).
+
+**Riesgos pendientes**
+- No se probó contra Supabase real: SSL, pooler y zona horaria dependen de la configuración del proyecto (ver la guía).
+- Los datos de producción que hoy están en Oracle hay que exportarlos e importarlos aparte (guía, sección 3).
+- `.env.example` sigue listando las variables de Oracle: por la regla 7 no se tocó. Hay que reemplazar `DB_USER`/`DB_PASSWORD`/`DB_CONNECTION_STRING` por `DATABASE_URL`.
+- `scripts/fix_guardian.js` (local, fuera de git) sigue usando `oracledb`.
+- Diferencias de orden de textos y de largo de `VARCHAR` (BD-20), IDs con `Date.now()`/`MAX+1` (BD-21), conexión con el usuario `postgres` (BD-22).
+
 ## 2026-10-01 — Fix de F39 (contador del guardián)
 
 Rama `fix/f39-contador-guardian`, desde `main` (`9719ed4`).

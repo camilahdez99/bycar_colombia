@@ -8,10 +8,10 @@ Plataforma de carpooling intermunicipal (Colombia). Relevamiento inicial: 2026-0
 |---|---|
 | Framework | Next.js 16 (App Router), JavaScript (sin TypeScript) |
 | UI | React 19, Tailwind 4 (sin config JS; solo `globals.css`), `lucide-react`, `react-hot-toast`; mucho CSS inline vía `<style>` en páginas |
-| Datos | Oracle (`oracledb` 6), conexión por request en `lib/db.js` (sin pool, `autoCommit` global = true) |
+| Datos | PostgreSQL en Supabase (`pg` 8), pool por proceso en `lib/db.js`; `lib/pg/` mantiene el contrato de oracledb (binds `:nombre`, columnas en MAYÚSCULAS, `autoCommit` = true por defecto, `errorNum`). Ver `docs/MIGRACION_POSTGRES.md` |
 | Tests | Vitest + jsdom + Testing Library (`__tests__/`) |
 
-Variables de entorno: `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING`.
+Variables de entorno: `DATABASE_URL` (opcionales `DB_TIMEZONE`, `DB_POOL_MAX`).
 
 ## Estructura
 
@@ -35,16 +35,17 @@ hooks/dashboard/        Estado y llamadas a la API del dashboard por dominio: us
                         (temporizador, pre-alerta, alerta), useChat (chat abierto) y useRutas
                         (mis rutas y publicar)
   landing/              Islas de cliente de la landing (nav, hero, secciones animadas); la página es server component
-lib/db.js               getConnection()
+lib/db.js               getConnection(): cliente del pool de pg envuelto en ConexionPg
+lib/pg/                 Adaptador pg ↔ contrato oracledb: traducción de binds, nombres de columnas y errores (sql.js) y conexión con transacciones (conexion.js)
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers
-lib/api/errores.js      mensajeDeError(): mensaje seguro para los 500 (nunca el texto de Oracle)
+lib/api/errores.js      mensajeDeError(): mensaje seguro para los 500 (nunca el texto de la BD)
 lib/api/validacion.js   badRequest(), readJson(): respuestas 400 y lectura segura del body
 lib/domain/             Reglas puras y constantes del dominio (estados, perfil, solicitudes, viajes, mensajes, validadores)
 lib/api/cache.js        Caché HTTP opcional de catálogos (CATALOG_CACHE_SECONDS)
 lib/client/             Código de navegador: fetchConSesion, logout, formato, usuario, badges,
                         intervaloVisible, cuentaRegresiva
-scripts/                DDL/DML de referencia y utilidades (ver scripts/README.md)
+scripts/                Scripts de la BD (postgres/: los vigentes; .txt: los de Oracle) y utilidades (ver scripts/README.md)
 .github/workflows/      CI: tests, build y lint informativo
 ```
 
@@ -122,7 +123,7 @@ Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viaj
 Desde 2026-10-01 (DT-31, DT-06):
 - **Entrada:** antes de abrir la conexión, cada handler valida con `lib/domain/validadores.js` (`enteroPositivo`, `numeroPositivo`, `textoNoVacio`) y responde 400 con `badRequest(mensaje)`. Un body que no es JSON responde 400 (`readJson` + `invalidJsonResponse`). Las reglas de un viaje están en `validarDatosViaje` y las de un estado de solicitud en `resolverEstadoSolicitud`.
 - **Orden de las respuestas:** 400 (datos inválidos) → 401/403 (sesión y pertenencia) → 404 (`rowsAffected = 0`) → 500.
-- **Errores 500:** el body lleva `mensajeDeError(error, porDefecto)`: un mensaje en español para los códigos de Oracle comunes (duplicado, campo obligatorio, FK) o el genérico de la ruta. El texto original va solo al log.
+- **Errores 500:** el body lleva `mensajeDeError(error, porDefecto)`: un mensaje en español para los errores comunes (duplicado, campo obligatorio, FK; por número de Oracle, que `lib/pg/sql.js` deriva del SQLSTATE) o el genérico de la ruta. El texto original va solo al log.
 
 ## Logs
 

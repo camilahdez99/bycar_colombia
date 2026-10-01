@@ -4,12 +4,12 @@ Plataforma de carpooling intermunicipal en Colombia: los conductores publican vi
 
 ## Stack
 
-Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 · Oracle con `oracledb` · Vitest + Testing Library.
+Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 · PostgreSQL (Supabase) con `pg` · Vitest + Testing Library.
 
 ## Requisitos
 
 - Node.js 24 (es la versión con la que se prueba el proyecto).
-- Acceso a una base Oracle con el esquema de `scripts/tablas_DDL.txt`.
+- Una base PostgreSQL (Supabase) creada con los scripts de `scripts/postgres/` (ver `docs/MIGRACION_POSTGRES.md`).
 
 ## Variables de entorno
 
@@ -17,7 +17,8 @@ Van en `.env.local` (no se versiona). La plantilla es `.env.example`: copiala a 
 
 | Variable | Obligatoria | Uso |
 |---|---|---|
-| `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING` | sí | Conexión a Oracle (`lib/db.js`). |
+| `DATABASE_URL` | sí | Connection string de Postgres/Supabase (`lib/db.js`). Usá el *Session pooler* y SSL: ver `docs/MIGRACION_POSTGRES.md`. |
+| `DB_TIMEZONE`, `DB_POOL_MAX` | no | Zona horaria de la sesión (por defecto `America/Bogota`) y tamaño del pool (por defecto 5). |
 | `SESSION_SECRET` | para tener sesión | Firma de la cookie de sesión, 32 caracteres como mínimo. Sin ella, el login no emite cookie. |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | para el admin | Credenciales del login de admin (`/admin`). Si falta alguna, el login de admin queda deshabilitado. Reemplazan al admin hardcodeado (S5). |
 | `AUTH_ENFORCED` | no | `true` exige sesión y rol en la API. Apagado por defecto: ver `docs/ROLLOUT_AUTH.md` antes de prenderlo. |
