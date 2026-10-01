@@ -181,11 +181,12 @@ export default function DashboardPage() {
     return iniciarIntervaloVisible(refreshTabs, REFRESCO_MS);
   }, [activePage, currentUser, aplicarMisRutas]);
 
-  // Al navegar HACIA la pestaña mensajes se marcan todos como leídos. Va en el evento y no en un
+  // Al navegar HACIA Mensajes o Mis Rutas se marca todo como visto. Va en el evento y no en un
   // efecto sobre activePage, que volvía a renderizar en cascada (DT-38)
   const navegar = (pagina) => {
     setActivePage(pagina);
     if (pagina === 'mensajes') setMensajesLeidos(mensajes.length);
+    if (pagina === 'mis-rutas') rutas.marcarSolicitadasLeidas();
   };
 
 

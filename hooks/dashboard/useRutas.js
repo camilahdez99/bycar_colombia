@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { formatCurrency } from '@/lib/client/formato';
@@ -10,6 +10,9 @@ const RUTA_VACIA = { origen: '', destino: '', marca: '', carro: '', placa: '', f
 
 /** Lista de `mis-rutas` ordenada de la más nueva a la más vieja. */
 const porIdDescendente = (lista) => (Array.isArray(lista) ? lista : []).sort((a, b) => b.id - a.id);
+
+/** Estado actual de cada ruta solicitada, para guardarlo como ya visto: { [routeId]: estado }. */
+const estadosPorId = (rutas) => Object.fromEntries(rutas.map(r => [r.id, r.estado]));
 
 /**
  * Rutas del usuario: las que publicó y las que solicitó (con cuáles ya vio, para el badge),
@@ -22,24 +25,33 @@ export function useRutas(currentUser, activePage) {
   const [publicarOpen, setPublicarOpen] = useState(false);
   const [nuevaRuta, setNuevaRuta] = useState(RUTA_VACIA);
 
-  /** Aplica la respuesta de `GET /api/viajes/mis-rutas`. Estable: solo usa setters. */
-  const aplicarMisRutas = useCallback((data) => {
-    if (data && typeof data === 'object') {
-      setRutasPublicadas(porIdDescendente(data.publicadas));
-      setRutasSolicitadas(porIdDescendente(data.solicitadas));
-    }
+  // Guarda como vistos los estados actuales de `rutas` (para el badge de Mis Rutas)
+  const marcarLeidas = useCallback((rutas) => {
+    if (rutas.length > 0) setRutasSolicitadasLeidas(prev => ({ ...prev, ...estadosPorId(rutas) }));
   }, []);
 
-  // Cuando el usuario navega HACIA la pestaña de mis-rutas (o actualiza estando en ella), marcar todos como leídos
-  useEffect(() => {
-    if (activePage === 'mis-rutas' && rutasSolicitadas.length > 0) {
-      const updated = {};
-      rutasSolicitadas.forEach(r => {
-        updated[r.id] = r.estado;
-      });
-      setRutasSolicitadasLeidas(prev => ({ ...prev, ...updated }));
+  // Pestaña activa ya renderizada, para que aplicarMisRutas siga siendo estable
+  const activePageRef = useRef(activePage);
+  useEffect(() => { activePageRef.current = activePage; }, [activePage]);
+
+  /**
+   * Aplica la respuesta de `GET /api/viajes/mis-rutas`. Si el usuario está en Mis Rutas, los
+   * estados que llegan quedan vistos. Estable: solo usa setters y refs.
+   */
+  const aplicarMisRutas = useCallback((data) => {
+    if (data && typeof data === 'object') {
+      const solicitadas = porIdDescendente(data.solicitadas);
+      setRutasPublicadas(porIdDescendente(data.publicadas));
+      setRutasSolicitadas(solicitadas);
+      if (activePageRef.current === 'mis-rutas') marcarLeidas(solicitadas);
     }
-  }, [activePage, rutasSolicitadas]);
+  }, [marcarLeidas]);
+
+  /**
+   * Al navegar HACIA Mis Rutas se marcan como vistas las rutas ya cargadas. Antes lo hacía un
+   * efecto sobre activePage y rutasSolicitadas, con setState en cascada (DT-38).
+   */
+  const marcarSolicitadasLeidas = () => marcarLeidas(rutasSolicitadas);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -88,7 +100,7 @@ export function useRutas(currentUser, activePage) {
   };
 
   return {
-    rutasPublicadas, rutasSolicitadas, rutasSolicitadasLeidas, aplicarMisRutas,
+    rutasPublicadas, rutasSolicitadas, rutasSolicitadasLeidas, aplicarMisRutas, marcarSolicitadasLeidas,
     nuevaRuta, setNuevaRuta, handleInputChange, guardarRuta,
     publicarOpen, abrirPublicar: () => setPublicarOpen(true), cerrarPublicar: () => setPublicarOpen(false),
   };
