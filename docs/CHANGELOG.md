@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-01 — Base de Supabase conectada
+
+Misma rama `feat/migracion-postgres`. Sin cambios de código.
+
+**Qué se hizo**
+- Supabase (proyecto `lycoygclzvarcqaaneiq`, `us-west-2`) creado por la usuaria con `scripts/postgres/01–04` y la zona horaria `America/Bogota`.
+- `.env.local` local (no versionado) con `DATABASE_URL` al Session pooler (`aws-0-us-west-2`, puerto 5432; la conexión directa es solo IPv6 y no llega desde esta red), `SESSION_SECRET` aleatorio y `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+- Decisiones (proyecto académico): no se migran los datos de Oracle (la base arranca de cero); se mantienen el admin `admin@bycar.co`/`admin` y la contraseña actual de la base. Riesgo aceptado anotado en BUGS S5.
+- `AGENTS.md`: bloque regenerado por `next dev` (Next 16.3), se commitea tal cual.
+
+**Verificado contra Supabase**
+- Postgres 17.11, `TimeZone` = `America/Bogota` (hora de la base = hora local), 16 tablas, 18 índices, RLS en las 16, 1 120 municipios, 7 menús, 20 marcas.
+- TLS 1.3 entre la app y el pooler, sin verificación del certificado (`sslmode=require&uselibpqcompat=true`).
+- `scripts/verificar-consultas-auth.mjs --usuario 1`: OK. `next dev`: `menus`, `marcas`, `municipios` y `viajes` responden 200; login de admin OK (200 → `/admin`) y clave incorrecta → 401.
+
+**Riesgos pendientes**
+- Credenciales débiles y compartidas en el chat (admin y base): cambiarlas antes de cualquier uso real.
+- El certificado de Supabase no se verifica: para hacerlo, descargar el CA (Database Settings → SSL Configuration) y usar `sslmode=verify-full&sslrootcert=…`.
+- `.env.local` está solo en el worktree: al pasar a la carpeta principal hay que copiarlo.
+
 ## 2026-10-01 — `.env.example` y `fix_guardian` para Postgres
 
 Misma rama `feat/migracion-postgres`. Pedido explícito de tocar `.env.example` (excepción a la regla 7).

@@ -41,6 +41,8 @@ node --env-file=.env.local scripts/verificar-consultas-auth.mjs --usuario 1
 
 ## 3. Datos de producción
 
+> **Decisión (2026-10-01): no se migran los datos de Oracle.** Es un proyecto académico y la base de Supabase arranca de cero (catálogos del seed + datos nuevos cargados desde la app). Esta sección queda como referencia por si alguna vez hace falta.
+
 Los scripts crean el esquema y los catálogos, no copian los datos que hoy están en Oracle (usuarios, vehículos, viajes, solicitudes, mensajes, guardianes, permisos). Para llevarlos:
 
 1. Exportá cada tabla desde Oracle (SQL Developer → *Export* como CSV, o `INSERT`s).
