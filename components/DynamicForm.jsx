@@ -1,5 +1,17 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+
+/** Valores iniciales: el registro a editar, o un campo vacío por columna para un alta. */
+const valoresIniciales = (columns, initialData) => {
+  if (initialData) return initialData;
+  const empty = {};
+  if (columns) {
+    columns.forEach(col => {
+      empty[col.COLUMN_NAME] = '';
+    });
+  }
+  return empty;
+};
 
 /**
  * Formulario de alta o edición para cualquier tabla, armado desde la metadata de sus columnas.
@@ -11,21 +23,15 @@ import React, { useState, useEffect } from 'react';
  *  - loading: deshabilita los botones mientras se guarda
  */
 export default function DynamicForm({ columns, initialData, onSubmit, onCancel, loading }) {
-  const [form, setForm] = useState({});
+  const [form, setForm] = useState(() => valoresIniciales(columns, initialData));
+  const [origen, setOrigen] = useState({ columns, initialData });
 
-  useEffect(() => {
-    if (initialData) {
-      setForm(initialData);
-    } else {
-      const empty = {};
-      if (columns) {
-        columns.forEach(col => {
-          empty[col.COLUMN_NAME] = '';
-        });
-      }
-      setForm(empty);
-    }
-  }, [initialData, columns]);
+  // Si cambian las columnas o el registro, el formulario se reinicia (ajuste durante el render,
+  // en lugar de un efecto que hacía un render extra con el formulario vacío).
+  if (origen.columns !== columns || origen.initialData !== initialData) {
+    setOrigen({ columns, initialData });
+    setForm(valoresIniciales(columns, initialData));
+  }
 
   const handleChange = e => {
     const { name, value } = e.target;

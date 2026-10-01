@@ -21,9 +21,15 @@ app/
   login/ register/      Formularios de auth
   dashboard/page.jsx    App principal del usuario (monolito ~grande, client component)
   admin/page.jsx        CRUD genérico sobre tablas + gestor de permisos
-  components/admin/     PermisosManager
   api/**/route.js       Route handlers (ver abajo)
-components/             DynamicForm (form a partir de metadata de columnas), admin/HydrationWrapper
+components/             Componentes React reutilizables (única carpeta; app/ solo tiene rutas)
+  HydrationWrapper.jsx  Renderiza los hijos recién después de montar (dashboard y admin)
+  DynamicForm.jsx       Form a partir de metadata de columnas (admin)
+  admin/                PermisosManager
+  dashboard/            Presentación del dashboard: una pestaña por archivo (*Tab, Guardian*), los
+                        modales (*Modal) y Autocomplete. Sin estado propio de negocio: reciben
+                        datos y callbacks; el estado, el polling y las llamadas a la API siguen
+                        en app/dashboard/page.jsx
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers

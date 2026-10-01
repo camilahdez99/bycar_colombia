@@ -3,10 +3,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import HydrationWrapper from '@/components/admin/HydrationWrapper';
+import HydrationWrapper from '@/components/HydrationWrapper';
+import DetallesViajeModal from '@/components/dashboard/DetallesViajeModal';
+import PreAlertaGuardianModal from '@/components/dashboard/PreAlertaGuardianModal';
+import PublicarViajeModal from '@/components/dashboard/PublicarViajeModal';
+import MisRutasTab from '@/components/dashboard/MisRutasTab';
+import SolicitudesTab from '@/components/dashboard/SolicitudesTab';
+import MensajesTab from '@/components/dashboard/MensajesTab';
+import InicioTab from '@/components/dashboard/InicioTab';
+import BuscarTab from '@/components/dashboard/BuscarTab';
+import GuardianEnCurso from '@/components/dashboard/GuardianEnCurso';
+import GuardianInicio from '@/components/dashboard/GuardianInicio';
+import ConfigurarGuardianModal from '@/components/dashboard/ConfigurarGuardianModal';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
-import { formatCurrency, formatTiempo, nombreDeOpcion, normalizar } from '@/lib/client/formato';
+import { formatCurrency } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { MENU_INICIO_ID, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
@@ -16,89 +27,6 @@ const REFRESCO_MS = 10000;
 const REFRESCO_CHAT_MS = 3000;
 const PRE_ALERTA_SEG = 5 * 60;
 const EXTENSION_GUARDIAN_MIN = 15;
-
-const Autocomplete = ({ placeholder, value, onChange, opciones = [] }) => {
-  const [show, setShow] = useState(false);
-  const wrapperRef = useRef(null);
-
-  // Derivar opciones filtradas dinámicamente (opciones es [{id, nombre}])
-  const valNorm = normalizar(value || "");
-  const filtered = valNorm.length > 0 
-    ? opciones.filter(m => normalizar(nombreDeOpcion(m)).includes(valNorm))
-    : [];
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setShow(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleChange = (e) => {
-    const val = normalizar(e.target.value);
-    onChange(val);
-    if (val.trim().length > 0) {
-      setShow(true);
-    } else {
-      setShow(false);
-    }
-  };
-
-  const handleSelect = (m) => {
-    onChange(m);
-    setShow(false);
-  };
-
-  return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
-      <input 
-        type="text" 
-        placeholder={placeholder} 
-        className="search-input" 
-        value={value} 
-        onChange={handleChange} 
-        onFocus={() => { if(value) setShow(true) }}
-        onBlur={() => { setTimeout(() => setShow(false), 200); }}
-        required
-      />
-      {show && filtered.length > 0 && (
-        <ul style={{ 
-          position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, 
-          background: '#1a1a1a', border: '1px solid var(--border)', 
-          borderRadius: '14px', zIndex: 100, listStyle: 'none', 
-          padding: '8px', margin: 0, maxHeight: '200px', 
-          overflowY: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(10px)'
-        }}>
-          {filtered.map(m => (
-            <li 
-              key={m.id || m} 
-              onMouseDown={() => handleSelect(nombreDeOpcion(m))} 
-              style={{ 
-                padding: '10px 14px', cursor: 'pointer', borderRadius: '8px',
-                fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)',
-                transition: 'all 0.2s'
-              }} 
-              onMouseEnter={(e) => {
-                e.target.style.background = 'rgba(229,34,34,0.1)';
-                e.target.style.color = 'var(--red)';
-              }} 
-              onMouseLeave={(e) => {
-                e.target.style.background = 'transparent';
-                e.target.style.color = 'rgba(255,255,255,0.8)';
-              }}
-            >
-              {nombreDeOpcion(m)}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
 
 // Iconos para los menús según la URL
 const MENU_ICONS = {
@@ -749,195 +677,52 @@ export default function DashboardPage() {
 
       <main>
         {activePage === 'inicio' && (
-          <section>
-            <div className="page-header">
-              <div><h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>¡Hola, {currentUser?.NOMBRE_USU || currentUser?.nombre_usu || 'Pasajero'}! 👋</h1><p style={{ color: 'var(--muted)' }}>Tu movilidad en Colombia simplificada</p></div>
-            </div>
-
-            
-            <div className="grid-2" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '2rem', 
-              alignItems: 'stretch' 
-            }}>
-              {/* CREAR RUTA */}
-              <div style={{ background: 'var(--surface)', padding: '2.5rem', borderRadius: '32px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '1rem' }}>
-                <div style={{ width: '64px', height: '64px', background: 'rgba(229,34,34,0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', marginBottom: '0.5rem' }}>
-                  <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                </div>
-                <h3 style={{ fontFamily: 'Syne', fontSize: '1.4rem', fontWeight: 800 }}>¿Vas a conducir?</h3>
-                <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', maxWidth: '280px' }}>
-                  Publica tu viaje, ahorra en combustible y ayuda a otros a llegar a su destino.
-                </p>
-                <button 
-                  className="btn-red" 
-                  style={{ width: '100%', maxWidth: '240px', justifyContent: 'center', padding: '1rem', marginTop: '0.5rem' }} 
-                  onClick={() => setIsModalOpen(true)}
-                  disabled={userPermisos !== null && !userPermisos.includes('/inicio/crear')}
-                >
-                  Crear nueva ruta
-                </button>
-              </div>
-
-              {/* BUSCAR RUTA */}
-              <div style={{ background: 'var(--surface)', padding: '2.5rem', borderRadius: '32px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.2rem' }}>
-                  <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)' }}>
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                  </div>
-                  <h3 style={{ fontFamily: 'Syne', fontSize: '1.4rem', fontWeight: 800 }}>¿Buscas un viaje?</h3>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <Autocomplete placeholder="Origen" value={searchParams.origen} opciones={municipiosDB} onChange={(val) => setSearchParams({...searchParams, origen: val.toUpperCase()})} />
-                  <Autocomplete placeholder="Destino" value={searchParams.destino} opciones={municipiosDB} onChange={(val) => setSearchParams({...searchParams, destino: val.toUpperCase()})} />
-                  <button 
-                    className="btn-red" 
-                    style={{ width: '100%', justifyContent: 'center', padding: '1rem', marginTop: '0.5rem' }} 
-                    onClick={() => { buscarViajes(); setActivePage('buscar'); }}
-                    disabled={userPermisos !== null && !userPermisos.includes('/inicio/buscar')}
-                  >
-                    Buscar rutas disponibles
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+          <InicioTab
+            nombreUsuario={currentUser?.NOMBRE_USU || currentUser?.nombre_usu || 'Pasajero'}
+            puedeCrear={userPermisos === null || userPermisos.includes('/inicio/crear')}
+            puedeBuscar={userPermisos === null || userPermisos.includes('/inicio/buscar')}
+            searchParams={searchParams}
+            setSearchParams={setSearchParams}
+            municipios={municipiosDB}
+            onCrear={() => setIsModalOpen(true)}
+            onBuscar={() => { buscarViajes(); setActivePage('buscar'); }}
+          />
         )}
 
         {activePage === 'buscar' && (
-          <section>
-            <div className="page-header">
-              <div><h1>Resultados de búsqueda</h1><p style={{ color: 'var(--muted)' }}>Viajes disponibles para tu ruta</p></div>
-              <button className="btn-red" onClick={() => setActivePage('inicio')}>Volver</button>
-            </div>
-            <div className="resultados-lista">
-              {resultados.length > 0 ? resultados.map(viaje => (
-                <div className="route-card" key={viaje.id}>
-                  <div>
-                    <strong>{viaje.origen} → {viaje.destino}</strong>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Conductor: {viaje.conductor} • {viaje.hora}</p>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '0.8rem', padding: '5px 0', fontWeight: 'bold' }} onClick={() => {setViajeDetalle(viaje); setDetallesModalOpen(true)}}>Ver Detalles</button>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: 'var(--red)', fontWeight: '800' }}>${viaje.valor}</span><br/>
-                    <button className="btn-red" style={{ padding: '6px 15px', fontSize: '0.8rem', marginTop: '8px' }} onClick={() => solicitarViaje(viaje.id)} disabled={solicitados.includes(viaje.id)}>{solicitados.includes(viaje.id) ? 'Pendiente' : 'Solicitar'}</button>
-                  </div>
-                </div>
-              )) : <p style={{ color: 'var(--muted)' }}>No se encontraron viajes con esos criterios.</p>}
-            </div>
-          </section>
+          <BuscarTab
+            resultados={resultados}
+            solicitados={solicitados}
+            onVolver={() => setActivePage('inicio')}
+            onVerDetalles={(viaje) => { setViajeDetalle(viaje); setDetallesModalOpen(true); }}
+            onSolicitar={solicitarViaje}
+          />
         )}
 
         {activePage === 'mis-rutas' && (
-          <section>
-            <div className="page-header">
-              <div>
-                <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>Mis Rutas</h1>
-                <p style={{ color: 'var(--muted)' }}>Gestiona tus viajes publicados y solicitudes enviadas</p>
-              </div>
-            </div>
-            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
-              <div>
-                <h3 style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>RUTAS PUBLICADAS</h3>
-                {rutasPublicadas.map(r => (
-                  <div key={r.id} className="route-card">
-                    <div><strong>{r.origen} → {r.destino}</strong><p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Placa: {r.placa} • {r.fecha}</p></div>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <h3 style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>RUTAS SOLICITADAS</h3>
-                {rutasSolicitadas.map(r => (
-                  <div key={r.id} className="route-card">
-                    <div><strong>{r.origen} → {r.destino}</strong><p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Conductor: {r.conductor} • {r.fecha}</p></div>
-                    <span className={`badge-status ${r.estado}`}>{r.estado}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <MisRutasTab rutasPublicadas={rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
         )}
 
         {activePage === 'solicitudes' && (
-          <section>
-            <div className="page-header">
-              <div>
-                <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>Solicitudes Recibidas</h1>
-                <p style={{ color: 'var(--muted)' }}>Gestiona quiénes viajarán contigo en tus próximas rutas</p>
-              </div>
-            </div>
-            {solicitudesRecibidas.map(s => (
-              <div key={s.id} className="route-card">
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ width: 40, height: 40, background: 'var(--red)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{s.avatar}</div>
-                  <div><strong>{s.pasajero}</strong><p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Ruta: {s.ruta}</p></div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => aceptarSolicitud(s.id)} style={{ background: '#4ade80', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: 'bold' }}>Aceptar</button>
-                  <button onClick={() => rechazarSolicitud(s.id)} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', padding: '8px 15px', borderRadius: '8px' }}>Rechazar</button>
-                </div>
-              </div>
-            ))}
-          </section>
+          <SolicitudesTab
+            solicitudesRecibidas={solicitudesRecibidas}
+            onAceptar={aceptarSolicitud}
+            onRechazar={rechazarSolicitud}
+          />
         )}
 
         {activePage === 'mensajes' && (
-          <section>
-            <div className="page-header">
-              <div>
-                <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>Mensajes</h1>
-                <p style={{ color: 'var(--muted)' }}>Coordina los detalles del encuentro con tus compañeros de viaje</p>
-              </div>
-            </div>
-            {mensajes.length > 0 ? mensajes.map((chat) => (
-              <div key={chat.chatId} className="route-card" onClick={() => {setChatData({name: chat.nombre, avatar: chat.nombre.charAt(0), chatId: chat.chatId}); setCurrentChatMsgs([]); setChatOpen(true)}} style={{ cursor: 'pointer' }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ width: 45, height: 45, background: '#333', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--red)' }}>{chat.nombre.charAt(0)}</div>
-                  <div><strong>{chat.nombre}</strong><p style={{ fontSize: '0.8rem', color: 'var(--red)' }}>Viaje: {chat.ruta} ({chat.fecha})</p></div>
-                </div>
-              </div>
-            )) : <p style={{ color: 'var(--muted)' }}>No tienes chats activos de próximos viajes.</p>}
-            {chatOpen && (
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', height: '400px', display: 'flex', flexDirection: 'column', marginTop: '1rem' }}>
-                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}><strong>Chat con {chatData.name}</strong><button onClick={() => setChatOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button></div>
-                
-                <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {currentChatMsgs.length === 0 ? (
-                    <div style={{ margin: 'auto' }}>
-                      <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.8rem' }}>Inicia la conversación para acordar el punto de encuentro.</p>
-                    </div>
-                  ) : (
-                    currentChatMsgs.map((msg, i) => (
-                      <div key={i} style={{ 
-                        background: msg.sender === 'me' ? 'var(--red)' : '#333', 
-                        color: '#fff', 
-                        padding: '10px', 
-                        borderRadius: '12px', 
-                        maxWidth: '80%', 
-                        alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start', 
-                        borderBottomRightRadius: msg.sender === 'me' ? '2px' : '12px',
-                        borderBottomLeftRadius: msg.sender === 'me' ? '12px' : '2px'
-                      }}>
-                        {msg.text}
-                      </div>
-                    ))
-                  )}
-                </div>
-                
-                <div style={{ padding: '1rem', display: 'flex', gap: '10px' }}>
-                  <input 
-                    placeholder="Escribe..." 
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                    onKeyDown={(e) => { if(e.key === 'Enter') enviarMensajeChat(); }}
-                    style={{ flex: 1, background: 'var(--bg)', border: '1px solid var(--border)', padding: '10px', borderRadius: '10px', color: '#fff', outline: 'none' }} 
-                  />
-                  <button className="btn-red" onClick={enviarMensajeChat}>Enviar</button>
-                </div>
-              </div>
-            )}
-          </section>
+          <MensajesTab
+            mensajes={mensajes}
+            chatOpen={chatOpen}
+            chatData={chatData}
+            currentChatMsgs={currentChatMsgs}
+            msgInput={msgInput}
+            onAbrirChat={(chat) => { setChatData({ name: chat.nombre, avatar: chat.nombre.charAt(0), chatId: chat.chatId }); setCurrentChatMsgs([]); setChatOpen(true); }}
+            onCerrarChat={() => setChatOpen(false)}
+            onMsgInputChange={setMsgInput}
+            onEnviar={enviarMensajeChat}
+          />
         )}
 
         {activePage === 'guardian' && (
@@ -950,203 +735,35 @@ export default function DashboardPage() {
             </div>
 
             {guardianActivo && guardianViaje && (
-              <div style={{ background: 'linear-gradient(135deg, rgba(229,34,34,0.08), rgba(229,34,34,0.02))', border: '2px solid rgba(229,34,34,0.3)', borderRadius: '24px', padding: '2rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontFamily: 'Syne', fontSize: '1.2rem' }}>Viaje en Curso</h3>
-                  <span style={{ background: guardianTiempoRestante <= PRE_ALERTA_SEG ? 'rgba(255,50,50,0.2)' : 'rgba(74,222,128,0.1)', color: guardianTiempoRestante <= PRE_ALERTA_SEG ? '#ff4444' : '#4ade80', padding: '6px 14px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                    {guardianTiempoRestante <= 0 ? '⚠️ TIEMPO AGOTADO' : guardianTiempoRestante <= PRE_ALERTA_SEG ? '⚠️ POR EXPIRAR' : '✅ EN CAMINO'}
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.7rem', marginBottom: '4px' }}>RUTA</p>
-                    <strong>{guardianViaje.origen} → {guardianViaje.destino}</strong>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.7rem', marginBottom: '4px' }}>CONDUCTOR</p>
-                    <strong>{guardianViaje.conductor}</strong>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.7rem', marginBottom: '4px' }}>PLACA</p>
-                    <strong style={{ color: 'var(--red)', letterSpacing: '2px' }}>{guardianViaje.placa}</strong>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)' }}>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.7rem', marginBottom: '4px' }}>CONTACTO ALERTA</p>
-                    <strong style={{ fontSize: '0.85rem' }}>{guardianConfig.email}</strong>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginBottom: '8px' }}>Tiempo restante para confirmar llegada</p>
-                  <div style={{ fontFamily: 'Syne', fontSize: '3.5rem', fontWeight: 800, color: guardianTiempoRestante <= PRE_ALERTA_SEG ? '#ff4444' : '#fff', letterSpacing: '4px', textShadow: guardianTiempoRestante <= PRE_ALERTA_SEG ? '0 0 20px rgba(255,50,50,0.4)' : 'none', transition: 'color 0.5s' }}>
-                    {formatTiempo(guardianTiempoRestante)}
-                  </div>
-                  {guardianHoraInicio && <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '8px' }}>Iniciado: {guardianHoraInicio.toLocaleTimeString()}</p>}
-                </div>
-                {guardianAlertaEnviada && (
-                  <div style={{ background: 'rgba(255,50,50,0.1)', border: '1px solid rgba(255,50,50,0.3)', borderRadius: '14px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
-                    <p style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '0.9rem' }}>🚨 ALERTA ENVIADA</p>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Se envió una alerta a {guardianConfig.email} con los detalles: Ruta {guardianViaje.origen} → {guardianViaje.destino}, Placa {guardianViaje.placa}, Conductor {guardianViaje.conductor}, Inicio {guardianHoraInicio?.toLocaleTimeString()}</p>
-                  </div>
-                )}
-                {guardianPreAlerta && !guardianAlertaEnviada && (
-                  <div style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.3)', borderRadius: '14px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
-                    <p style={{ color: '#facc15', fontWeight: 'bold' }}>⚠️ Tu viaje está por finalizar</p>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Confirma tu llegada para evitar alertar a tu contacto de confianza.</p>
-                  </div>
-                )}
-                <button className="btn-red" onClick={finalizarGuardian} style={{ width: '100%', justifyContent: 'center', padding: '1.2rem', fontSize: '1.1rem', borderRadius: '16px' }}>
-                  ✅ He llegado a mi destino
-                </button>
-              </div>
+              <GuardianEnCurso
+                viaje={guardianViaje}
+                contactoEmail={guardianConfig.email}
+                tiempoRestante={guardianTiempoRestante}
+                segundosPreAlerta={PRE_ALERTA_SEG}
+                horaInicio={guardianHoraInicio}
+                alertaEnviada={guardianAlertaEnviada}
+                preAlerta={guardianPreAlerta}
+                onLlegue={finalizarGuardian}
+              />
             )}
 
             {!guardianActivo && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                <div>
-                  <h3 style={{ color: 'var(--muted)', fontSize: '0.85rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>🛡️ Proteger mi viaje (Hoy)</h3>
-                  {(() => {
-                    const d = new Date();
-                    const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-                    const viajesHoy = rutasSolicitadas.filter(r => (r.estado?.toUpperCase().startsWith('ACEPTAD')) && r.fecha === todayStr);
-                    
-                    return viajesHoy.length === 0 ? (
-                    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '2rem', textAlign: 'center' }}>
-                      <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>No tienes viajes aceptados para el día de hoy.</p>
-                    </div>
-                  ) : (
-                    viajesHoy.map(viaje => (
-
-
-                      <div key={viaje.id} className="route-card" style={{ cursor: 'pointer' }} onClick={() => { setGuardianViaje(viaje); setGuardianConfigOpen(true); }}>
-                        <div>
-                          <strong>{viaje.origen} → {viaje.destino}</strong>
-                          <p style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{viaje.conductor} • {viaje.placa}</p>
-                        </div>
-                        <div style={{ background: 'rgba(229,34,34,0.1)', color: 'var(--red)', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.75rem' }}>Activar</div>
-                      </div>
-                    ))
-                  ); })()}
-                </div>
-
-                <div>
-                  <h3 style={{ color: 'var(--muted)', fontSize: '0.85rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>🚨 Alertas de Seguridad (Soy Guardián)</h3>
-                  {alertasRecibidas.length === 0 ? (
-                    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '2rem', textAlign: 'center' }}>
-                      <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>No tienes alertas de seguridad activas de tus contactos.</p>
-                    </div>
-                  ) : (
-                    alertasRecibidas.map(alerta => (
-                      <div key={alerta.id} className="route-card" style={{ border: alerta.estado?.toUpperCase() === 'ALERTA' ? '1px solid var(--red)' : '1px solid var(--border)', background: alerta.estado?.toUpperCase() === 'ALERTA' ? 'rgba(229,34,34,0.05)' : 'var(--card)' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                             <strong style={{ color: alerta.estado?.toUpperCase() === 'ALERTA' ? 'var(--red)' : '#fff' }}>{alerta.estado?.toUpperCase() === 'ALERTA' ? '⚠️ ALERTA: ' : '✅ EN RUTA: '}{alerta.pasajero}</strong>
-                             <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>{alerta.inicio}</span>
-                          </div>
-                          <p style={{ fontSize: '0.85rem', margin: '4px 0' }}>{alerta.origen} → {alerta.destino}</p>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
-                            <span>🚗 {alerta.carro}</span>
-                            <span>🔢 {alerta.placa}</span>
-                            <span>👤 Cond: {alerta.conductor}</span>
-                            <span>⏱️ Tiempo: {alerta.tiempo} min</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+              <GuardianInicio
+                rutasSolicitadas={rutasSolicitadas}
+                alertasRecibidas={alertasRecibidas}
+                onElegirViaje={(viaje) => { setGuardianViaje(viaje); setGuardianConfigOpen(true); }}
+              />
             )}
 
 
             {guardianConfigOpen && guardianViaje && (
-              <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
-                <div style={{ 
-                  background: 'var(--surface)', 
-                  width: '100%', 
-                  maxWidth: '480px', 
-                  maxHeight: '90vh',
-                  overflowY: 'auto',
-                  borderRadius: '24px', 
-                  border: '1px solid var(--border)', 
-                  padding: '2rem', 
-                  position: 'relative',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.5)'
-                }}>
-                  <button 
-                    onClick={() => setGuardianConfigOpen(false)} 
-                    style={{ 
-                      position: 'absolute', top: '15px', right: '15px', 
-                      background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', 
-                      color: '#fff', cursor: 'pointer', fontSize: '1rem',
-                      width: '32px', height: '32px', borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      zIndex: 10
-                    }}
-                  >✕</button>
-                  <h2 style={{ fontFamily: 'Syne', fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--red)' }}>🛡️ Configurar Guardián</h2>
-                  <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Configura tu red de seguridad antes de iniciar el viaje.</p>
-
-
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--border)', marginBottom: '1.5rem' }}>
-                    <p style={{ fontWeight: 'bold', marginBottom: '8px' }}>{guardianViaje.origen} → {guardianViaje.destino}</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem', color: 'var(--muted)' }}>
-                      <span>🚗 Vehículo: <strong style={{ color: '#fff' }}>{guardianViaje.carro || 'N/A'}</strong></span>
-                      <span>🔢 Placa: <strong style={{ color: '#fff' }}>{guardianViaje.placa || 'N/A'}</strong></span>
-                      <span>👤 {guardianViaje.conductor}</span>
-                      <span>📅 {guardianViaje.fecha}</span>
-                    </div>
-                  </div>
-
-
-                  <div style={{ background: 'rgba(250,204,21,0.06)', border: '1px solid rgba(250,204,21,0.2)', borderRadius: '14px', padding: '1rem', marginBottom: '1.5rem' }}>
-                    <p style={{ color: '#facc15', fontWeight: 'bold', fontSize: '0.85rem', marginBottom: '4px' }}>⚠️ Verificación de Seguridad</p>
-                    <p style={{ color: 'var(--muted)', fontSize: '0.8rem', lineHeight: '1.5' }}>Solo aborda el vehículo si coincide con la placa <strong style={{ color: '#fff' }}>{guardianViaje.placa}</strong> y la descripción <strong style={{ color: '#fff' }}>{guardianViaje.carro || 'indicada'}</strong>.</p>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '8px' }}>📧 Correo del contacto de confianza</label>
-                      <input 
-                        className="search-input" 
-                        type="email" 
-                        placeholder="ejemplo@correo.com" 
-                        value={guardianConfig.email} 
-                        onChange={(e) => setGuardianConfig({...guardianConfig, email: e.target.value})} 
-                        style={{ padding: '12px 16px' }}
-                        required 
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '8px' }}>⏱️ Tiempo estimado del viaje (minutos)</label>
-                      <input 
-                        className="search-input" 
-                        type="number" 
-                        min="5" 
-                        max="600" 
-                        placeholder="30" 
-                        value={guardianConfig.tiempoMin} 
-                        onChange={(e) => setGuardianConfig({...guardianConfig, tiempoMin: parseInt(e.target.value) || 0})} 
-                        style={{ padding: '12px 16px' }}
-                        required 
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ background: 'rgba(229,34,34,0.04)', border: '1px solid rgba(229,34,34,0.1)', borderRadius: '16px', padding: '1.2rem', marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--muted)', lineHeight: '1.6' }}>
-                    <strong style={{ color: '#fff', display: 'block', marginBottom: '8px', fontSize: '0.9rem' }}>¿Cómo funciona?</strong>
-                    <ul style={{ paddingLeft: '1.2rem', margin: 0 }}>
-                      <li>Al iniciar, se activa un temporizador en tiempo real.</li>
-                      <li>5 min antes de expirar: recibirás un aviso para confirmar tu llegada.</li>
-                      <li>Si no confirmas a tiempo: se envía una alerta a tu contacto con los detalles del vehículo y conductor.</li>
-                    </ul>
-                  </div>
-
-                  <button className="btn-red" onClick={() => iniciarGuardian(guardianViaje)} style={{ width: '100%', justifyContent: 'center', marginTop: '1.5rem', padding: '1.2rem', fontSize: '1.1rem', borderRadius: '14px', boxShadow: '0 10px 20px rgba(229,34,34,0.2)' }}>
-                    🛡️ Iniciar Viaje Seguro
-                  </button>
-
-                </div>
-              </div>
+              <ConfigurarGuardianModal
+                viaje={guardianViaje}
+                config={guardianConfig}
+                setConfig={setGuardianConfig}
+                onCerrar={() => setGuardianConfigOpen(false)}
+                onIniciar={() => iniciarGuardian(guardianViaje)}
+              />
             )}
           </section>
         )}
@@ -1173,87 +790,31 @@ export default function DashboardPage() {
         )}
 
         {isModalOpen && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-            <div style={{ background: 'var(--surface)', width: '100%', maxWidth: '550px', borderRadius: '24px', border: '1px solid var(--border)', padding: '2.5rem', position: 'relative' }}>
-              <button onClick={() => setIsModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-              <h2 style={{ fontFamily: 'Syne', fontSize: '1.6rem', fontWeight: 800, marginBottom: '1.5rem', color: 'var(--red)' }}>Publicar nuevo viaje</h2>
-              <form onSubmit={guardarRuta} style={{ display: 'grid', gap: '1rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <Autocomplete placeholder="Origen" value={nuevaRuta.origen} opciones={municipiosDB} onChange={(val) => setNuevaRuta({...nuevaRuta, origen: val.toUpperCase()})} />
-                  <Autocomplete placeholder="Destino" value={nuevaRuta.destino} opciones={municipiosDB} onChange={(val) => setNuevaRuta({...nuevaRuta, destino: val.toUpperCase()})} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <select
-                    name="marca"
-                    className="search-input"
-                    value={nuevaRuta.marca}
-                    onChange={(e) => setNuevaRuta({...nuevaRuta, marca: e.target.value, carro: e.target.value})}
-                    required
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <option value="">Marca del vehículo</option>
-                    {marcas.map(m => (
-                      <option key={m.id || m.ID_MAR} value={m.nombre || m.NOMBRE_MAR}>
-                        {m.nombre || m.NOMBRE_MAR}
-                      </option>
-                    ))}
-                  </select>
-                  <input name="placa" className="search-input" placeholder="Placa (Ej: XYZ123)" value={nuevaRuta.placa} onChange={handleInputChange} required />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <input type="date" name="fecha" className="search-input" onChange={handleInputChange} required />
-                  <input type="number" name="puestos" className="search-input" placeholder="Puestos" onChange={handleInputChange} required />
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--muted)', fontSize: '0.85rem' }}>$</span>
-                  <input name="valor" className="search-input" placeholder="Valor por persona" value={nuevaRuta.valor} onChange={handleInputChange} required style={{ paddingLeft: '25px' }} />
-                </div>
-                <textarea name="comentarios" className="search-input" placeholder="Comentarios extras (Ej: NO MASCOTAS, MALETA PEQUEÑA...)" value={nuevaRuta.comentarios} onChange={handleInputChange} style={{ minHeight: '80px', fontFamily: 'inherit' }} />
-                <button type="submit" className="btn-red" style={{ width: '100%', justifyContent: 'center', marginTop: '1rem', padding: '1rem' }}>Publicar Viaje</button>
-              </form>
-            </div>
-          </div>
+          <PublicarViajeModal
+            nuevaRuta={nuevaRuta}
+            setNuevaRuta={setNuevaRuta}
+            municipios={municipiosDB}
+            marcas={marcas}
+            onInputChange={handleInputChange}
+            onSubmit={guardarRuta}
+            onCerrar={() => setIsModalOpen(false)}
+          />
         )}
 
         {detallesModalOpen && viajeDetalle && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-            <div style={{ background: 'var(--surface)', width: '100%', maxWidth: '450px', borderRadius: '24px', border: '1px solid var(--border)', padding: '2.5rem', position: 'relative' }}>
-              <button onClick={() => setDetallesModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-              <h2 style={{ fontFamily: 'Syne', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Detalles del Viaje</h2>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.95rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Ruta:</span> <strong>{viajeDetalle.origen} → {viajeDetalle.destino}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Conductor:</span> <strong>{viajeDetalle.conductor}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Vehículo:</span> <strong>{viajeDetalle.carro || 'N/A'}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Fecha:</span> <strong>{viajeDetalle.hora}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Puestos Disp:</span> <strong>{viajeDetalle.puestos}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Valor:</span> <strong style={{ color: 'var(--red)' }}>${viajeDetalle.valor}</strong></div>
-                
-                <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--red)', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Comentarios del conductor:</span>
-                  <p style={{ color: '#fff', margin: 0, fontStyle: 'italic' }}>{viajeDetalle.comentarios || 'Sin comentarios adicionales.'}</p>
-                </div>
-              </div>
-
-              <button className="btn-red" style={{ width: '100%', justifyContent: 'center', marginTop: '2rem' }} onClick={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }} disabled={solicitados.includes(viajeDetalle.id)}>
-                {solicitados.includes(viajeDetalle.id) ? 'Solicitud Pendiente' : 'Solicitar Cupo'}
-              </button>
-            </div>
-          </div>
+          <DetallesViajeModal
+            viaje={viajeDetalle}
+            yaSolicitado={solicitados.includes(viajeDetalle.id)}
+            onCerrar={() => setDetallesModalOpen(false)}
+            onSolicitar={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }}
+          />
         )}
         {showReadjustModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
-            <div style={{ background: 'var(--surface)', width: '100%', maxWidth: '400px', borderRadius: '24px', border: '1px solid var(--red)', padding: '2.5rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-              <h2 style={{ fontFamily: 'Syne', fontSize: '1.5rem', marginBottom: '1rem' }}>¿Has llegado a tu destino?</h2>
-              <p style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '2rem' }}>Tu tiempo está por terminar. Confirma tu llegada o solicita más tiempo si hay retrasos en la ruta.</p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <button className="btn-red" onClick={finalizarGuardian} style={{ width: '100%', justifyContent: 'center', padding: '1rem' }}>✅ Sí, he llegado</button>
-                <button onClick={reajustarTiempo} style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid var(--border)', width: '100%', padding: '1rem', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold' }}>🕒 No, hay retraso (+{EXTENSION_GUARDIAN_MIN} min)</button>
-              </div>
-            </div>
-          </div>
+          <PreAlertaGuardianModal
+            minutosExtension={EXTENSION_GUARDIAN_MIN}
+            onLlegue={finalizarGuardian}
+            onReajustar={reajustarTiempo}
+          />
         )}
       </main>
       </div>
