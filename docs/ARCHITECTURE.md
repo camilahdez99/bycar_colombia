@@ -17,7 +17,7 @@ Variables de entorno: `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING`.
 
 ```
 app/
-  page.jsx              Landing estática (→ /login, /register)
+  page.jsx              Landing (server component; → /login, /register)
   login/ register/      Formularios de auth
   dashboard/page.jsx    App principal del usuario (monolito ~grande, client component)
   admin/page.jsx        CRUD genérico sobre tablas + gestor de permisos
@@ -30,6 +30,7 @@ components/             Componentes React reutilizables (única carpeta; app/ so
                         modales (*Modal) y Autocomplete. Sin estado propio de negocio: reciben
                         datos y callbacks; el estado, el polling y las llamadas a la API siguen
                         en app/dashboard/page.jsx
+  landing/              Islas de cliente de la landing (nav, hero, secciones animadas); la página es server component
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers

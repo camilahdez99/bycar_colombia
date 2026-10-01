@@ -151,6 +151,25 @@ Rama `fix/api-backlog` (worktree `../bycar_colombia-api`), creada desde `7e19e1b
 - El dashboard muestra en un toast el `error` de la API: ahora el usuario ve los mensajes de validación (por ejemplo, «La placa debe tener entre 1 y 6 letras o números») en lugar de un error genérico o de un viaje guardado con NaN.
 - Integración: esta rama y `chore/dt46-rutas-admin` tocan `__tests__/app/api/auth-enforcement.test.js`, `docs/BUGS.md` y `docs/BACKLOG.md`. Al mergear puede haber conflictos de texto, no de lógica.
 - Siguen abiertos los bugs que requieren SQL o la BD: F2–F5, F10, F21, S4 y S5 (este último lo está tomando la sesión 8).
+## 2026-10-01 — DT-45: la landing pasa a server component
+
+Rama `mejoras/varios`. Dos commits: caracterización (`9f671b7`) y refactor (`b761156`).
+
+**Qué cambió**
+- `app/page.jsx` ya no es `'use client'`: los estilos (~320 líneas de CSS), el hero estático, los títulos de sección y el footer se renderizan en el servidor y salen del bundle del cliente.
+- Nuevas islas de cliente en `components/landing/`: `LandingNav` (sombra con scroll y navegación), `HeroTexto` (entrada a los 80 ms), `PasosAnimados`, `GuardianesAnimados` y `CtaFinal` (cada una con su `IntersectionObserver`), más el hook `useInView`. La lógica se copió sin cambios.
+- `Counter` se mudó tal cual a `components/landing/Counter.jsx`: no se usa en ningún lado. No se borró porque requiere confirmación.
+
+**Tests corridos**
+- Nuevo `__tests__/app/page-animaciones.test.jsx` (7 tests), escrito y verde ANTES del refactor: snapshot del HTML renderizado, entrada del hero, nav con scroll, cada sección se anima una sola vez al entrar en pantalla, logo y hover de "Ya tengo cuenta". El snapshot no cambió con el refactor: el DOM es idéntico.
+- `npx vitest run --maxWorkers=3`: 745 tests, 49 archivos, todos OK.
+- `npm run build`: OK; `/` sigue siendo estática.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base (el warning de `useInView` se mudó de archivo).
+
+**Riesgos pendientes**
+- No hay tests visuales: el snapshot cubre el DOM, no el render en el navegador. Conviene una mirada manual a la landing.
+- La sesión de performance mide el antes y el después del bundle (`docs/PERFORMANCE.md` de su rama).
+- Con los workers por defecto, `npm test` da timeouts falsos cuando la máquina está cargada (hasta 30 tests). Con `--maxWorkers=3` la suite es estable.
 
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 

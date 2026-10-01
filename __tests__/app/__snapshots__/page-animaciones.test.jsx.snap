@@ -1,18 +1,7 @@
-import { LandingNav } from '@/components/landing/LandingNav';
-import { HeroTexto } from '@/components/landing/HeroTexto';
-import { PasosAnimados } from '@/components/landing/PasosAnimados';
-import { GuardianesAnimados } from '@/components/landing/GuardianesAnimados';
-import { CtaFinal } from '@/components/landing/CtaFinal';
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-/*
- * Server component: los estilos y el contenido estático se renderizan en el servidor.
- * Solo son de cliente las partes con estado: el nav (scroll), la entrada del hero
- * y las secciones que se animan al entrar en pantalla (BACKLOG DT-45).
- */
-export default function LandingPage() {
-  return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: `
+exports[`LandingPage · DOM (caracterización) > el HTML renderizado no cambia 1`] = `
+"<style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --red: #E52222;
@@ -334,61 +323,5 @@ export default function LandingPage() {
           .hero h1 { font-size: 2.8rem; }
           footer { flex-direction: column; gap: 1.5rem; text-align: center; }
         }
-      ` }} />
-
-      {/* ── NAV ── */}
-      <LandingNav />
-
-      {/* ── HERO ── */}
-      <div className="hero">
-        <div className="hero-bg" />
-
-        {/* ambient dots */}
-        {[
-          { size: 6,  top: '22%', left: '12%', dur: '7s',  delay: '0s'   },
-          { size: 4,  top: '65%', left: '8%',  dur: '9s',  delay: '1.2s' },
-          { size: 8,  top: '35%', left: '88%', dur: '6s',  delay: '0.5s' },
-          { size: 5,  top: '75%', left: '82%', dur: '8s',  delay: '2s'   },
-          { size: 3,  top: '15%', left: '60%', dur: '11s', delay: '0.8s' },
-        ].map((d, i) => (
-          <div
-            key={i}
-            className="hero-dot"
-            style={{
-              width: d.size, height: d.size,
-              top: d.top, left: d.left,
-              '--dur': d.dur, '--delay': d.delay,
-            }}
-          />
-        ))}
-
-        <HeroTexto />
-      </div>
-
-      {/* ── CÓMO FUNCIONA ── */}
-      <section id="como-funciona">
-        <span className="section-label">Proceso</span>
-        <h2 className="section-title">¿Cómo funciona Bycar?</h2>
-        <PasosAnimados />
-      </section>
-
-      {/* ── SEGURIDAD ── */}
-      <section id="seguridad">
-        <span className="section-label">Innovación en seguridad</span>
-        <h2 className="section-title">
-          Red de Guardianes <span style={{ color: 'var(--red)' }}>de Ruta</span>
-        </h2>
-
-        <GuardianesAnimados />
-      </section>
-
-      {/* ── CTA ── */}
-      <CtaFinal />
-
-      {/* ── FOOTER ── */}
-      <footer>
-        <p>© 2026 Bycar · Medellín, Colombia</p>
-      </footer>
-    </>
-  );
-}
+      </style><nav class=""><div class="nav-logo"><svg width="36" height="24" viewBox="0 0 40 26" fill="none"><rect x="2" y="10" width="36" height="12" rx="3" fill="#E52222"></rect><circle cx="10" cy="22" r="4" fill="#0d0d0d" stroke="#fff" stroke-width="1.5"></circle><circle cx="30" cy="22" r="4" fill="#0d0d0d" stroke="#fff" stroke-width="1.5"></circle></svg><span>Bycar</span></div><div class="nav-links"><a href="#como-funciona">Cómo funciona</a><a href="#seguridad">Seguridad</a></div><div class="nav-actions"><button class="btn-ghost">Iniciar sesión</button><button class="btn-red">Registrarse</button></div></nav><div class="hero"><div class="hero-bg"></div><div class="hero-dot" style="width: 6px; height: 6px; top: 22%; left: 12%; --dur: 7s; --delay: 0s;"></div><div class="hero-dot" style="width: 4px; height: 4px; top: 65%; left: 8%; --dur: 9s; --delay: 1.2s;"></div><div class="hero-dot" style="width: 8px; height: 8px; top: 35%; left: 88%; --dur: 6s; --delay: 0.5s;"></div><div class="hero-dot" style="width: 5px; height: 5px; top: 75%; left: 82%; --dur: 8s; --delay: 2s;"></div><div class="hero-dot" style="width: 3px; height: 3px; top: 15%; left: 60%; --dur: 11s; --delay: 0.8s;"></div><div class="hero-content"><div class="hero-badge">Carpooling intermunicipal en Colombia</div><h1 class="hero-title">Viaja entre ciudades.<br><span class="accent"><span class="accent-wrap">Comparte el camino.</span></span></h1><p class="hero-sub">Conectamos conductores y viajeros en rutas intermunicipales.<br>Más económico, más cómodo y más seguro.</p></div></div><section id="como-funciona"><span class="section-label">Proceso</span><h2 class="section-title">¿Cómo funciona Bycar?</h2><div class="steps"><div class="step-card" style="--delay: 0s;"><div class="step-num">01</div><h3>Regístrate gratis</h3><p>Crea tu cuenta y verifica tu identidad para una comunidad más segura.</p></div><div class="step-card" style="--delay: 0.1s;"><div class="step-num">02</div><h3>Publica o busca</h3><p>Como conductor ofrece tus puestos; como viajero busca tu ruta ideal.</p></div><div class="step-card" style="--delay: 0.2s;"><div class="step-num">03</div><h3>Viaja seguro</h3><p>Coordina el punto de encuentro y disfruta de un viaje cómodo y directo.</p></div><div class="step-card" style="--delay: 0.30000000000000004s;"><div class="step-num">04</div><h3>Comparte tu viaje</h3><p>Califica la experiencia y ayúdanos a construir una comunidad confiable.</p></div></div></section><section id="seguridad"><span class="section-label">Innovación en seguridad</span><h2 class="section-title">Red de Guardianes <span style="color: var(--red);">de Ruta</span></h2><div class="guardianes-container"><div class="features-list"><div class="feature-item" style="--delay: 0s;"><div class="feature-icon">🛡️</div><div class="feature-text"><h4>Temporizador de Vida</h4><p>Al iniciar tu viaje, defines el tiempo estimado. Si no marcas tu llegada a tiempo, activamos el protocolo.</p></div></div><div class="feature-item" style="--delay: .12s;"><div class="feature-icon">🔔</div><div class="feature-text"><h4>Alertas Automáticas</h4><p>Si el tiempo expira sin confirmación, enviamos una alerta inmediata a tu contacto de confianza.</p></div></div><div class="feature-item" style="--delay: .24s;"><div class="feature-icon">👥</div><div class="feature-text"><h4>Contactos de Confianza</h4><p>Tú eliges quién recibirá tus notificaciones de seguridad.</p></div></div></div><div class="route-visual"><h4 style="margin-bottom: 1.5rem; font-family: Syne;">Bogotá → Villa de Leyva</h4><div class="timeline"><div style="margin-bottom: 2rem;"><div class="timeline-point" style="top: 5px;"></div><strong style="font-size: 0.9rem;">Salida — Portal Norte</strong><p style="font-size: 0.75rem; color: var(--muted);">6:00 AM · Confirmado</p></div><div style="border: 1px solid var(--red); padding: 1rem; border-radius: 12px; background: rgba(229, 34, 34, 0.05);"><p style="font-size: 0.8rem; color: var(--red); font-weight: bold;">⚠️ Alerta de Tiempo</p><p style="font-size: 0.7rem; color: var(--muted);">¿Has llegado a tu destino? Confirma para evitar alertar a tus contactos.</p></div></div></div></div></section><div class="cta-section"><h2>Únete a la comunidad<br>de viajeros Bycar</h2><p style="color: var(--muted); margin-top: 1rem; margin-bottom: 2.5rem;">La forma más inteligente de moverte por Colombia.</p><div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;"><button class="btn-red" style="padding: 1rem 2.5rem;">Crear cuenta gratis</button><button class="btn-ghost" style="border: 1px solid var(--border); border-radius: 8px; transition: border-color .2s, color .2s;">Ya tengo cuenta</button></div></div><footer><p>© 2026 Bycar · Medellín, Colombia</p></footer>"
+`;
