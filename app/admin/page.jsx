@@ -103,26 +103,31 @@ export default function AdminPage() {
   // Helper to refresh rows after any mutation
   const refreshData = async () => {
     const dataRes = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`);
-    const rows = await dataRes.json();
-    setRowsData(Array.isArray(rows) ? rows : []);
+    setRowsData(await readList(dataRes));
   };
 
   // ---------- CRUD ----------
-  // Llama a la API con su toast de progreso; si responde OK, recarga las filas y ejecuta alTerminar
+  // Llama a la API con su toast de progreso; si responde OK, ejecuta alTerminar y recarga las filas
   const ejecutarMutacion = async ({ url, init, mensajes, alTerminar }) => {
     const t = toast.loading(mensajes.cargando);
     try {
       const r = await fetchConSesion(url, init);
-      if (r.ok) {
-        toast.success(mensajes.exito, { id: t });
-        await refreshData();
-        alTerminar?.();
-      } else {
+      if (!r.ok) {
         const err = await r.json();
         toast.error(err.error || mensajes.error, { id: t });
+        return;
       }
+      toast.success(mensajes.exito, { id: t });
+      alTerminar?.();
     } catch (e) {
       toast.error('Error de red', { id: t });
+      return;
+    }
+    // La mutación ya se guardó: si falla la recarga, se avisa eso y no un "Error de red" (BUGS E6)
+    try {
+      await refreshData();
+    } catch (e) {
+      toast.error('Se guardó el cambio, pero no se pudo recargar la lista');
     }
   };
 

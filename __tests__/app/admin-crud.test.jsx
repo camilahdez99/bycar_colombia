@@ -89,16 +89,31 @@ describe('AdminPage: alta (caracterización)', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error al crear', { id: 'toast-id' }));
   });
 
-  test('si falla la recarga posterior: éxito y después "Error de red", con el modal abierto (BUGS E6)', async () => {
+  test('si falla la recarga posterior: avisa que se guardó pero no se recargó, y cierra el modal (E6)', async () => {
     recargaFalla = true;
     await renderAdmin();
     fireEvent.click(screen.getByRole('button', { name: /Nuevo/ }));
     fireEvent.change(document.querySelector('input[name="ID_MAR"]'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
 
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Error de red', { id: 'toast-id' }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Se guardó el cambio, pero no se pudo recargar la lista'));
     expect(toast.success).toHaveBeenCalledWith('Registro creado', { id: 'toast-id' });
-    expect(screen.getByText('Nuevo registro')).toBeTruthy();
+    expect(toast.error).not.toHaveBeenCalledWith('Error de red', expect.anything());
+    expect(screen.queryByText('Nuevo registro')).toBeNull();
+  });
+
+  test('si la recarga responde un error de la API: mismo aviso y se conservan las filas (E6)', async () => {
+    await renderAdmin();
+    fetch.mockImplementation(async (url, init) => {
+      if (!init?.method && url === '/api/admin/tablas?tabla=MARCAS') return jsonResponse({ error: 'ORA' }, 500);
+      return api(url, init);
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Nuevo/ }));
+    fireEvent.change(document.querySelector('input[name="ID_MAR"]'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Crear' }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Se guardó el cambio, pero no se pudo recargar la lista'));
+    expect(screen.getByText('Mazda')).toBeTruthy();
   });
 });
 
