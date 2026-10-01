@@ -6,9 +6,7 @@ exports[`GET /api/guardian (caracterización) > 200 por email: lista de alertas 
     "binds": {
       "email": "A@X.CO",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
         SELECT g.ID_GUA as "id", 
                g.EMAIL_CONFIANZA_GUA as "email",
@@ -47,9 +45,7 @@ exports[`GET /api/guardian (caracterización) > 200 por usuarioId: devuelve solo
     "binds": {
       "usuarioId": "42",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
         SELECT g.ID_GUA as "id", 
                g.EMAIL_CONFIANZA_GUA as "email",
@@ -83,9 +79,7 @@ exports[`POST /api/guardian (caracterización) > 201: valida que el correo exist
     "binds": {
       "email": "a@x.co",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)",
   },
   {

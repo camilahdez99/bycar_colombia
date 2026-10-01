@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -42,7 +41,7 @@ export async function GET(req) {
     `;
     
     // Convertir usuarioId a número para asegurar compatibilidad en Oracle
-    const result = await connection.execute(sql, { usuarioId: Number(usuarioId) }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    const result = await connection.execute(sql, { usuarioId: Number(usuarioId) });
     
     const solicitudes = result.rows || [];
     return NextResponse.json(solicitudes, { status: 200 });

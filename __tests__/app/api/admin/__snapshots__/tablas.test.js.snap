@@ -6,9 +6,7 @@ exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con el 
     "binds": {
       "tabla": "USUARIOS",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT cols.column_name
     FROM user_constraints cons
@@ -39,9 +37,7 @@ exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra
     "binds": {
       "tabla": "MENUS",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT cols.column_name
     FROM user_constraints cons
@@ -55,9 +51,7 @@ exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra
     "binds": {
       "id": "3",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "SELECT * FROM MENUS WHERE ID_ENU = :id",
   },
 ]
@@ -67,9 +61,7 @@ exports[`GET /api/admin/tablas (caracterización) > list: devuelve solo los nomb
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
         SELECT table_name
         FROM user_tables
@@ -85,9 +77,7 @@ exports[`GET /api/admin/tablas (caracterización) > metadata=true: devuelve las 
     "binds": {
       "tabla": "MENUS",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT column_name, data_type, nullable
     FROM user_tab_columns
@@ -101,9 +91,7 @@ exports[`GET /api/admin/tablas (caracterización) > sin id: SELECT * de la tabla
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "SELECT * FROM USUARIOS",
   },
 ]
@@ -115,9 +103,7 @@ exports[`POST /api/admin/tablas (caracterización) > 201: filtra columnas contra
     "binds": {
       "tabla": "VIAJES",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT column_name, data_type, nullable
     FROM user_tab_columns
@@ -149,9 +135,7 @@ exports[`POST /api/admin/tablas (caracterización) > MENUS con ID_ENU: inserta s
     "binds": {
       "tabla": "MENUS",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT column_name, data_type, nullable
     FROM user_tab_columns
@@ -207,9 +191,7 @@ exports[`PUT /api/admin/tablas (caracterización) > 200: excluye la PK y columna
     "binds": {
       "tabla": "VIAJES",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT cols.column_name
     FROM user_constraints cons
@@ -223,9 +205,7 @@ exports[`PUT /api/admin/tablas (caracterización) > 200: excluye la PK y columna
     "binds": {
       "tabla": "VIAJES",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
     SELECT column_name, data_type, nullable
     FROM user_tab_columns

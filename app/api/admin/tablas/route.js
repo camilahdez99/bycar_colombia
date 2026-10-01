@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -26,11 +25,7 @@ const getPrimaryKeyColumns = async (connection, tabla) => {
       AND cons.table_name = :tabla
   `;
 
-  const res = await connection.execute(
-    pkSql,
-    { tabla },
-    { outFormat: oracledb.OUT_FORMAT_OBJECT }
-  );
+  const res = await connection.execute(pkSql, { tabla });
 
   return res.rows.map((row) => row.COLUMN_NAME);
 };
@@ -57,11 +52,7 @@ const getColumnsInfo = async (connection, tabla) => {
     WHERE table_name = :tabla
   `;
 
-  const result = await connection.execute(
-    sql,
-    { tabla },
-    { outFormat: oracledb.OUT_FORMAT_OBJECT }
-  );
+  const result = await connection.execute(sql, { tabla });
 
   return result.rows;
 };
@@ -88,11 +79,7 @@ export async function GET(req) {
         ORDER BY table_name
       `;
 
-      const result = await connection.execute(
-        sql,
-        {},
-        { outFormat: oracledb.OUT_FORMAT_OBJECT }
-      );
+      const result = await connection.execute(sql, {});
 
       return NextResponse.json(
         result.rows.map((r) => r.TABLE_NAME)
@@ -125,11 +112,7 @@ export async function GET(req) {
       : `SELECT * FROM ${t}`;
 
     // El id viaja como texto, igual que en PUT: Oracle lo convierte y las claves de texto (placa) funcionan (F14)
-    const result = await connection.execute(
-      sql,
-      id ? { id } : {},
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
-    );
+    const result = await connection.execute(sql, id ? { id } : {});
 
     return NextResponse.json(result.rows);
 

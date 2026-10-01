@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -42,7 +41,7 @@ export async function GET(req) {
       INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       WHERE v.USUARIOS_ID_USU = :usuarioId
     `;
-    const resPub = await connection.execute(sqlPub, { usuarioId: Number(usuarioId) }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    const resPub = await connection.execute(sqlPub, { usuarioId: Number(usuarioId) });
 
     // 2. Rutas Solicitadas (Como Pasajero)
     const sqlSol = `
@@ -65,7 +64,7 @@ export async function GET(req) {
       JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       WHERE s.USUARIOS_ID_USU = :usuarioId
     `;
-    const resSol = await connection.execute(sqlSol, { usuarioId: Number(usuarioId) }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    const resSol = await connection.execute(sqlSol, { usuarioId: Number(usuarioId) });
 
     return NextResponse.json({ 
       publicadas: resPub.rows || [],

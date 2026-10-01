@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -133,7 +132,7 @@ export async function GET(req) {
       }
     }
 
-    const result = await connection.execute(sql, binds, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    const result = await connection.execute(sql, binds);
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
     logError('api_error', error, { route: 'GET /api/viajes', mensaje: 'Error al obtener viajes' });

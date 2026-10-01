@@ -7,9 +7,7 @@ exports[`GET /api/viajes (caracterización) > 200 con origen y destino numérico
       "destinoId": 7,
       "origenId": 3,
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT v.ID_VIA as "id", 
              mo.NOMBRE_MUN as "origen", 
@@ -40,9 +38,7 @@ exports[`GET /api/viajes (caracterización) > 200 con origen y destino por nombr
       "destinoName": "Envigado",
       "origenName": "Bello",
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT v.ID_VIA as "id", 
              mo.NOMBRE_MUN as "origen", 
@@ -70,9 +66,7 @@ exports[`GET /api/viajes (caracterización) > 200 sin filtros: solo viajes dispo
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT v.ID_VIA as "id", 
              mo.NOMBRE_MUN as "origen", 
