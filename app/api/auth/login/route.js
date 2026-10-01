@@ -9,6 +9,7 @@ import {
   isSessionConfigured,
   sessionCookieOptions,
 } from '@/lib/auth/session';
+import { isAdminCredentials } from '@/lib/auth/adminCredentials';
 
 // Emite la cookie de sesión solo si SESSION_SECRET está configurado; si no, el login responde como antes
 async function withSession(response, session) {
@@ -29,8 +30,8 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
 
-    // Hardcodeado para propósitos de admin como pidió en el login original
-    if (correo === 'admin@bycar.co' && contrasena === 'admin') {
+    // Admin sin pasar por la BD; deshabilitado si faltan ADMIN_EMAIL / ADMIN_PASSWORD (S5)
+    if (isAdminCredentials(correo, contrasena)) {
       return withSession(
         NextResponse.json({ message: 'Login exitoso', redirect: '/admin' }, { status: 200 }),
         { userId: null, role: ROLES.ADMIN }

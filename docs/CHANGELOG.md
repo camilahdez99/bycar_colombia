@@ -24,6 +24,33 @@ Rama `fix/frontend-bugs` (worktree `../bycar_colombia-frontend`, desde `f9085de`
 **Riesgos pendientes**
 - Integración: esta rama toca `app/dashboard/page.jsx`, que la sesión de reorganización (DT-34) está dividiendo, y `package.json`/`package-lock.json`, que la sesión de dependencias actualiza (vitest 5.0.3). Quien integre segundo rebasa y regenera el lockfile con `npm install`, y sube `@vitest/coverage-v8` a la misma versión que `vitest`.
 - F38 sigue abierto.
+## 2026-10-01 — Auditoría de dependencias y S5
+
+Rama `chore/deps-seguridad` (worktree `../bycar_colombia-deps`). Un commit por dependencia, con la suite completa después de cada uno.
+
+**Auditoría inicial (`npm audit`)**: 9 vulnerabilidades: 1 crítica (`next`), 5 altas (`brace-expansion`, `browserslist`, `js-yaml`, `postcss` y `sharp`, estos dos anidados en `next`), 2 moderadas (`@humanfs/node`, `baseline-browser-mapping`) y 1 baja (`@babel/core`). Ninguna requería una major. **Después: 0.**
+
+**Qué cambió**
+- `next` 16.2.4 → 16.3.8 y `eslint-config-next` → 16.3.8.
+- `npm audit fix`: solo lockfile, 28 transitivas. `oracledb` no cambió.
+- Patch/minor: `vitest` 5.0.3, `tailwindcss` y `@tailwindcss/postcss` 4.3.3, `lucide-react` 1.49.0, `react-hot-toast` 2.6.1, `eslint` 9.39.5.
+- Tailwind: se comparó el CSS compilado antes y después. Cambia el stack por defecto de `--font-sans` (lo pisa Inter vía `next/font`), se simplifican `calc()` equivalentes y desaparece `.start`, que no se usa. Sin cambio visual esperado.
+- S5: el login lee el admin de `ADMIN_EMAIL` / `ADMIN_PASSWORD` (`lib/auth/adminCredentials.js`, comparación en tiempo constante). Nuevo `.env.example` sin valores, desexcluido en `.gitignore`. README y `ROLLOUT_AUTH.md` actualizados.
+
+**Cambio de comportamiento a propósito**
+- Sin `ADMIN_EMAIL` / `ADMIN_PASSWORD`, `admin@bycar.co` / `admin` ya no entra como admin: el login sigue por la BD.
+
+**Tests corridos**
+- `npm test`: 745 tests en 49 archivos, todos OK (7 nuevos). Con la máquina cargada, `--maxWorkers=2` evita timeouts al arrancar workers; no son fallas de tests.
+- `npm run build`: OK en cada commit.
+- `npm run lint`: 5 errores y 5 warnings. Los 2 warnings nuevos vienen de una regla nueva de `eslint-config-next` (DT-51); no hay errores nuevos.
+
+**Riesgos pendientes**
+- **Antes del próximo deploy hay que configurar `ADMIN_EMAIL` y `ADMIN_PASSWORD`**; si no, el admin pierde el acceso.
+- La fila `admin@bycar.co` / `admin` del seed puede existir en `USUARIOS` (S5): cambiar esa contraseña.
+- S7 y S9 (credenciales de Oracle) siguen siendo tarea de una persona: rotar y limpiar el historial.
+- Al integrar con `fix/frontend-bugs` (DT-49) va a chocar el lockfile: regenerarlo y subir `@vitest/coverage-v8` a 5.0.3, igual que `vitest`.
+- Postergado: `eslint` 10 y `oracledb` 7 (DT-50).
 
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 

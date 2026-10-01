@@ -9,10 +9,15 @@ vi.mock('@/lib/db', () => ({ getConnection: vi.fn() }));
 
 const post = (body) => POST(makeRequest('/api/auth/login', { method: 'POST', body }));
 
+// Credenciales de admin de prueba: en producción vienen de ADMIN_EMAIL / ADMIN_PASSWORD (S5)
 beforeEach(() => {
   vi.clearAllMocks();
   silenceConsole();
+  vi.stubEnv('ADMIN_EMAIL', 'admin@bycar.co');
+  vi.stubEnv('ADMIN_PASSWORD', 'admin');
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe('POST /api/auth/login (caracterización)', () => {
   test.each([
@@ -27,7 +32,7 @@ describe('POST /api/auth/login (caracterización)', () => {
     expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('admin hardcodeado: redirige a /admin sin tocar la BD', async () => {
+  test('admin configurado: redirige a /admin sin tocar la BD', async () => {
     const res = await readResponse(await post({ correo: 'admin@bycar.co', contrasena: 'admin' }));
     expect(res).toEqual({ status: 200, body: { message: 'Login exitoso', redirect: '/admin' } });
     expect(getConnection).not.toHaveBeenCalled();
@@ -38,6 +43,16 @@ describe('POST /api/auth/login (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     const res = await readResponse(await post({ correo: 'ADMIN@bycar.co', contrasena: 'admin' }));
     expect(res.status).toBe(401);
+  });
+
+  test('sin ADMIN_EMAIL / ADMIN_PASSWORD el atajo de admin queda deshabilitado y se consulta la BD', async () => {
+    vi.stubEnv('ADMIN_EMAIL', '');
+    vi.stubEnv('ADMIN_PASSWORD', '');
+    const conn = createFakeConnection([{ rows: [] }]);
+    getConnection.mockResolvedValue(conn);
+    const res = await readResponse(await post({ correo: 'admin@bycar.co', contrasena: 'admin' }));
+    expect(res).toEqual({ status: 401, body: { error: 'Credenciales incorrectas' } });
+    expect(getConnection).toHaveBeenCalledOnce();
   });
 
   test('credenciales válidas: 200 con el usuario y redirect a /dashboard', async () => {
@@ -65,8 +80,6 @@ describe('POST /api/auth/login (caracterización)', () => {
   describe('cookie de sesión', () => {
     const SECRET = 's'.repeat(32);
     const sessionFrom = (response) => decodeSession(response.cookies.get(SESSION_COOKIE)?.value);
-
-    afterEach(() => vi.unstubAllEnvs());
 
     test('sin SESSION_SECRET no emite cookie (comportamiento previo intacto)', async () => {
       vi.stubEnv('SESSION_SECRET', '');
