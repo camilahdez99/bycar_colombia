@@ -6,13 +6,25 @@ import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
-const sanitizeTable = (name) => {
-  if (!/^[A-Z0-9_]+$/i.test(name)) {
-    throw new Error('Nombre de tabla inválido');
-  }
+/** Nombre de tabla en mayúsculas si es un identificador seguro para interpolar, o null. */
+const sanitizeTable = (name) => (/^[A-Z0-9_]+$/i.test(name) ? name.toUpperCase() : null);
 
-  return name.toUpperCase();
-};
+const invalidTableResponse = () =>
+  NextResponse.json({ error: 'Nombre de tabla inválido' }, { status: 400 });
+
+const invalidJsonResponse = () =>
+  NextResponse.json({ error: 'El cuerpo no es un JSON válido' }, { status: 400 });
+
+const JSON_INVALIDO = Symbol('json-invalido');
+
+/** Body parseado, o JSON_INVALIDO si no se puede leer (antes se escapaba como 500, BUGS E1). */
+async function readJson(req) {
+  try {
+    return await req.json();
+  } catch {
+    return JSON_INVALIDO;
+  }
+}
 
 const ERROR_PK_COMPUESTA = 'La tabla tiene clave primaria compuesta: no se puede modificar por id';
 
@@ -96,6 +108,7 @@ export async function GET(req) {
     }
 
     const t = sanitizeTable(tabla);
+    if (!t) return invalidTableResponse();
 
     if (metadata) {
       const cols = await getColumnsInfo(connection, t);
@@ -148,7 +161,9 @@ export async function POST(req) {
   }
 
   const t = sanitizeTable(tabla);
-  const data = await req.json();
+  if (!t) return invalidTableResponse();
+  const data = await readJson(req);
+  if (data === JSON_INVALIDO) return invalidJsonResponse();
 
   let connection;
 
@@ -253,7 +268,9 @@ export async function PUT(req) {
   }
 
   const t = sanitizeTable(tabla);
-  const data = await req.json();
+  if (!t) return invalidTableResponse();
+  const data = await readJson(req);
+  if (data === JSON_INVALIDO) return invalidJsonResponse();
 
   let connection;
 
@@ -332,6 +349,7 @@ export async function DELETE(req) {
   }
 
   const t = sanitizeTable(tabla);
+  if (!t) return invalidTableResponse();
 
   let connection;
 

@@ -55,13 +55,15 @@ describe('GET /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con nombre de tabla inválido (sanitizeTable dentro del try en GET)', async () => {
+  test('400 con nombre de tabla inválido, sin consultar (E1)', async () => {
     const conn = createFakeConnection();
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ tabla: 'USUARIOS; DROP TABLE X' }))).toEqual({
-      status: 500,
-      body: { error: 'Error interno del servidor' },
+      status: 400,
+      body: { error: 'Nombre de tabla inválido' },
     });
+    expect(conn.execute).not.toHaveBeenCalled();
+    expect(conn.close).toHaveBeenCalledOnce();
     expect(conn.execute).not.toHaveBeenCalled();
     expect(conn.close).toHaveBeenCalledOnce();
   });
@@ -135,13 +137,19 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('nombre inválido: la promesa se rechaza (sanitizeTable fuera del try)', async () => {
-    await expect(post({ tabla: 'A-B' }, { a: 1 })).rejects.toThrow('Nombre de tabla inválido');
+  test('400 con nombre de tabla inválido, sin abrir conexión (E1)', async () => {
+    expect(await readResponse(await post({ tabla: 'A-B' }, { a: 1 }))).toEqual({
+      status: 400,
+      body: { error: 'Nombre de tabla inválido' },
+    });
     expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('JSON inválido: la promesa se rechaza (req.json fuera del try)', async () => {
-    await expect(post({ tabla: 'VIAJES' }, '{no json')).rejects.toThrow();
+  test('400 con JSON inválido, sin abrir conexión (E1)', async () => {
+    expect(await readResponse(await post({ tabla: 'VIAJES' }, '{no json'))).toEqual({
+      status: 400,
+      body: { error: 'El cuerpo no es un JSON válido' },
+    });
     expect(getConnection).not.toHaveBeenCalled();
   });
 
@@ -260,12 +268,19 @@ describe('PUT /api/admin/tablas (caracterización)', () => {
     expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('nombre inválido: la promesa se rechaza (sanitizeTable fuera del try)', async () => {
-    await expect(put({ tabla: 'x y', id: '1' }, {})).rejects.toThrow('Nombre de tabla inválido');
+  test('400 con nombre de tabla inválido (E1)', async () => {
+    expect(await readResponse(await put({ tabla: 'x y', id: '1' }, {}))).toEqual({
+      status: 400,
+      body: { error: 'Nombre de tabla inválido' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('JSON inválido: la promesa se rechaza (req.json fuera del try)', async () => {
-    await expect(put({ tabla: 'VIAJES', id: '1' }, '{no json')).rejects.toThrow();
+  test('400 con JSON inválido, sin abrir conexión (E1)', async () => {
+    expect(await readResponse(await put({ tabla: 'VIAJES', id: '1' }, '{no json'))).toEqual({
+      status: 400,
+      body: { error: 'El cuerpo no es un JSON válido' },
+    });
     expect(getConnection).not.toHaveBeenCalled();
   });
 
@@ -336,8 +351,12 @@ describe('DELETE /api/admin/tablas (caracterización)', () => {
     expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('nombre inválido: la promesa se rechaza (sanitizeTable fuera del try)', async () => {
-    await expect(del({ tabla: 'a.b', id: '1' })).rejects.toThrow('Nombre de tabla inválido');
+  test('400 con nombre de tabla inválido (E1)', async () => {
+    expect(await readResponse(await del({ tabla: 'a.b', id: '1' }))).toEqual({
+      status: 400,
+      body: { error: 'Nombre de tabla inválido' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('200: borra por PK con id numérico y autoCommit (comportamiento actual: sin autenticación)', async () => {
