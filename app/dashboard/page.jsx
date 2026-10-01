@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/HydrationWrapper';
 import Autocomplete from '@/components/dashboard/Autocomplete';
+import DetallesViajeModal from '@/components/dashboard/DetallesViajeModal';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
 import { formatCurrency, formatTiempo } from '@/lib/client/formato';
@@ -1127,30 +1128,12 @@ export default function DashboardPage() {
         )}
 
         {detallesModalOpen && viajeDetalle && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-            <div style={{ background: 'var(--surface)', width: '100%', maxWidth: '450px', borderRadius: '24px', border: '1px solid var(--border)', padding: '2.5rem', position: 'relative' }}>
-              <button onClick={() => setDetallesModalOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
-              <h2 style={{ fontFamily: 'Syne', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>Detalles del Viaje</h2>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.95rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Ruta:</span> <strong>{viajeDetalle.origen} → {viajeDetalle.destino}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Conductor:</span> <strong>{viajeDetalle.conductor}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Vehículo:</span> <strong>{viajeDetalle.carro || 'N/A'}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Fecha:</span> <strong>{viajeDetalle.hora}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Puestos Disp:</span> <strong>{viajeDetalle.puestos}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: 'var(--muted)' }}>Valor:</span> <strong style={{ color: 'var(--red)' }}>${viajeDetalle.valor}</strong></div>
-                
-                <div style={{ marginTop: '1rem', background: 'rgba(255,255,255,0.03)', padding: '15px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--red)', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Comentarios del conductor:</span>
-                  <p style={{ color: '#fff', margin: 0, fontStyle: 'italic' }}>{viajeDetalle.comentarios || 'Sin comentarios adicionales.'}</p>
-                </div>
-              </div>
-
-              <button className="btn-red" style={{ width: '100%', justifyContent: 'center', marginTop: '2rem' }} onClick={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }} disabled={solicitados.includes(viajeDetalle.id)}>
-                {solicitados.includes(viajeDetalle.id) ? 'Solicitud Pendiente' : 'Solicitar Cupo'}
-              </button>
-            </div>
-          </div>
+          <DetallesViajeModal
+            viaje={viajeDetalle}
+            yaSolicitado={solicitados.includes(viajeDetalle.id)}
+            onCerrar={() => setDetallesModalOpen(false)}
+            onSolicitar={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }}
+          />
         )}
         {showReadjustModal && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '20px' }}>
