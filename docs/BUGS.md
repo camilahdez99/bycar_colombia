@@ -84,6 +84,7 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual". F28,
 | ~~F36~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-10-01.** "Sí, he llegado" ahora cierra el modal de pre-alerta. Sin `id` del guardián (no se hace el `PUT`) ya no avisa "Guardián desactivado": desactiva en pantalla y avisa que la llegada no quedó registrada. Lo que sigue abierto pasó a F38. |
 | ~~F37~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-10-01.** El aviso dice "Solicitud aceptada" / "Solicitud rechazada". El estado que se envía a la API no cambió. |
 | F38 | 🟡 | `dashboard/page.jsx:413-446` | `finalizarGuardian` y `reajustarTiempo` no revisan la respuesta del `PUT`: si la API responde 403/500 igual se avisa "Guardián desactivado" o "Tiempo extendido" y el estado local cambia, aunque en la BD el guardián siga activo con el tiempo anterior. Si el `fetch` falla por red, la promesa se rechaza sin manejo y el estado no se actualiza. Detectado al corregir F36 (2026-10-01); sin test que lo fije. |
+| F39 | 🟡 | `dashboard/page.jsx:335-364` | El contador del guardián descuenta 1 por tick de `setInterval` en vez de calcular contra la hora de inicio. Con la pestaña en segundo plano el navegador espacia los ticks (hasta 1 por minuto): tras 5 min oculto muestra `29:55` en lugar de `25:00` (295 s de atraso), y la pre-alerta y la alerta se disparan tarde. Medido en `bench/dashboard-guardian-timer.perf.jsx` (ver `docs/PERFORMANCE.md`). Relacionado con F28 y DT-35. |
 
 ## Manejo de errores
 

@@ -170,6 +170,31 @@ Rama `mejoras/varios`. Dos commits: caracterización (`9f671b7`) y refactor (`b7
 - No hay tests visuales: el snapshot cubre el DOM, no el render en el navegador. Conviene una mirada manual a la landing.
 - La sesión de performance mide el antes y el después del bundle (`docs/PERFORMANCE.md` de su rama).
 - Con los workers por defecto, `npm test` da timeouts falsos cuando la máquina está cargada (hasta 30 tests). Con `--maxWorkers=3` la suite es estable.
+## 2026-10-01 — Performance: mediciones, DT-33 y evaluación de DT-26 y DT-45
+
+Rama `perf/mediciones` (worktree `../bycar_colombia-performance`), sobre `7e19e1b`. Detalle y números en `docs/PERFORMANCE.md`.
+
+**Qué cambió**
+- `bench/`: benchmarks reproducibles (`npm run perf:dashboard`, `npm run perf:front`) para polling (DT-33), temporizador del guardián (DT-35) y carga del front (DT-26, DT-41, DT-45). Los resultados quedan en `bench/resultados/` (ignorado).
+- DT-33 (✅ parcial): `lib/client/intervaloVisible.js` pausa el refresco de 10 s y el chat de 3 s con la pestaña oculta y refresca al volver. Pestaña oculta: de 12 y 32 req/min a 0. Visible: sin cambios.
+- DT-26 acotado (fuentes con `<link>` en vez de `@import`): probado y **revertido**, la mejora queda dentro del ruido y por debajo del 10 %. Queda el test de caracterización del layout.
+- DT-45 (otra sesión, rama `mejoras/varios`): medido, −1,6 % de JS en `/`. No llega al 10 %.
+- `vitest.config.mjs`: compila como JSX los `.js` del proyecto (necesario para testear `app/layout.js`).
+- Registrados F39 (el contador del guardián se atrasa en segundo plano: 295 s en 5 min) y BD-19 (historial de chat completo cada 3 s).
+
+**Cambio de comportamiento a propósito**
+- Con la pestaña del navegador oculta, el dashboard no consulta la API. Al volver, refresca enseguida. Los badges y el chat se actualizan al volver y no mientras está oculta.
+
+**Tests corridos**
+- `npm test` (con `--maxWorkers=4`): 748 tests, 51 archivos, todos OK. Nuevos: 3 del layout, 5 de `iniciarIntervaloVisible` y 2 de polling del dashboard (fallan sin el cambio).
+- `npm run build`: OK.
+- Lint: sin errores nuevos (en `app/dashboard/page.jsx` siguen los 3 de la línea base).
+
+**Riesgos pendientes**
+- DT-35 y DT-41 quedan pendientes: chocan con `refactor/organizacion` (DT-34, DT-38) y con `fix/frontend-bugs` (F35/F36 tocan el temporizador). Hay que hacerlos después de integrar esas ramas. Línea base de DT-35: 1,1 commits/s del dashboard y 1 125 llamadas a `normalizar()`/s.
+- Con 8 workers en paralelo, la suite tuvo 6 a 28 timeouts de 5 s por carga de la máquina (hay varias sesiones compilando a la vez). Con `--maxWorkers=4` pasa entera.
+- La latencia de la API no se midió: no hay BD local. El cuello de botella conocido es BD-06 (sin pool).
+- Los números F39 (originalmente F38) y BD-19 podían chocar con los que asignen otras ramas en paralelo: revisarlos al integrar.
 
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 

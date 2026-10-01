@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "perf:dashboard": "vitest run --config bench/vitest.config.mjs",
+    "perf:front": "node bench/front-load.mjs"
   },
   "dependencies": {
     "jose": "^6.2.12",

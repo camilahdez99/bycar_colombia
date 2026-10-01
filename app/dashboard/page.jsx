@@ -20,6 +20,7 @@ import { logout } from '@/lib/client/logout';
 import { formatCurrency } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
+import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
 import { MENU_INICIO_ID, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
 
 // Refresco en segundo plano y temporizador del guardián
@@ -244,8 +245,7 @@ export default function DashboardPage() {
 
     refreshTabs();
 
-    const interval = setInterval(refreshTabs, REFRESCO_MS);
-    return () => clearInterval(interval);
+    return iniciarIntervaloVisible(refreshTabs, REFRESCO_MS);
   }, [activePage, currentUser]);
 
   // Cuando el usuario navega HACIA la pestaña de mis-rutas (o actualiza estando en ella), marcar todos como leídos
@@ -412,14 +412,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    let interval;
-    if (chatOpen && chatData.chatId) {
-      fetchChatMsgs(chatData.chatId);
-      interval = setInterval(() => {
-        fetchChatMsgs(chatData.chatId);
-      }, REFRESCO_CHAT_MS);
-    }
-    return () => clearInterval(interval);
+    if (!chatOpen || !chatData.chatId) return;
+    fetchChatMsgs(chatData.chatId);
+    return iniciarIntervaloVisible(() => fetchChatMsgs(chatData.chatId), REFRESCO_CHAT_MS);
   }, [chatOpen, chatData.chatId]);
 
   const enviarMensajeChat = async () => {
