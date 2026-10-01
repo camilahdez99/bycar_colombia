@@ -58,6 +58,32 @@ describe('DynamicForm (caracterización)', () => {
     expect(screen.getByText('Cancelar').disabled).toBe(true);
   });
 
+  test('si cambia el registro a editar, descarta lo tipeado y carga el nuevo', () => {
+    const props = { columns: COLUMNAS.slice(0, 2), onSubmit: vi.fn(), onCancel: vi.fn() };
+    const { rerender } = render(<DynamicForm {...props} initialData={{ ID_USU: 1, NOMBRE_USU: 'LUIS' }} />);
+    fireEvent.change(input('NOMBRE_USU'), { target: { value: 'TIPEADO' } });
+    rerender(<DynamicForm {...props} initialData={{ ID_USU: 2, NOMBRE_USU: 'ANA' }} />);
+    expect(input('NOMBRE_USU').value).toBe('ANA');
+    expect(input('ID_USU').value).toBe('2');
+  });
+
+  test('con las mismas props (misma referencia) conserva lo tipeado', () => {
+    const props = { columns: COLUMNAS.slice(0, 2), initialData: { ID_USU: 1, NOMBRE_USU: 'LUIS' }, onSubmit: vi.fn(), onCancel: vi.fn() };
+    const { rerender } = render(<DynamicForm {...props} />);
+    fireEvent.change(input('NOMBRE_USU'), { target: { value: 'TIPEADO' } });
+    rerender(<DynamicForm {...props} loading />);
+    expect(input('NOMBRE_USU').value).toBe('TIPEADO');
+  });
+
+  test('alta: si cambian las columnas, arranca vacío con las nuevas', () => {
+    const onSubmit = vi.fn();
+    const { rerender } = render(<DynamicForm columns={COLUMNAS.slice(0, 1)} onSubmit={onSubmit} onCancel={vi.fn()} />);
+    fireEvent.change(input('ID_USU'), { target: { value: '9' } });
+    rerender(<DynamicForm columns={COLUMNAS.slice(1, 2)} onSubmit={onSubmit} onCancel={vi.fn()} />);
+    fireEvent.submit(document.querySelector('form'));
+    expect(onSubmit).toHaveBeenCalledWith({ NOMBRE_USU: '' });
+  });
+
   test('Cancelar llama a onCancel', () => {
     const onCancel = vi.fn();
     render(<DynamicForm columns={COLUMNAS.slice(0, 1)} onSubmit={vi.fn()} onCancel={onCancel} />);
