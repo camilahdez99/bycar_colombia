@@ -8,6 +8,13 @@ import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
 import { findUserEmail, isGuardianParticipant, isViajeParticipant } from '@/lib/auth/ownershipQueries';
 import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { JSON_INVALIDO, badRequest, invalidJsonResponse, readJson } from '@/lib/api/validacion';
+import { enteroPositivo, textoNoVacio } from '@/lib/domain/validadores';
+
+const MENSAJE_TIEMPO_INVALIDO = 'El tiempo debe ser un número entero de minutos mayor a 0';
+
+// Sin filas afectadas el guardián no existe (BUGS F19)
+const guardianNoEncontrado = () => NextResponse.json({ error: 'Guardián no encontrado' }, { status: 404 });
 
 // El correo del contacto de confianza se compara igual que en la query: sin distinguir mayúsculas
 const sameEmail = (a, b) => a !== null && b !== null && String(a).toUpperCase() === String(b).toUpperCase();
@@ -114,11 +121,17 @@ export async function POST(req) {
 
   let connection;
   try {
-    const { viajeId, email, tiempo } = await req.json();
+    const body = await readJson(req);
+    if (body === JSON_INVALIDO) return invalidJsonResponse();
+    const { viajeId, email, tiempo } = body ?? {};
 
     if (!viajeId || !email) {
       return NextResponse.json({ error: 'Faltan campos' }, { status: 400 });
     }
+    if (!enteroPositivo(viajeId)) return badRequest('ID de viaje inválido');
+    if (!textoNoVacio(email)) return badRequest('Correo de contacto inválido');
+    // Sin tiempo (o con 0) se usa el tiempo por defecto, como antes; cualquier otro valor debe ser válido (BUGS F23)
+    if (tiempo && !enteroPositivo(tiempo)) return badRequest(MENSAJE_TIEMPO_INVALIDO);
 
     connection = await getConnection();
 
@@ -141,9 +154,9 @@ export async function POST(req) {
     `;
     // Estado 1 asume Activo/Iniciado
 
-    await connection.execute(sql, { 
-      idGua: Number(idGua), 
-      viajeId: Number(viajeId), 
+    await connection.execute(sql, {
+      idGua: Number(idGua),
+      viajeId: Number(viajeId),
       email,
       tiempo: Number(tiempo || TIEMPO_GUARDIAN_POR_DEFECTO_MIN)
     }, { autoCommit: true });
@@ -163,21 +176,29 @@ export async function PUT(req) {
 
   let connection;
   try {
-    const { id, estado, extraTiempo } = await req.json();
+    const body = await readJson(req);
+    if (body === JSON_INVALIDO) return invalidJsonResponse();
+    const { id, estado, extraTiempo } = body ?? {};
+    // extraTiempo: null cuenta como ausente; antes sumaba 0 e ignoraba el estado (BUGS F22)
+    const conExtraTiempo = extraTiempo !== undefined && extraTiempo !== null;
 
     // Se valida antes de abrir la conexión (BUGS E5)
-    if (extraTiempo === undefined && !estado) {
+    if (!conExtraTiempo && !estado) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
     }
+    if (!enteroPositivo(id)) return badRequest('ID de guardián inválido');
+    if (conExtraTiempo && !enteroPositivo(extraTiempo)) return badRequest(MENSAJE_TIEMPO_INVALIDO);
+    if (!conExtraTiempo && !isNaN(estado) && !enteroPositivo(estado)) return badRequest('Estado inválido');
 
     connection = await getConnection();
 
     const notParticipant = await checkOwnership(req, (userId) => isGuardianParticipant(connection, id, userId));
     if (notParticipant) return notParticipant;
 
-    if (extraTiempo !== undefined) {
+    if (conExtraTiempo) {
       const sql = `UPDATE GUARDIANES SET TIEMPO_ESTIMADO_GUA = TIEMPO_ESTIMADO_GUA + :extraTiempo WHERE ID_GUA = :id`;
-      await connection.execute(sql, { extraTiempo: Number(extraTiempo), id }, { autoCommit: true });
+      const result = await connection.execute(sql, { extraTiempo: Number(extraTiempo), id }, { autoCommit: true });
+      if (result.rowsAffected === 0) return guardianNoEncontrado();
       return NextResponse.json({ message: 'Tiempo de viaje reajustado' });
     }
 
@@ -203,7 +224,8 @@ export async function PUT(req) {
       binds.estadoId = Number(estado);
     }
 
-    await connection.execute(sql, binds, { autoCommit: true });
+    const result = await connection.execute(sql, binds, { autoCommit: true });
+    if (result.rowsAffected === 0) return guardianNoEncontrado();
     return NextResponse.json({ message: 'Estado actualizado' });
   } catch (error) {
     logError('api_error', error, { route: 'PUT /api/guardian', mensaje: 'Error en PUT Guardian' });

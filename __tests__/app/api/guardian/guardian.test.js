@@ -116,11 +116,31 @@ describe('POST /api/guardian (caracterización)', () => {
     expect(conn.calls[1].binds.tiempo).toBe(30);
   });
 
-  test('tiempo no numérico pasa como NaN (comportamiento actual: no valida)', async () => {
+  test('tiempo 0 usa los 30 minutos por defecto, como antes', async () => {
     const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await post({ viajeId: 5, email: 'a@x.co', tiempo: 'mucho' }))).status).toBe(201);
-    expect(conn.calls[1].binds.tiempo).toBeNaN();
+    await post({ viajeId: 5, email: 'a@x.co', tiempo: 0 });
+    expect(conn.calls[1].binds.tiempo).toBe(30);
+  });
+
+  test.each([
+    [{ tiempo: 'mucho' }, 'El tiempo debe ser un número entero de minutos mayor a 0'],
+    [{ tiempo: -10 }, 'El tiempo debe ser un número entero de minutos mayor a 0'],
+    [{ tiempo: '12.5' }, 'El tiempo debe ser un número entero de minutos mayor a 0'],
+    [{ viajeId: 'abc' }, 'ID de viaje inválido'],
+    [{ email: 42 }, 'Correo de contacto inválido'],
+    [{ email: '   ' }, 'Correo de contacto inválido'],
+  ])('400 con datos inválidos %j, sin abrir conexión (F23, DT-31)', async (cambio, mensaje) => {
+    expect(await readResponse(await post({ viajeId: 5, email: 'a@x.co', tiempo: 45, ...cambio }))).toEqual({
+      status: 400,
+      body: { error: mensaje },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test('400 si el body no es JSON válido', async () => {
+    expect((await readResponse(await post('no-json'))).status).toBe(400);
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('404 si la consulta del correo viene sin rows, sin insertar (E4)', async () => {
@@ -174,13 +194,28 @@ describe('PUT /api/guardian (caracterización)', () => {
     expect(conn.calls[0].binds).toEqual({ extraTiempo: 5, id: 11 });
   });
 
-  test('extraTiempo null se trata como 0 (comportamiento actual: solo se compara con undefined)', async () => {
+  test('extraTiempo null cuenta como ausente: se aplica el estado (F22)', async () => {
     const conn = createFakeConnection([{ rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await put({ id: 11, extraTiempo: null, estado: 'Finalizado' }))).body).toEqual({
-      message: 'Tiempo de viaje reajustado',
+    expect((await readResponse(await put({ id: 11, extraTiempo: null, estado: '2' }))).body).toEqual({
+      message: 'Estado actualizado',
     });
-    expect(conn.calls[0].binds).toEqual({ extraTiempo: 0, id: 11 });
+    expect(conn.calls[0].binds).toEqual({ id: 11, estadoId: 2 });
+  });
+
+  test('extraTiempo null y sin estado → 400 Nada que actualizar (F22)', async () => {
+    expect((await readResponse(await put({ id: 11, extraTiempo: null }))).status).toBe(400);
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [{ id: 11, extraTiempo: 'mucho' }, 'El tiempo debe ser un número entero de minutos mayor a 0'],
+    [{ id: 11, extraTiempo: -15 }, 'El tiempo debe ser un número entero de minutos mayor a 0'],
+    [{ id: 11, estado: '2.5' }, 'Estado inválido'],
+    [{ id: 'x', estado: 'Alerta' }, 'ID de guardián inválido'],
+  ])('400 con datos inválidos %j, sin abrir conexión (DT-31)', async (body, mensaje) => {
+    expect(await readResponse(await put(body))).toEqual({ status: 400, body: { error: mensaje } });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('200 con estado de texto: resuelve el ID por los primeros 6 caracteres', async () => {
@@ -203,11 +238,20 @@ describe('PUT /api/guardian (caracterización)', () => {
     expect(conn.calls).toMatchSnapshot();
   });
 
-  test('200 sin id (comportamiento actual: no valida id ni rowsAffected)', async () => {
-    const conn = createFakeConnection([{ rowsAffected: 0 }]);
-    getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await put({ estado: 2 }))).status).toBe(200);
-    expect(conn.calls[0].binds).toEqual({ id: undefined, estadoId: 2 });
+  test('400 sin id, sin abrir conexión (DT-31)', async () => {
+    expect(await readResponse(await put({ estado: 2 }))).toEqual({
+      status: 400,
+      body: { error: 'ID de guardián inválido' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ['estado', { id: 11, estado: '2' }],
+    ['extraTiempo', { id: 11, extraTiempo: 15 }],
+  ])('404 si el guardián no existe al cambiar %s: rowsAffected = 0 (F19)', async (_caso, body) => {
+    getConnection.mockResolvedValue(createFakeConnection([{ rowsAffected: 0 }]));
+    expect(await readResponse(await put(body))).toEqual({ status: 404, body: { error: 'Guardián no encontrado' } });
   });
 
   test('400 si no hay nada que actualizar, sin abrir conexión (E5)', async () => {
@@ -228,9 +272,9 @@ describe('PUT /api/guardian (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 si el body no es JSON válido (sin conexión)', async () => {
+  test('400 si el body no es JSON válido, sin conexión (antes 500)', async () => {
     const res = await readResponse(await put('no-json'));
-    expect(res.status).toBe(500);
+    expect(res).toEqual({ status: 400, body: { error: 'El cuerpo no es un JSON válido' } });
     expect(getConnection).not.toHaveBeenCalled();
   });
 });
