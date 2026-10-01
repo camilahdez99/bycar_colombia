@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
 import { findUserEmail, isGuardianParticipant, isViajeParticipant } from '@/lib/auth/ownershipQueries';
 import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { JSON_INVALIDO, badRequest, invalidJsonResponse, readJson } from '@/lib/api/validacion';
+import { enteroPositivo, textoNoVacio } from '@/lib/domain/validadores';
+
+const MENSAJE_TIEMPO_INVALIDO = 'El tiempo debe ser un número entero de minutos mayor a 0';
+
+// Sin filas afectadas el guardián no existe (BUGS F19)
+const guardianNoEncontrado = () => NextResponse.json({ error: 'Guardián no encontrado' }, { status: 404 });
 
 // El correo del contacto de confianza se compara igual que en la query: sin distinguir mayúsculas
 const sameEmail = (a, b) => a !== null && b !== null && String(a).toUpperCase() === String(b).toUpperCase();
@@ -20,6 +28,13 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const email = searchParams.get('email');
     const usuarioId = searchParams.get('usuarioId');
+
+    // Se valida antes de abrir la conexión (BUGS E5)
+    if (!email && !usuarioId) {
+      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
+    }
+    // Con email se usa la rama del correo; si no, el usuarioId debe ser un entero (DT-31)
+    if (!email && !enteroPositivo(usuarioId)) return badRequest('usuarioId inválido');
 
     connection = await getConnection();
 
@@ -92,15 +107,13 @@ export async function GET(req) {
         WHERE s.USUARIOS_ID_USU = :usuarioId AND g.ESTADO_ID_EST != 2
       `;
       const result = await connection.execute(sql, { usuarioId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
-      return NextResponse.json(result.rows[0] || null, { status: 200 });
+      return NextResponse.json(result.rows?.[0] || null, { status: 200 });
     }
-
-    return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
   } catch (error) {
     logError('api_error', error, { route: 'GET /api/guardian', mensaje: 'Error en GET Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
   } finally {
-    if (connection) await connection.close();
+    await closeConnection(connection, 'GET /api/guardian');
   }
 }
 
@@ -110,11 +123,17 @@ export async function POST(req) {
 
   let connection;
   try {
-    const { viajeId, email, tiempo } = await req.json();
+    const body = await readJson(req);
+    if (body === JSON_INVALIDO) return invalidJsonResponse();
+    const { viajeId, email, tiempo } = body ?? {};
 
     if (!viajeId || !email) {
       return NextResponse.json({ error: 'Faltan campos' }, { status: 400 });
     }
+    if (!enteroPositivo(viajeId)) return badRequest('ID de viaje inválido');
+    if (!textoNoVacio(email)) return badRequest('Correo de contacto inválido');
+    // Sin tiempo (o con 0) se usa el tiempo por defecto, como antes; cualquier otro valor debe ser válido (BUGS F23)
+    if (tiempo && !enteroPositivo(tiempo)) return badRequest(MENSAJE_TIEMPO_INVALIDO);
 
     connection = await getConnection();
 
@@ -125,7 +144,7 @@ export async function POST(req) {
     const checkUserSql = `SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)`;
     const userRes = await connection.execute(checkUserSql, { email }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
 
-    if (userRes.rows.length === 0) {
+    if (!userRes.rows?.length) {
       return NextResponse.json({ error: 'El correo de contacto no corresponde a un usuario registrado en BYCAR' }, { status: 404 });
     }
 
@@ -137,9 +156,9 @@ export async function POST(req) {
     `;
     // Estado 1 asume Activo/Iniciado
 
-    await connection.execute(sql, { 
-      idGua: Number(idGua), 
-      viajeId: Number(viajeId), 
+    await connection.execute(sql, {
+      idGua: Number(idGua),
+      viajeId: Number(viajeId),
       email,
       tiempo: Number(tiempo || TIEMPO_GUARDIAN_POR_DEFECTO_MIN)
     }, { autoCommit: true });
@@ -149,7 +168,7 @@ export async function POST(req) {
     logError('api_error', error, { route: 'POST /api/guardian', mensaje: 'Error en POST Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
   } finally {
-    if (connection) await connection.close();
+    await closeConnection(connection, 'POST /api/guardian');
   }
 }
 
@@ -159,26 +178,38 @@ export async function PUT(req) {
 
   let connection;
   try {
-    const { id, estado, extraTiempo } = await req.json();
+    const body = await readJson(req);
+    if (body === JSON_INVALIDO) return invalidJsonResponse();
+    const { id, estado, extraTiempo } = body ?? {};
+    // extraTiempo: null cuenta como ausente; antes sumaba 0 e ignoraba el estado (BUGS F22)
+    const conExtraTiempo = extraTiempo !== undefined && extraTiempo !== null;
+
+    // Se valida antes de abrir la conexión (BUGS E5)
+    if (!conExtraTiempo && !estado) {
+      return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
+    }
+    if (!enteroPositivo(id)) return badRequest('ID de guardián inválido');
+    if (conExtraTiempo && !enteroPositivo(extraTiempo)) return badRequest(MENSAJE_TIEMPO_INVALIDO);
+    if (!conExtraTiempo && !isNaN(estado) && !enteroPositivo(estado)) return badRequest('Estado inválido');
 
     connection = await getConnection();
 
     const notParticipant = await checkOwnership(req, (userId) => isGuardianParticipant(connection, id, userId));
     if (notParticipant) return notParticipant;
 
-    if (extraTiempo !== undefined) {
+    if (conExtraTiempo) {
       const sql = `UPDATE GUARDIANES SET TIEMPO_ESTIMADO_GUA = TIEMPO_ESTIMADO_GUA + :extraTiempo WHERE ID_GUA = :id`;
-      await connection.execute(sql, { extraTiempo: Number(extraTiempo), id }, { autoCommit: true });
+      const result = await connection.execute(sql, { extraTiempo: Number(extraTiempo), id }, { autoCommit: true });
+      if (result.rowsAffected === 0) return guardianNoEncontrado();
       return NextResponse.json({ message: 'Tiempo de viaje reajustado' });
     }
 
-    if (estado) {
-      let sql;
-      let binds = { id };
-      
-      if (isNaN(estado)) {
-        // Si el estado es un texto, buscar dinámicamente el ID en la BD
-        sql = `
+    let sql;
+    let binds = { id };
+
+    if (isNaN(estado)) {
+      // Si el estado es un texto, buscar dinámicamente el ID en la BD
+      sql = `
           UPDATE GUARDIANES 
           SET ESTADO_ID_EST = (
             SELECT ID_EST_GUA 
@@ -188,22 +219,20 @@ export async function PUT(req) {
           )
           WHERE ID_GUA = :id
         `;
-        binds.estadoStr = estado;
-      } else {
-        // Si el frontend ya envió el ID numérico
-        sql = `UPDATE GUARDIANES SET ESTADO_ID_EST = :estadoId WHERE ID_GUA = :id`;
-        binds.estadoId = Number(estado);
-      }
-
-      await connection.execute(sql, binds, { autoCommit: true });
-      return NextResponse.json({ message: 'Estado actualizado' });
+      binds.estadoStr = estado;
+    } else {
+      // Si el frontend ya envió el ID numérico
+      sql = `UPDATE GUARDIANES SET ESTADO_ID_EST = :estadoId WHERE ID_GUA = :id`;
+      binds.estadoId = Number(estado);
     }
 
-    return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
+    const result = await connection.execute(sql, binds, { autoCommit: true });
+    if (result.rowsAffected === 0) return guardianNoEncontrado();
+    return NextResponse.json({ message: 'Estado actualizado' });
   } catch (error) {
     logError('api_error', error, { route: 'PUT /api/guardian', mensaje: 'Error en PUT Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
   } finally {
-    if (connection) await connection.close();
+    await closeConnection(connection, 'PUT /api/guardian');
   }
 }

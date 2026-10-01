@@ -57,12 +57,9 @@ describe('GET /api/mensajes (caracterización)', () => {
     expect(await readResponse(await get({ chatId: '9' }))).toEqual({ status: 200, body: [] });
   });
 
-  test('500 si la primera consulta viene sin rows (comportamiento actual: accede a rows.length sin guarda)', async () => {
+  test('si la primera consulta viene sin rows se trata como chat inexistente: 200 [] (E4)', async () => {
     getConnection.mockResolvedValue(createFakeConnection([{}]));
-    expect(await readResponse(await get({ chatId: '9' }))).toEqual({
-      status: 500,
-      body: { error: 'Error al obtener mensajes' },
-    });
+    expect(await readResponse(await get({ chatId: '9' }))).toEqual({ status: 200, body: [] });
   });
 
   test('500 si falla la consulta, y cierra la conexión', async () => {
@@ -86,6 +83,13 @@ describe('POST /api/mensajes (caracterización)', () => {
       body: { error: 'Datos incompletos' },
     });
     expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test('404 si la consulta del chat viene sin rows, sin insertar (E4)', async () => {
+    const conn = createFakeConnection([{}]);
+    getConnection.mockResolvedValue(conn);
+    expect(await readResponse(await post(validBody))).toEqual({ status: 404, body: { error: 'Chat no encontrado' } });
+    expect(conn.execute).toHaveBeenCalledOnce();
   });
 
   test('201: el pasajero escribe → receptor es el conductor', async () => {

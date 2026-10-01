@@ -4,6 +4,8 @@ import { getConnection } from '@/lib/db';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
 import { closeConnection } from '@/lib/api/connection';
+import { enteroPositivo } from '@/lib/domain/validadores';
+import { JSON_INVALIDO, invalidJsonResponse, readJson } from '@/lib/api/validacion';
 import { authorize, forbidden, getSession, isAuthEnforced, unauthenticated } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -27,6 +29,9 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const usuarioId = searchParams.get('usuarioId');
+    if (usuarioId && !enteroPositivo(usuarioId)) {
+      return NextResponse.json({ error: 'usuarioId inválido' }, { status: 400 });
+    }
 
     connection = await getConnection();
 
@@ -70,9 +75,14 @@ export async function POST(req) {
 
   let connection;
   try {
-    const { usuarioId, menuId } = await req.json();
+    const body = await readJson(req);
+    if (body === JSON_INVALIDO) return invalidJsonResponse();
+    const { usuarioId, menuId } = body ?? {};
     if (!usuarioId || !menuId) {
       return NextResponse.json({ error: 'usuarioId y menuId son requeridos' }, { status: 400 });
+    }
+    if (!enteroPositivo(usuarioId) || !enteroPositivo(menuId)) {
+      return NextResponse.json({ error: 'usuarioId y menuId deben ser enteros' }, { status: 400 });
     }
 
     connection = await getConnection();
@@ -103,6 +113,9 @@ export async function DELETE(req) {
 
     if (!usuarioId || !menuId) {
       return NextResponse.json({ error: 'usuarioId y menuId son requeridos' }, { status: 400 });
+    }
+    if (!enteroPositivo(usuarioId) || !enteroPositivo(menuId)) {
+      return NextResponse.json({ error: 'usuarioId y menuId deben ser enteros' }, { status: 400 });
     }
 
     connection = await getConnection();

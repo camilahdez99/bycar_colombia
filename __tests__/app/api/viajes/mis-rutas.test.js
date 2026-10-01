@@ -41,11 +41,9 @@ describe('GET /api/viajes/mis-rutas (caracterización)', () => {
     });
   });
 
-  test('usuarioId no numérico se envía como NaN (comportamiento actual: no valida)', async () => {
-    const conn = createFakeConnection([{ rows: [] }, { rows: [] }]);
-    getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await get({ usuarioId: 'abc' }))).status).toBe(200);
-    expect(conn.calls[0].binds.usuarioId).toBeNaN();
+  test('usuarioId no numérico: 400 sin consultar (DT-31)', async () => {
+    expect(await readResponse(await get({ usuarioId: 'abc' }))).toEqual({ status: 400, body: { error: 'usuarioId inválido' } });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('500 si falla la segunda consulta, y cierra la conexión', async () => {

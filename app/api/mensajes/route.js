@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
+import { enteroPositivo, textoNoVacio } from '@/lib/domain/validadores';
+import { JSON_INVALIDO, invalidJsonResponse, readJson } from '@/lib/api/validacion';
 import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
 import { calcularParticipantesMensaje } from '@/lib/domain/mensajes';
@@ -22,6 +24,9 @@ export async function GET(req) {
     if (!chatId) {
       return NextResponse.json({ error: 'Falta chatId' }, { status: 400 });
     }
+    if (!enteroPositivo(chatId)) {
+      return NextResponse.json({ error: 'chatId inválido' }, { status: 400 });
+    }
 
     connection = await getConnection();
 
@@ -34,7 +39,7 @@ export async function GET(req) {
     `;
     const resSol = await connection.execute(sqlSol, { chatId });
     
-    if (resSol.rows.length === 0) {
+    if (!resSol.rows?.length) {
       return NextResponse.json([], { status: 200 });
     }
 
@@ -77,10 +82,15 @@ export async function POST(req) {
 
   let connection;
   try {
-    const { chatId, senderId, text } = await req.json();
+    const body = await readJson(req);
+    if (body === JSON_INVALIDO) return invalidJsonResponse();
+    const { chatId, senderId, text } = body ?? {};
 
     if (!chatId || !senderId || !text) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+    }
+    if (!enteroPositivo(chatId) || !enteroPositivo(senderId) || !textoNoVacio(text)) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
     const notSender = await requireSelf(req, senderId);
@@ -97,7 +107,7 @@ export async function POST(req) {
     `;
     const resSol = await connection.execute(sqlSol, { chatId });
     
-    if (resSol.rows.length === 0) {
+    if (!resSol.rows?.length) {
       return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
     }
 
