@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { getUserId } from '@/lib/client/usuario';
@@ -18,7 +18,7 @@ export function useChat(currentUser) {
   const [currentChatMsgs, setCurrentChatMsgs] = useState([]);
   const [msgInput, setMsgInput] = useState('');
 
-  const fetchChatMsgs = async (chatId) => {
+  const fetchChatMsgs = useCallback(async (chatId) => {
     if (!chatId) return;
     try {
       const res = await fetchConSesion(`/api/mensajes?chatId=${chatId}`);
@@ -34,13 +34,14 @@ export function useChat(currentUser) {
     } catch (error) {
       console.error('Error fetching chat', error);
     }
-  };
+  }, [currentUser]);
 
+  // Refresco del chat abierto. El primer pedido lo hace abrirChat: hacerlo acá era un setState
+  // en cascada dentro del efecto (DT-38)
   useEffect(() => {
     if (!chatOpen || !chatData.chatId) return;
-    fetchChatMsgs(chatData.chatId);
     return iniciarIntervaloVisible(() => fetchChatMsgs(chatData.chatId), REFRESCO_CHAT_MS);
-  }, [chatOpen, chatData.chatId]);
+  }, [chatOpen, chatData.chatId, fetchChatMsgs]);
 
   const enviarMensaje = async () => {
     if (!msgInput.trim() || !chatData.chatId) return;
@@ -76,9 +77,12 @@ export function useChat(currentUser) {
   };
 
   const abrirChat = (chat) => {
+    // Si ya estaba abierto, la conversación se vacía y espera al siguiente refresco (BUGS F41)
+    const yaAbierto = chatOpen && chatData.chatId === chat.chatId;
     setChatData({ name: chat.nombre, avatar: chat.nombre.charAt(0), chatId: chat.chatId });
     setCurrentChatMsgs([]);
     setChatOpen(true);
+    if (!yaAbierto) fetchChatMsgs(chat.chatId);
   };
 
   const cerrarChat = () => setChatOpen(false);
