@@ -27,6 +27,7 @@ const REFRESCO_MS = 10000;
 const REFRESCO_CHAT_MS = 3000;
 const PRE_ALERTA_SEG = 5 * 60;
 const EXTENSION_GUARDIAN_MIN = 15;
+const MENSAJE_SIN_SESION = 'Inicia sesión para continuar';
 
 // Iconos para los menús según la URL
 const MENU_ICONS = {
@@ -453,9 +454,14 @@ export default function DashboardPage() {
   };
 
   const solicitarViaje = async (id) => {
+    // Sin usuario no se envía nada: antes se usaba el ID 1 (BUGS F1)
+    const uId = getUserId(currentUser);
+    if (!uId) {
+      toast.error(MENSAJE_SIN_SESION);
+      return;
+    }
     const toastId = toast.loading('Enviando solicitud...');
     try {
-      const uId = getUserId(currentUser) || 1;
       const res = await fetchConSesion('/api/solicitudes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -474,10 +480,15 @@ export default function DashboardPage() {
 
   const guardarRuta = async (e) => {
     e.preventDefault();
+    // Sin usuario no se publica: antes se usaba el ID 1 (BUGS F1)
+    const uId = getUserId(currentUser);
+    if (!uId) {
+      toast.error(MENSAJE_SIN_SESION);
+      return;
+    }
     const toastId = toast.loading('Publicando tu ruta...');
-    
+
     try {
-      const uId = getUserId(currentUser) || 1;
       const res = await fetchConSesion('/api/viajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

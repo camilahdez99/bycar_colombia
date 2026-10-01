@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { toast } from 'react-hot-toast';
 import DashboardPage from '@/app/dashboard/page';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
@@ -146,15 +147,13 @@ describe('DashboardPage (caracterización de helpers vía UI)', () => {
     });
   });
 
-  test('getUserId: sin usuario, la solicitud de viaje usa el ID 1 (comportamiento actual, BUGS F1)', async () => {
+  test('getUserId: sin usuario, no envía la solicitud y avisa que hay que iniciar sesión (F1)', async () => {
     stubApi({ '/api/viajes$': [{ id: 9, origen: 'A', destino: 'B', conductor: 'C', hora: '2026-10-01', valor: 1000 }] });
     render(<DashboardPage />);
     fireEvent.click(await screen.findByText('Buscar rutas disponibles'));
     fireEvent.click(await screen.findByText('Solicitar'));
 
-    await waitFor(() => {
-      const post = fetch.mock.calls.find(([url, init]) => url === '/api/solicitudes' && init?.method === 'POST');
-      expect(JSON.parse(post[1].body)).toEqual({ viajeId: 9, usuarioId: 1 });
-    });
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Inicia sesión para continuar'));
+    expect(fetch.mock.calls.some(([url]) => url === '/api/solicitudes')).toBe(false);
   });
 });
