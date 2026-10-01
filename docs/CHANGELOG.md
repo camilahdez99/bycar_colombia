@@ -51,6 +51,31 @@ Rama `chore/deps-seguridad` (worktree `../bycar_colombia-deps`). Un commit por d
 - S7 y S9 (credenciales de Oracle) siguen siendo tarea de una persona: rotar y limpiar el historial.
 - Al integrar con `fix/frontend-bugs` (DT-49) va a chocar el lockfile: regenerarlo y subir `@vitest/coverage-v8` a 5.0.3, igual que `vitest`.
 - Postergado: `eslint` 10 y `oracledb` 7 (DT-50).
+## 2026-10-01 — DT-46: eliminar las rutas admin sin consumidor
+
+Rama `chore/dt46-rutas-admin` (worktree `../bycar_colombia-dt46`, desde `7e19e1b`), en coordinación con la sesión que trabaja la API en `fix/api-backlog`: esa rama no toca estos archivos.
+
+**Qué cambió**
+- Se borraron `app/api/admin/{usuarios,conductores,vehiculos,viajes}/route.js`, sus 4 archivos de test y sus snapshots.
+- `auth-enforcement.test.js`: se quitaron sus entradas; cubre 22 handlers (antes 36).
+- Docs: tabla de rutas de `ARCHITECTURE.md`; F16, F17, F18 y F26 pasan a "no aplica"; F19, F10, S4, E3, E5, DT-47 y BD-02/05/07/09/14/16 ya no citan las rutas borradas.
+
+**Evidencia de que no se usaban**
+- Ningún `fetch` del frontend (literal ni con template) apunta a esas rutas: todo va a `admin/tablas` y `admin/permisos`.
+- `next.config.mjs` no tiene rewrites ni redirects; `proxy.js` y `scripts/` no las mencionan.
+- En el historial de git, sus únicos consumidores fueron `FormularioConductor.jsx` y `FormularioVehiculo.jsx`, que no se importaban y se borraron en DT-20 (`c80d364`).
+
+**Cambio de comportamiento a propósito**
+- `/api/admin/usuarios`, `/conductores`, `/vehiculos` y `/viajes` responden 404. Aprobado por la usuaria.
+
+**Tests corridos**
+- `vitest run --maxWorkers=4`: 617 tests en 44 archivos, todos OK. Los 121 que faltan respecto de 738 son los de las rutas borradas.
+- `npm run build`: OK; las 4 rutas ya no aparecen.
+- Lint: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- No se pudo verificar desde el código si hay consumidores externos (Postman, integraciones). Si aparecen 404 en los logs de producción para esas URL, el commit se puede revertir sin afectar al resto.
+- Con `npm test` a secas (48 workers) fallan entre 19 y 28 tests de UI por timeout, distintos en cada corrida, aun sin cambios; con `--maxWorkers=4` pasan. Conviene fijar `maxWorkers` o subir los timeouts en `vitest.config.mjs` en una tarea aparte.
 
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 
