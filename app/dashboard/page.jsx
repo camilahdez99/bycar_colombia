@@ -18,17 +18,17 @@ import GuardianInicio from '@/components/dashboard/GuardianInicio';
 import ConfigurarGuardianModal from '@/components/dashboard/ConfigurarGuardianModal';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
-import { formatCurrency } from '@/lib/client/formato';
-import { getUserId } from '@/lib/client/usuario';
+import { getUserId, MENSAJE_SIN_SESION } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
 import { MENU_INICIO_ID } from '@/lib/domain/constantes';
 import { useChat } from '@/hooks/dashboard/useChat';
+import { useRutas } from '@/hooks/dashboard/useRutas';
 import { useGuardian, PRE_ALERTA_SEG, EXTENSION_GUARDIAN_MIN } from '@/hooks/dashboard/useGuardian';
 
 // Refresco en segundo plano
 const REFRESCO_MS = 10000;
-const MENSAJE_SIN_SESION = 'Inicia sesión para continuar';
+
 
 // Iconos para los menús según la URL
 const MENU_ICONS = {
@@ -42,7 +42,6 @@ const MENU_ICONS = {
 export default function DashboardPage() {
   const router = useRouter();
   const [activePage, setActivePage] = useState('inicio');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [viajeDetalle, setViajeDetalle] = useState(null);
   
@@ -62,16 +61,10 @@ export default function DashboardPage() {
   const [resultados, setResultados] = useState([]);
   const [solicitados, setSolicitados] = useState([]);
 
-  // --- ESTADO PARA GESTIÓN DE RUTAS Y SOLICITUDES ---
-  const [rutasPublicadas, setRutasPublicadas] = useState([]);
-  const [rutasSolicitadas, setRutasSolicitadas] = useState([]);
-  const [rutasSolicitadasLeidas, setRutasSolicitadasLeidas] = useState({}); // { [routeId]: estado }
+  // --- RUTAS Y SOLICITUDES ---
+  const rutas = useRutas(currentUser, activePage);
+  const { rutasSolicitadas, aplicarMisRutas } = rutas;
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
-
-  // --- ESTADO PARA LA NUEVA RUTA ---
-  const [nuevaRuta, setNuevaRuta] = useState({
-    origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: ''
-  });
 
   // --- GUARDIÁN ---
   const guardian = useGuardian(currentUser);
@@ -152,12 +145,7 @@ export default function DashboardPage() {
       // Refresh mis rutas SIEMPRE en background para detectar cambios de estado y activar el badge
       fetchConSesion(`/api/viajes/mis-rutas?usuarioId=${uId}`)
         .then(res => res.json())
-        .then(data => {
-          if (data && typeof data === 'object') {
-            setRutasPublicadas((Array.isArray(data.publicadas) ? data.publicadas : []).sort((a, b) => b.id - a.id));
-            setRutasSolicitadas((Array.isArray(data.solicitadas) ? data.solicitadas : []).sort((a, b) => b.id - a.id));
-          }
-        })
+        .then(aplicarMisRutas)
         .catch(err => console.error(err));
 
       // Refresh chat list SIEMPRE (en background) para detectar nuevos chats tanto
@@ -191,18 +179,7 @@ export default function DashboardPage() {
     refreshTabs();
 
     return iniciarIntervaloVisible(refreshTabs, REFRESCO_MS);
-  }, [activePage, currentUser]);
-
-  // Cuando el usuario navega HACIA la pestaña de mis-rutas (o actualiza estando en ella), marcar todos como leídos
-  useEffect(() => {
-    if (activePage === 'mis-rutas' && rutasSolicitadas.length > 0) {
-      const updated = {};
-      rutasSolicitadas.forEach(r => {
-        updated[r.id] = r.estado;
-      });
-      setRutasSolicitadasLeidas(prev => ({ ...prev, ...updated }));
-    }
-  }, [activePage, rutasSolicitadas]);
+  }, [activePage, currentUser, aplicarMisRutas]);
 
   // Cuando el usuario navega HACIA la pestaña mensajes, marcar todos como leídos
   useEffect(() => {
@@ -212,15 +189,6 @@ export default function DashboardPage() {
   }, [activePage]);
 
 
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'valor') {
-      setNuevaRuta({ ...nuevaRuta, [name]: formatCurrency(value) });
-    } else {
-      setNuevaRuta({ ...nuevaRuta, [name]: value.toUpperCase() });
-    }
-  };
 
   const buscarViajes = async () => {
     const toastId = toast.loading('Buscando viajes...');
@@ -270,43 +238,6 @@ export default function DashboardPage() {
     }
   };
 
-  const guardarRuta = async (e) => {
-    e.preventDefault();
-    // Sin usuario no se publica: antes se usaba el ID 1 (BUGS F1)
-    const uId = getUserId(currentUser);
-    if (!uId) {
-      toast.error(MENSAJE_SIN_SESION);
-      return;
-    }
-    const toastId = toast.loading('Publicando tu ruta...');
-
-    try {
-      const res = await fetchConSesion('/api/viajes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...nuevaRuta, usuarioId: uId })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        const nueva = {
-          id: data.id,
-          ...nuevaRuta
-        };
-        // La lista va de la más nueva a la más vieja: la ruta publicada va primera (BUGS F30)
-        setRutasPublicadas([nueva, ...rutasPublicadas]);
-        setIsModalOpen(false);
-        setNuevaRuta({ origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: '' });
-        toast.success('Ruta publicada correctamente', { id: toastId });
-      } else {
-        toast.error(data.error || 'Error al publicar', { id: toastId });
-      }
-    } catch (error) {
-      toast.error('Error de conexión', { id: toastId });
-    }
-  };
-
   const gestionarSolicitud = async (id, estado) => {
     const toastId = toast.loading(estado === 'Aceptado' ? 'Aceptando solicitud...' : 'Rechazando solicitud...');
     try {
@@ -343,7 +274,7 @@ export default function DashboardPage() {
     activePage,
     solicitudesRecibidas,
     rutasSolicitadas,
-    rutasSolicitadasLeidas,
+    rutasSolicitadasLeidas: rutas.rutasSolicitadasLeidas,
     mensajes,
     mensajesLeidos,
     alertasRecibidas,
@@ -481,7 +412,7 @@ export default function DashboardPage() {
             searchParams={searchParams}
             setSearchParams={setSearchParams}
             municipios={municipiosDB}
-            onCrear={() => setIsModalOpen(true)}
+            onCrear={rutas.abrirPublicar}
             onBuscar={() => { buscarViajes(); setActivePage('buscar'); }}
           />
         )}
@@ -497,7 +428,7 @@ export default function DashboardPage() {
         )}
 
         {activePage === 'mis-rutas' && (
-          <MisRutasTab rutasPublicadas={rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
+          <MisRutasTab rutasPublicadas={rutas.rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
         )}
 
         {activePage === 'solicitudes' && (
@@ -590,15 +521,15 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {isModalOpen && (
+        {rutas.publicarOpen && (
           <PublicarViajeModal
-            nuevaRuta={nuevaRuta}
-            setNuevaRuta={setNuevaRuta}
+            nuevaRuta={rutas.nuevaRuta}
+            setNuevaRuta={rutas.setNuevaRuta}
             municipios={municipiosDB}
             marcas={marcas}
-            onInputChange={handleInputChange}
-            onSubmit={guardarRuta}
-            onCerrar={() => setIsModalOpen(false)}
+            onInputChange={rutas.handleInputChange}
+            onSubmit={rutas.guardarRuta}
+            onCerrar={rutas.cerrarPublicar}
           />
         )}
 
