@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/HydrationWrapper';
@@ -21,13 +21,12 @@ import { formatCurrency } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
-import { MENU_INICIO_ID, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { MENU_INICIO_ID } from '@/lib/domain/constantes';
+import { useGuardian, PRE_ALERTA_SEG, EXTENSION_GUARDIAN_MIN } from '@/hooks/dashboard/useGuardian';
 
-// Refresco en segundo plano y temporizador del guardián
+// Refresco en segundo plano
 const REFRESCO_MS = 10000;
 const REFRESCO_CHAT_MS = 3000;
-const PRE_ALERTA_SEG = 5 * 60;
-const EXTENSION_GUARDIAN_MIN = 15;
 const MENSAJE_SIN_SESION = 'Inicia sesión para continuar';
 
 // Iconos para los menús según la URL
@@ -77,30 +76,10 @@ export default function DashboardPage() {
     origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: ''
   });
 
-  // --- ESTADO PARA GUARDIÁN ---
-  const [guardianViaje, setGuardianViaje] = useState(null);
-  const [guardianConfig, setGuardianConfig] = useState({ email: '', tiempoMin: TIEMPO_GUARDIAN_POR_DEFECTO_MIN });
-  const [guardianActivo, setGuardianActivo] = useState(false);
-  const [guardianTiempoRestante, setGuardianTiempoRestante] = useState(0);
-  const [guardianAlertaEnviada, setGuardianAlertaEnviada] = useState(false);
-  const [guardianPreAlerta, setGuardianPreAlerta] = useState(false);
-  const [guardianHoraInicio, setGuardianHoraInicio] = useState(null);
-  const [guardianConfigOpen, setGuardianConfigOpen] = useState(false);
+  // --- GUARDIÁN ---
+  const guardian = useGuardian(currentUser);
+  const retomarGuardian = guardian.retomar;
   const [alertasRecibidas, setAlertasRecibidas] = useState([]);
-  const [showReadjustModal, setShowReadjustModal] = useState(false);
-  const [guardianId, setGuardianId] = useState(null);
-
-  // Refs para que el temporizador siempre lea los valores más recientes
-  // sin reiniciarse en cada cambio de estado
-  const guardianPreAlertaRef = useRef(false);
-  const guardianAlertaEnviadaRef = useRef(false);
-  const guardianIdRef = useRef(null);
-
-  // Sincronizar refs con el estado
-  useEffect(() => { guardianPreAlertaRef.current = guardianPreAlerta; }, [guardianPreAlerta]);
-  useEffect(() => { guardianAlertaEnviadaRef.current = guardianAlertaEnviada; }, [guardianAlertaEnviada]);
-  useEffect(() => { guardianIdRef.current = guardianId; }, [guardianId]);
-
 
   // Cargar catálogos dinámicos (menús, marcas, municipios)
   useEffect(() => {
@@ -144,38 +123,7 @@ export default function DashboardPage() {
         }
         if (resGuardian && resGuardian.ok) {
           const dataGuardian = await resGuardian.json();
-          if (dataGuardian && dataGuardian.id) {
-            const startTime = new Date(dataGuardian.inicio.replace(' ', 'T'));
-            const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
-            const total = dataGuardian.tiempoMin * 60;
-            const remaining = Math.max(total - elapsed, 0);
-
-            setGuardianId(dataGuardian.id);
-            setGuardianViaje({
-              id: dataGuardian.viajeId,
-              origen: dataGuardian.origen,
-              destino: dataGuardian.destino,
-              conductor: dataGuardian.conductor,
-              placa: dataGuardian.placa,
-              carro: dataGuardian.carro
-            });
-            setGuardianConfig({ email: dataGuardian.email, tiempoMin: dataGuardian.tiempoMin });
-            setGuardianHoraInicio(startTime);
-            setGuardianTiempoRestante(remaining);
-            setGuardianActivo(true);
-            // Vencido mientras la pestaña estaba cerrada: si la alerta no quedó registrada, se registra
-            // ahora (antes solo se mostraba en pantalla, BUGS F28). Si ya estaba en Alerta, no se repite.
-            if (remaining <= 0) {
-              setGuardianAlertaEnviada(true);
-              if (dataGuardian.estado?.toUpperCase() !== 'ALERTA') {
-                fetchConSesion('/api/guardian', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id: dataGuardian.id, estado: 'Alerta' })
-                }).catch(error => console.error('Error registrando la alerta del guardián:', error));
-              }
-            }
-          }
+          if (dataGuardian && dataGuardian.id) retomarGuardian(dataGuardian);
         }
         if (resPermisos && resPermisos.ok) {
           const dataPermisos = await resPermisos.json();
@@ -188,7 +136,7 @@ export default function DashboardPage() {
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [retomarGuardian]);
 
   // Re-fetch data when opening tabs or periodically
   useEffect(() => {
@@ -266,134 +214,6 @@ export default function DashboardPage() {
     }
   }, [activePage]);
 
-  // Temporizador del Guardián — SÓLO se reinicia cuando guardianActivo cambia
-  useEffect(() => {
-    if (!guardianActivo) return;
-
-    const timer = setInterval(() => {
-      setGuardianTiempoRestante(prev => {
-        const next = prev - 1;
-
-        // PRE_ALERTA_SEG antes de terminar → pre-alerta. Con "<=" también sale si el viaje
-        // arranca (o se retoma al recargar) con menos de ese tiempo (BUGS F35)
-        if (next > 0 && next <= PRE_ALERTA_SEG && !guardianPreAlertaRef.current) {
-          setGuardianPreAlerta(true);
-          setShowReadjustModal(true);
-          toast('⚠️ ¿Has llegado? Tu tiempo está por terminar.', { duration: 10000, icon: '🔔' });
-        }
-
-        // Tiempo agotado → alerta real
-        if (next <= 0 && !guardianAlertaEnviadaRef.current) {
-          setGuardianAlertaEnviada(true);
-          toast.error('🚨 TIEMPO AGOTADO. Alerta activada para tu contacto.', { duration: 15000 });
-          // Sincronizar estado con la BD
-          const gId = guardianIdRef.current;
-          if (gId) {
-            fetchConSesion('/api/guardian', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: gId, estado: 'Alerta' })
-            });
-          }
-          clearInterval(timer);
-        }
-
-        return Math.max(next, 0);
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [guardianActivo]); // ← SOLO depende de si está activo
-
-  const iniciarGuardian = async (viaje) => {
-    if (!guardianConfig.email || !guardianConfig.tiempoMin) {
-      toast.error('Configura el correo y tiempo estimado');
-      return;
-    }
-
-    const uId = getUserId(currentUser);
-    const vId = viaje.viajeId || viaje.id;
-    
-    try {
-      const res = await fetchConSesion('/api/guardian', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          viajeId: vId,
-          usuarioId: uId,
-          email: guardianConfig.email.trim().toUpperCase(),
-          tiempo: guardianConfig.tiempoMin
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        const horaInicio = new Date();
-
-        setGuardianId(data.id);
-        setGuardianViaje(viaje);
-        setGuardianActivo(true);
-        setGuardianAlertaEnviada(false);
-        setGuardianPreAlerta(false);
-        setGuardianHoraInicio(horaInicio);
-        setGuardianTiempoRestante(guardianConfig.tiempoMin * 60);
-        setGuardianConfigOpen(false);
-        toast.success('🛡️ Guardián activado en base de datos. ¡Buen viaje!');
-      } else {
-        toast.error(`Error (ID: ${vId}): ` + data.error);
-      }
-    } catch (e) {
-      toast.error('Error de conexión con el servidor');
-    }
-  };
-
-
-  // PUT al guardián; true si la API lo registró. Antes no se revisaba la respuesta (BUGS F38)
-  const actualizarGuardian = async (cambios) => {
-    try {
-      const res = await fetchConSesion('/api/guardian', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: guardianId, ...cambios })
-      });
-      return res.ok;
-    } catch (error) {
-      console.error('Error actualizando el guardián:', error);
-      return false;
-    }
-  };
-
-  const finalizarGuardian = async () => {
-    // Si la llegada no se registra, el guardián sigue activo para no dejar al contacto sin aviso
-    if (guardianId && !(await actualizarGuardian({ estado: 'Inactivo' }))) {
-      toast.error('No se pudo registrar tu llegada. Intenta de nuevo.');
-      return;
-    }
-    setGuardianActivo(false);
-    setGuardianTiempoRestante(0);
-    setGuardianId(null);
-    setShowReadjustModal(false);
-    // Sin id no hubo PUT: la llegada no quedó registrada (BUGS F36)
-    if (guardianId) {
-      toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
-    } else {
-      toast.error('El guardián se desactivó en este dispositivo, pero no se pudo registrar tu llegada.');
-    }
-  };
-
-  const reajustarTiempo = async () => {
-    if (guardianId) {
-      if (!(await actualizarGuardian({ extraTiempo: EXTENSION_GUARDIAN_MIN }))) {
-        toast.error('No se pudo extender el tiempo. Intenta de nuevo.');
-        return;
-      }
-
-      setGuardianTiempoRestante(prev => prev + (EXTENSION_GUARDIAN_MIN * 60));
-      setGuardianPreAlerta(false);
-      setShowReadjustModal(false);
-      toast.success(`⏱️ Tiempo extendido ${EXTENSION_GUARDIAN_MIN} minutos`);
-    }
-  };
 
 
   const handleInputChange = (e) => {
@@ -771,35 +591,35 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {guardianActivo && guardianViaje && (
+            {guardian.activo && guardian.viaje && (
               <GuardianEnCurso
-                viaje={guardianViaje}
-                contactoEmail={guardianConfig.email}
-                tiempoRestante={guardianTiempoRestante}
+                viaje={guardian.viaje}
+                contactoEmail={guardian.config.email}
+                tiempoRestante={guardian.tiempoRestante}
                 segundosPreAlerta={PRE_ALERTA_SEG}
-                horaInicio={guardianHoraInicio}
-                alertaEnviada={guardianAlertaEnviada}
-                preAlerta={guardianPreAlerta}
-                onLlegue={finalizarGuardian}
+                horaInicio={guardian.horaInicio}
+                alertaEnviada={guardian.alertaEnviada}
+                preAlerta={guardian.preAlerta}
+                onLlegue={guardian.finalizar}
               />
             )}
 
-            {!guardianActivo && (
+            {!guardian.activo && (
               <GuardianInicio
                 rutasSolicitadas={rutasSolicitadas}
                 alertasRecibidas={alertasRecibidas}
-                onElegirViaje={(viaje) => { setGuardianViaje(viaje); setGuardianConfigOpen(true); }}
+                onElegirViaje={guardian.elegirViaje}
               />
             )}
 
 
-            {guardianConfigOpen && guardianViaje && (
+            {guardian.configOpen && guardian.viaje && (
               <ConfigurarGuardianModal
-                viaje={guardianViaje}
-                config={guardianConfig}
-                setConfig={setGuardianConfig}
-                onCerrar={() => setGuardianConfigOpen(false)}
-                onIniciar={() => iniciarGuardian(guardianViaje)}
+                viaje={guardian.viaje}
+                config={guardian.config}
+                setConfig={guardian.setConfig}
+                onCerrar={() => guardian.setConfigOpen(false)}
+                onIniciar={() => guardian.iniciar(guardian.viaje)}
               />
             )}
           </section>
@@ -846,11 +666,11 @@ export default function DashboardPage() {
             onSolicitar={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }}
           />
         )}
-        {showReadjustModal && (
+        {guardian.showReadjustModal && (
           <PreAlertaGuardianModal
             minutosExtension={EXTENSION_GUARDIAN_MIN}
-            onLlegue={finalizarGuardian}
-            onReajustar={reajustarTiempo}
+            onLlegue={guardian.finalizar}
+            onReajustar={guardian.reajustarTiempo}
           />
         )}
       </main>
