@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { logError, logInfo } from '@/lib/log';
+import { logAlerta, logError, logInfo, logWarn } from '@/lib/log';
 import { closeConnection } from '@/lib/api/connection';
 
 const lineas = (spy) => spy.mock.calls.map(([linea]) => JSON.parse(linea));
@@ -7,6 +7,7 @@ const lineas = (spy) => spy.mock.calls.map(([linea]) => JSON.parse(linea));
 beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   vi.spyOn(console, 'log').mockImplementation(() => {});
+  vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
 afterEach(() => vi.restoreAllMocks());
@@ -38,6 +39,20 @@ describe('logInfo', () => {
   test('una línea JSON por console.log', () => {
     logInfo('solicitud_actualizada', { solicitudId: 5, rowsAffected: 1 });
     expect(lineas(console.log)).toEqual([{ event: 'solicitud_actualizada', solicitudId: 5, rowsAffected: 1 }]);
+  });
+});
+
+describe('logWarn', () => {
+  test('una línea JSON por console.warn', () => {
+    logWarn('session_invalid', { reason: 'ERR_JWT_EXPIRED' });
+    expect(lineas(console.warn)).toEqual([{ event: 'session_invalid', reason: 'ERR_JWT_EXPIRED' }]);
+  });
+});
+
+describe('logAlerta', () => {
+  test('una línea JSON por console.error, sin campo error', () => {
+    logAlerta('auth_misconfigured', { reason: 'sin secreto' });
+    expect(lineas(console.error)).toEqual([{ event: 'auth_misconfigured', reason: 'sin secreto' }]);
   });
 });
 
