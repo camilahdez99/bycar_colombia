@@ -29,6 +29,6 @@ Los scripts originales, de los que salieron los de `postgres/`. Ya no se usan.
 | Archivo | Qué es | Estado |
 |---|---|---|
 | `verificar-consultas-auth.mjs` | Verificador de solo lectura de las consultas de pertenencia, antes de prender `AUTH_ENFORCED`. Uso en su encabezado y en `docs/ROLLOUT_AUTH.md`. Necesita `DATABASE_URL`. | Vigente. |
-| `fix_guardian.js` | Script local de mantenimiento. | Excluido de git (`.git/info/exclude`) porque tiene credenciales (BUGS S7). Puede no existir en otros clones. Sigue usando Oracle. |
+| `fix_guardian.mjs` | Agrega `TIEMPO_ESTIMADO_GUA` a `GUARDIANES` si falta (bases creadas antes de esa columna; idempotente). Necesita `DATABASE_URL`. | Vigente. Reemplaza al `fix_guardian.js` de Oracle, que tenía credenciales (BUGS S7). |
 
 Reglas (ver `CLAUDE.md`): fuera de la migración, la base está fuera de alcance; estos archivos no se ejecutan desde el proyecto.

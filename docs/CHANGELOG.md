@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-10-01 — `.env.example` y `fix_guardian` para Postgres
+
+Misma rama `feat/migracion-postgres`. Pedido explícito de tocar `.env.example` (excepción a la regla 7).
+
+**Qué cambió**
+- `.env.example`: `DB_USER`, `DB_PASSWORD` y `DB_CONNECTION_STRING` pasan a `DATABASE_URL` (obligatoria), `DB_TIMEZONE` y `DB_POOL_MAX` (opcionales). Sin valores.
+- `scripts/fix_guardian.mjs` reemplaza al `fix_guardian.js` local de Oracle: lee `DATABASE_URL` en vez de credenciales hardcodeadas y usa `ADD COLUMN IF NOT EXISTS` (se puede correr varias veces). Ahora está versionado. BUGS S7 resuelto.
+
+**Tests corridos**
+- Sin `DATABASE_URL`, el script termina con código 2 y un mensaje claro. El `ALTER` corrido dos veces en Postgres 17 (PGlite) agrega la columna `numeric` una sola vez, sin error.
+- `npm test`, `npm run build` y lint: ver el commit.
+
+**Riesgos pendientes**
+- La copia vieja `scripts/fix_guardian.js` sigue en el checkout principal, con credenciales y excluida de git. Hay que borrarla a mano y rotar esa contraseña si se reutiliza en otro lado.
+
 ## 2026-10-01 — Migración de Oracle a PostgreSQL (Supabase)
 
 Rama `feat/migracion-postgres`, desde `main` (`1e2e682`). Pedido explícito: levantar la regla de "BD fuera de alcance" y reemplazar `oracledb` por `pg` para esta tarea. Guía: `docs/MIGRACION_POSTGRES.md`.
@@ -19,8 +34,7 @@ Rama `feat/migracion-postgres`, desde `main` (`1e2e682`). Pedido explícito: lev
 **Riesgos pendientes**
 - No se probó contra Supabase real: SSL, pooler y zona horaria dependen de la configuración del proyecto (ver la guía).
 - Los datos de producción que hoy están en Oracle hay que exportarlos e importarlos aparte (guía, sección 3).
-- `.env.example` sigue listando las variables de Oracle: por la regla 7 no se tocó. Hay que reemplazar `DB_USER`/`DB_PASSWORD`/`DB_CONNECTION_STRING` por `DATABASE_URL`.
-- `scripts/fix_guardian.js` (local, fuera de git) sigue usando `oracledb`.
+- ~~`.env.example` con las variables de Oracle~~ y ~~`scripts/fix_guardian.js` con `oracledb`~~: resueltos en la entrada siguiente (pedido explícito).
 - Diferencias de orden de textos y de largo de `VARCHAR` (BD-20), IDs con `Date.now()`/`MAX+1` (BD-21), conexión con el usuario `postgres` (BD-22).
 
 ## 2026-10-01 — Fix de F39 (contador del guardián)

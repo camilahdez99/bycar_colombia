@@ -64,4 +64,4 @@ Suite completa antes de commitear: `npm test` + `npm run build` + lint sin error
 
 - Vitest usa `pool: 'threads'`; el pool `forks` no inicia en entornos con IPC restringido.
 - Los tests viven en `__tests__/`, espejando la ruta del código (`__tests__/lib/...`, `__tests__/app/...`). El alias `@/` funciona igual que en la app.
-- `scripts/fix_guardian.js` está excluido de git localmente (`.git/info/exclude`) porque contiene credenciales hardcodeadas.
+- `scripts/fix_guardian.mjs` reemplaza al viejo `fix_guardian.js` de Oracle, que tenía credenciales hardcodeadas y estaba excluido de git (`.git/info/exclude`). La copia local del `.js` en el checkout principal se puede borrar.
