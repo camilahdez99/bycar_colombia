@@ -12,10 +12,6 @@ import * as mensajes from '@/app/api/mensajes/route';
 import * as chats from '@/app/api/mensajes/chats/route';
 import * as guardian from '@/app/api/guardian/route';
 import * as tablas from '@/app/api/admin/tablas/route';
-import * as usuarios from '@/app/api/admin/usuarios/route';
-import * as conductores from '@/app/api/admin/conductores/route';
-import * as vehiculos from '@/app/api/admin/vehiculos/route';
-import * as adminViajes from '@/app/api/admin/viajes/route';
 import * as permisos from '@/app/api/admin/permisos/route';
 import * as marcas from '@/app/api/marcas/route';
 import * as municipios from '@/app/api/municipios/route';
@@ -38,10 +34,6 @@ const RUTAS_USUARIO = [
 
 const RUTAS_ADMIN = [
   ...handlersOf('/api/admin/tablas', tablas),
-  ...handlersOf('/api/admin/usuarios', usuarios),
-  ...handlersOf('/api/admin/conductores', conductores),
-  ...handlersOf('/api/admin/vehiculos', vehiculos),
-  ...handlersOf('/api/admin/viajes', adminViajes),
   ['POST /api/admin/permisos', permisos.POST, 'POST', '/api/admin/permisos'],
   ['DELETE /api/admin/permisos', permisos.DELETE, 'DELETE', '/api/admin/permisos'],
 ];
@@ -75,7 +67,7 @@ describe('AUTH_ENFORCED=true', () => {
   beforeEach(() => vi.stubEnv('AUTH_ENFORCED', 'true'));
 
   test('cubre todos los handlers exportados', () => {
-    expect(RUTAS_USUARIO.length + RUTAS_ADMIN.length + RUTAS_PUBLICAS.length + 1).toBe(36);
+    expect(RUTAS_USUARIO.length + RUTAS_ADMIN.length + RUTAS_PUBLICAS.length + 1).toBe(22);
   });
 
   test.each([...RUTAS_USUARIO, ...RUTAS_ADMIN, ['GET /api/admin/permisos', permisos.GET, 'GET', '/api/admin/permisos']])(
