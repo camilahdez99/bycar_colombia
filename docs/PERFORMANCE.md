@@ -66,7 +66,7 @@ Cada segundo se vuelve a renderizar el dashboard entero (1 255 líneas); en Inic
 |---|---|---|---|---|---|
 | 1 | DT-33a | Pausar el polling (10 s y chat de 3 s) mientras `document.hidden`; al volver, refrescar enseguida. | −100 % de requests con la pestaña oculta (12→0 y 32→0 por min) | bajo | ✅ aplicada |
 | 2 | DT-26 (acotado) | Sacar el `@import` de Google Fonts de `globals.css` y cargarlo con `<link>` + `preconnect` en el layout. No toca las 42 referencias literales a `'Syne'`/`'DM Sans'`. | Descubrimiento en paralelo con el CSS de la app: menos ruta crítica en primera visita | bajo | ❌ revertida (no llega al 10 %) |
-| 3 | DT-35 | Mover el contador a un componente propio para que el tick no vuelva a renderizar el dashboard ni refiltre municipios. Sin tocar la forma de descontar (F39 va aparte). | −90 % o más de commits del dashboard por segundo; `normalizar()`/s de 1 125 a 0 | medio | espera DT-34 |
+| 3 | DT-35 | Mover el contador a un componente propio para que el tick no vuelva a renderizar el dashboard ni refiltre municipios. Sin tocar la forma de descontar (F39 va aparte). | −90 % o más de commits del dashboard por segundo; `normalizar()`/s de 1 125 a 0 | medio | ✅ aplicada |
 | 4 | DT-41 | Quitar `HydrationWrapper` del dashboard y del admin (leer `localStorage` en efectos) para que el servidor mande HTML. | Texto SSR > 0; pinta antes que el JS | medio | espera DT-38 (sesión 4 mueve el archivo) |
 | 5 | DT-45 | Landing como server component; el cliente solo para contador, nav y animaciones. | Menos JS en `/` | medio | ⚠️ medida: −1,6 % de JS, no llega al 10 % (rama `mejoras/varios`, decide la usuaria) |
 
@@ -86,6 +86,20 @@ Cambio: `lib/client/intervaloVisible.js` (`iniciarIntervaloVisible`) reemplaza l
 | Mensajes, chat abierto, pestaña **oculta** | 32 → **0** (−100 %) | 87,8 → **0** |
 
 Con la pestaña visible el costo sigue igual. Bajarlo ahí requiere pedir solo los mensajes nuevos (BD-19, `bd-pendiente`) o unificar los endpoints en uno de resumen (cambio de contrato de API: hay que consultarlo).
+
+### DT-35 · tick del guardián fuera del estado raíz — ✅ aplicada
+
+Cambio: los segundos restantes viven en `lib/client/cuentaRegresiva.js` (fuera del estado de React) y solo `components/dashboard/ContadorGuardian.jsx` se suscribe, con `useSyncExternalStore`. El intervalo (en `hooks/dashboard/useGuardian.js`) solo toca el estado del dashboard al cruzar la pre-alerta o la alerta; los `toast` y el `PUT` salieron del updater de `setState`. La forma de descontar no cambió: el desfase (F39) se mantiene a propósito. Tests: los 98 del dashboard sin cambios y `__tests__/lib/client/cuentaRegresiva.test.js` (4).
+
+Medido con `npm run perf:dashboard`, antes y después en la misma máquina y sesión (3 corridas después; el "antes" es la línea base del mismo día):
+
+| Escenario | commits/s antes → después | `normalizar()`/s antes → después | ms render/s (Profiler) antes → después |
+|---|---|---|---|
+| Inicio, buscando un municipio | 1,1 → **0,1** (−91 %) | 1 125 → **102** (−91 %) | 8,1 → **0,6** |
+| Pestaña Guardián | 1,1 → 1,1 | 0 → 0 | 4,4 → **0,9–1,4** |
+| Desfase tras 5 min oculto | — | — | 295 s → 295 s (F39, sin tocar) |
+
+El 0,1 commits/s que queda en Inicio es el polling de 10 s (DT-33), y con él las 102 llamadas a `normalizar()`/s. En la pestaña Guardián el Profiler sigue contando un commit por segundo, pero ahora solo se renderiza el panel del contador.
 
 ### DT-45 · landing como server component — ⚠️ medida, no llega al umbral
 
