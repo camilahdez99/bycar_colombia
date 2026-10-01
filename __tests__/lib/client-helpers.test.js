@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { formatCurrency, formatTiempo, normalizar } from '@/lib/client/formato';
+import { formatCurrency, formatTiempo, nombreDeOpcion, normalizar } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 
@@ -12,6 +12,23 @@ describe('normalizar', () => {
   test('conserva la ñ como N con tilde removida (comportamiento actual)', () => {
     expect(normalizar('Nariño')).toBe('NARINO');
   });
+});
+
+describe('nombreDeOpcion', () => {
+  test('un string se devuelve tal cual', () => {
+    expect(nombreDeOpcion('BOGOTA')).toBe('BOGOTA');
+  });
+
+  test('de un municipio devuelve su nombre', () => {
+    expect(nombreDeOpcion({ id: 1, nombre: 'TUNJA' })).toBe('TUNJA');
+  });
+
+  test.each([{ id: 4, nombre: '' }, { id: 4, nombre: null }, { id: 4 }, null, undefined])(
+    'sin nombre devuelve texto vacío (%o), así normalizar no recibe un objeto (F34)',
+    (opcion) => {
+      expect(nombreDeOpcion(opcion)).toBe('');
+    },
+  );
 });
 
 describe('formatTiempo', () => {

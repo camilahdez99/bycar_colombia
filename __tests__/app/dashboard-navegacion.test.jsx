@@ -132,7 +132,7 @@ describe('Dashboard · carga inicial (caracterización)', () => {
     expect(await screen.findByText('PEREIRA', { selector: 'li' })).toBeTruthy();
   });
 
-  test('comportamiento actual: un municipio sin nombre rompe el autocompletado al escribir (F34)', async () => {
+  test('un municipio sin nombre se ignora en el autocompletado y no lo rompe (F34)', async () => {
     stubApi({ '/api/municipios': [{ ID_MUN: 3, NOMBRE_MUN: 'PEREIRA' }, { ID_MUN: 4, NOMBRE_MUN: null }] });
     render(<DashboardPage />);
     const origen = (await screen.findAllByPlaceholderText('Origen'))[0];
@@ -140,7 +140,9 @@ describe('Dashboard · carga inicial (caracterización)', () => {
     // Esperar a que los municipios estén en el estado: el filtro recién corre al re-renderizar
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(() => fireEvent.change(origen, { target: { value: 'pere' } })).toThrow('str.normalize is not a function');
+    fireEvent.change(origen, { target: { value: 'pere' } });
+    expect(await screen.findByText('PEREIRA', { selector: 'li' })).toBeTruthy();
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
   });
 
   test('un catálogo con error se toma como lista vacía', async () => {

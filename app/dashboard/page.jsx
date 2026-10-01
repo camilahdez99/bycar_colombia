@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/admin/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
-import { formatCurrency, formatTiempo, normalizar } from '@/lib/client/formato';
+import { formatCurrency, formatTiempo, nombreDeOpcion, normalizar } from '@/lib/client/formato';
 import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { MENU_INICIO_ID, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
@@ -24,7 +24,7 @@ const Autocomplete = ({ placeholder, value, onChange, opciones = [] }) => {
   // Derivar opciones filtradas dinámicamente (opciones es [{id, nombre}])
   const valNorm = normalizar(value || "");
   const filtered = valNorm.length > 0 
-    ? opciones.filter(m => normalizar(m.nombre || m).includes(valNorm))
+    ? opciones.filter(m => normalizar(nombreDeOpcion(m)).includes(valNorm))
     : [];
 
   useEffect(() => {
@@ -76,7 +76,7 @@ const Autocomplete = ({ placeholder, value, onChange, opciones = [] }) => {
           {filtered.map(m => (
             <li 
               key={m.id || m} 
-              onMouseDown={() => handleSelect(m.nombre || m)} 
+              onMouseDown={() => handleSelect(nombreDeOpcion(m))} 
               style={{ 
                 padding: '10px 14px', cursor: 'pointer', borderRadius: '8px',
                 fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)',
@@ -91,7 +91,7 @@ const Autocomplete = ({ placeholder, value, onChange, opciones = [] }) => {
                 e.target.style.color = 'rgba(255,255,255,0.8)';
               }}
             >
-              {m.nombre || m}
+              {nombreDeOpcion(m)}
             </li>
           ))}
         </ul>
