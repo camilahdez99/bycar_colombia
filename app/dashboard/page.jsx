@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/HydrationWrapper';
@@ -13,22 +13,22 @@ import MensajesTab from '@/components/dashboard/MensajesTab';
 import InicioTab from '@/components/dashboard/InicioTab';
 import BuscarTab from '@/components/dashboard/BuscarTab';
 import GuardianEnCurso from '@/components/dashboard/GuardianEnCurso';
+import ContadorGuardian from '@/components/dashboard/ContadorGuardian';
 import GuardianInicio from '@/components/dashboard/GuardianInicio';
 import ConfigurarGuardianModal from '@/components/dashboard/ConfigurarGuardianModal';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
-import { formatCurrency } from '@/lib/client/formato';
-import { getUserId } from '@/lib/client/usuario';
+import { getUserId, MENSAJE_SIN_SESION } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
-import { MENU_INICIO_ID, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { MENU_INICIO_ID } from '@/lib/domain/constantes';
+import { useChat } from '@/hooks/dashboard/useChat';
+import { useRutas } from '@/hooks/dashboard/useRutas';
+import { useGuardian, PRE_ALERTA_SEG, EXTENSION_GUARDIAN_MIN } from '@/hooks/dashboard/useGuardian';
 
-// Refresco en segundo plano y temporizador del guardián
+// Refresco en segundo plano
 const REFRESCO_MS = 10000;
-const REFRESCO_CHAT_MS = 3000;
-const PRE_ALERTA_SEG = 5 * 60;
-const EXTENSION_GUARDIAN_MIN = 15;
-const MENSAJE_SIN_SESION = 'Inicia sesión para continuar';
+
 
 // Iconos para los menús según la URL
 const MENU_ICONS = {
@@ -42,16 +42,11 @@ const MENU_ICONS = {
 export default function DashboardPage() {
   const router = useRouter();
   const [activePage, setActivePage] = useState('inicio');
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [viajeDetalle, setViajeDetalle] = useState(null);
   
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatData, setChatData] = useState({ name: '', avatar: '', chatId: null });
-  const [currentChatMsgs, setCurrentChatMsgs] = useState([]);
-  const [msgInput, setMsgInput] = useState('');
-
   const [currentUser, setCurrentUser] = useState(null);
+  const chat = useChat(currentUser);
   const [mensajes, setMensajes] = useState([]);
   const [mensajesLeidos, setMensajesLeidos] = useState(0); // cuántos chats vio el usuario la última vez
   const [userPermisos, setUserPermisos] = useState(null); // null = cargando, [] = sin permisos
@@ -66,41 +61,15 @@ export default function DashboardPage() {
   const [resultados, setResultados] = useState([]);
   const [solicitados, setSolicitados] = useState([]);
 
-  // --- ESTADO PARA GESTIÓN DE RUTAS Y SOLICITUDES ---
-  const [rutasPublicadas, setRutasPublicadas] = useState([]);
-  const [rutasSolicitadas, setRutasSolicitadas] = useState([]);
-  const [rutasSolicitadasLeidas, setRutasSolicitadasLeidas] = useState({}); // { [routeId]: estado }
+  // --- RUTAS Y SOLICITUDES ---
+  const rutas = useRutas(currentUser, activePage);
+  const { rutasSolicitadas, aplicarMisRutas } = rutas;
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
 
-  // --- ESTADO PARA LA NUEVA RUTA ---
-  const [nuevaRuta, setNuevaRuta] = useState({
-    origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: ''
-  });
-
-  // --- ESTADO PARA GUARDIÁN ---
-  const [guardianViaje, setGuardianViaje] = useState(null);
-  const [guardianConfig, setGuardianConfig] = useState({ email: '', tiempoMin: TIEMPO_GUARDIAN_POR_DEFECTO_MIN });
-  const [guardianActivo, setGuardianActivo] = useState(false);
-  const [guardianTiempoRestante, setGuardianTiempoRestante] = useState(0);
-  const [guardianAlertaEnviada, setGuardianAlertaEnviada] = useState(false);
-  const [guardianPreAlerta, setGuardianPreAlerta] = useState(false);
-  const [guardianHoraInicio, setGuardianHoraInicio] = useState(null);
-  const [guardianConfigOpen, setGuardianConfigOpen] = useState(false);
+  // --- GUARDIÁN ---
+  const guardian = useGuardian(currentUser);
+  const retomarGuardian = guardian.retomar;
   const [alertasRecibidas, setAlertasRecibidas] = useState([]);
-  const [showReadjustModal, setShowReadjustModal] = useState(false);
-  const [guardianId, setGuardianId] = useState(null);
-
-  // Refs para que el temporizador siempre lea los valores más recientes
-  // sin reiniciarse en cada cambio de estado
-  const guardianPreAlertaRef = useRef(false);
-  const guardianAlertaEnviadaRef = useRef(false);
-  const guardianIdRef = useRef(null);
-
-  // Sincronizar refs con el estado
-  useEffect(() => { guardianPreAlertaRef.current = guardianPreAlerta; }, [guardianPreAlerta]);
-  useEffect(() => { guardianAlertaEnviadaRef.current = guardianAlertaEnviada; }, [guardianAlertaEnviada]);
-  useEffect(() => { guardianIdRef.current = guardianId; }, [guardianId]);
-
 
   // Cargar catálogos dinámicos (menús, marcas, municipios)
   useEffect(() => {
@@ -144,38 +113,7 @@ export default function DashboardPage() {
         }
         if (resGuardian && resGuardian.ok) {
           const dataGuardian = await resGuardian.json();
-          if (dataGuardian && dataGuardian.id) {
-            const startTime = new Date(dataGuardian.inicio.replace(' ', 'T'));
-            const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
-            const total = dataGuardian.tiempoMin * 60;
-            const remaining = Math.max(total - elapsed, 0);
-
-            setGuardianId(dataGuardian.id);
-            setGuardianViaje({
-              id: dataGuardian.viajeId,
-              origen: dataGuardian.origen,
-              destino: dataGuardian.destino,
-              conductor: dataGuardian.conductor,
-              placa: dataGuardian.placa,
-              carro: dataGuardian.carro
-            });
-            setGuardianConfig({ email: dataGuardian.email, tiempoMin: dataGuardian.tiempoMin });
-            setGuardianHoraInicio(startTime);
-            setGuardianTiempoRestante(remaining);
-            setGuardianActivo(true);
-            // Vencido mientras la pestaña estaba cerrada: si la alerta no quedó registrada, se registra
-            // ahora (antes solo se mostraba en pantalla, BUGS F28). Si ya estaba en Alerta, no se repite.
-            if (remaining <= 0) {
-              setGuardianAlertaEnviada(true);
-              if (dataGuardian.estado?.toUpperCase() !== 'ALERTA') {
-                fetchConSesion('/api/guardian', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ id: dataGuardian.id, estado: 'Alerta' })
-                }).catch(error => console.error('Error registrando la alerta del guardián:', error));
-              }
-            }
-          }
+          if (dataGuardian && dataGuardian.id) retomarGuardian(dataGuardian);
         }
         if (resPermisos && resPermisos.ok) {
           const dataPermisos = await resPermisos.json();
@@ -188,7 +126,7 @@ export default function DashboardPage() {
       }
     };
     fetchDashboardData();
-  }, []);
+  }, [retomarGuardian]);
 
   // Re-fetch data when opening tabs or periodically
   useEffect(() => {
@@ -207,12 +145,7 @@ export default function DashboardPage() {
       // Refresh mis rutas SIEMPRE en background para detectar cambios de estado y activar el badge
       fetchConSesion(`/api/viajes/mis-rutas?usuarioId=${uId}`)
         .then(res => res.json())
-        .then(data => {
-          if (data && typeof data === 'object') {
-            setRutasPublicadas((Array.isArray(data.publicadas) ? data.publicadas : []).sort((a, b) => b.id - a.id));
-            setRutasSolicitadas((Array.isArray(data.solicitadas) ? data.solicitadas : []).sort((a, b) => b.id - a.id));
-          }
-        })
+        .then(aplicarMisRutas)
         .catch(err => console.error(err));
 
       // Refresh chat list SIEMPRE (en background) para detectar nuevos chats tanto
@@ -246,18 +179,7 @@ export default function DashboardPage() {
     refreshTabs();
 
     return iniciarIntervaloVisible(refreshTabs, REFRESCO_MS);
-  }, [activePage, currentUser]);
-
-  // Cuando el usuario navega HACIA la pestaña de mis-rutas (o actualiza estando en ella), marcar todos como leídos
-  useEffect(() => {
-    if (activePage === 'mis-rutas' && rutasSolicitadas.length > 0) {
-      const updated = {};
-      rutasSolicitadas.forEach(r => {
-        updated[r.id] = r.estado;
-      });
-      setRutasSolicitadasLeidas(prev => ({ ...prev, ...updated }));
-    }
-  }, [activePage, rutasSolicitadas]);
+  }, [activePage, currentUser, aplicarMisRutas]);
 
   // Cuando el usuario navega HACIA la pestaña mensajes, marcar todos como leídos
   useEffect(() => {
@@ -266,201 +188,7 @@ export default function DashboardPage() {
     }
   }, [activePage]);
 
-  // Temporizador del Guardián — SÓLO se reinicia cuando guardianActivo cambia
-  useEffect(() => {
-    if (!guardianActivo) return;
 
-    const timer = setInterval(() => {
-      setGuardianTiempoRestante(prev => {
-        const next = prev - 1;
-
-        // PRE_ALERTA_SEG antes de terminar → pre-alerta. Con "<=" también sale si el viaje
-        // arranca (o se retoma al recargar) con menos de ese tiempo (BUGS F35)
-        if (next > 0 && next <= PRE_ALERTA_SEG && !guardianPreAlertaRef.current) {
-          setGuardianPreAlerta(true);
-          setShowReadjustModal(true);
-          toast('⚠️ ¿Has llegado? Tu tiempo está por terminar.', { duration: 10000, icon: '🔔' });
-        }
-
-        // Tiempo agotado → alerta real
-        if (next <= 0 && !guardianAlertaEnviadaRef.current) {
-          setGuardianAlertaEnviada(true);
-          toast.error('🚨 TIEMPO AGOTADO. Alerta activada para tu contacto.', { duration: 15000 });
-          // Sincronizar estado con la BD
-          const gId = guardianIdRef.current;
-          if (gId) {
-            fetchConSesion('/api/guardian', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: gId, estado: 'Alerta' })
-            });
-          }
-          clearInterval(timer);
-        }
-
-        return Math.max(next, 0);
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [guardianActivo]); // ← SOLO depende de si está activo
-
-  const iniciarGuardian = async (viaje) => {
-    if (!guardianConfig.email || !guardianConfig.tiempoMin) {
-      toast.error('Configura el correo y tiempo estimado');
-      return;
-    }
-
-    const uId = getUserId(currentUser);
-    const vId = viaje.viajeId || viaje.id;
-    
-    try {
-      const res = await fetchConSesion('/api/guardian', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          viajeId: vId,
-          usuarioId: uId,
-          email: guardianConfig.email.trim().toUpperCase(),
-          tiempo: guardianConfig.tiempoMin
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        const horaInicio = new Date();
-
-        setGuardianId(data.id);
-        setGuardianViaje(viaje);
-        setGuardianActivo(true);
-        setGuardianAlertaEnviada(false);
-        setGuardianPreAlerta(false);
-        setGuardianHoraInicio(horaInicio);
-        setGuardianTiempoRestante(guardianConfig.tiempoMin * 60);
-        setGuardianConfigOpen(false);
-        toast.success('🛡️ Guardián activado en base de datos. ¡Buen viaje!');
-      } else {
-        toast.error(`Error (ID: ${vId}): ` + data.error);
-      }
-    } catch (e) {
-      toast.error('Error de conexión con el servidor');
-    }
-  };
-
-
-  // PUT al guardián; true si la API lo registró. Antes no se revisaba la respuesta (BUGS F38)
-  const actualizarGuardian = async (cambios) => {
-    try {
-      const res = await fetchConSesion('/api/guardian', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: guardianId, ...cambios })
-      });
-      return res.ok;
-    } catch (error) {
-      console.error('Error actualizando el guardián:', error);
-      return false;
-    }
-  };
-
-  const finalizarGuardian = async () => {
-    // Si la llegada no se registra, el guardián sigue activo para no dejar al contacto sin aviso
-    if (guardianId && !(await actualizarGuardian({ estado: 'Inactivo' }))) {
-      toast.error('No se pudo registrar tu llegada. Intenta de nuevo.');
-      return;
-    }
-    setGuardianActivo(false);
-    setGuardianTiempoRestante(0);
-    setGuardianId(null);
-    setShowReadjustModal(false);
-    // Sin id no hubo PUT: la llegada no quedó registrada (BUGS F36)
-    if (guardianId) {
-      toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
-    } else {
-      toast.error('El guardián se desactivó en este dispositivo, pero no se pudo registrar tu llegada.');
-    }
-  };
-
-  const reajustarTiempo = async () => {
-    if (guardianId) {
-      if (!(await actualizarGuardian({ extraTiempo: EXTENSION_GUARDIAN_MIN }))) {
-        toast.error('No se pudo extender el tiempo. Intenta de nuevo.');
-        return;
-      }
-
-      setGuardianTiempoRestante(prev => prev + (EXTENSION_GUARDIAN_MIN * 60));
-      setGuardianPreAlerta(false);
-      setShowReadjustModal(false);
-      toast.success(`⏱️ Tiempo extendido ${EXTENSION_GUARDIAN_MIN} minutos`);
-    }
-  };
-
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'valor') {
-      setNuevaRuta({ ...nuevaRuta, [name]: formatCurrency(value) });
-    } else {
-      setNuevaRuta({ ...nuevaRuta, [name]: value.toUpperCase() });
-    }
-  };
-
-  const fetchChatMsgs = async (chatId) => {
-    if (!chatId) return;
-    try {
-      const res = await fetchConSesion(`/api/mensajes?chatId=${chatId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const myId = getUserId(currentUser);
-        const formatted = data.map(m => ({
-          sender: m.senderId == myId ? 'me' : 'other',
-          text: m.text
-        }));
-        setCurrentChatMsgs(formatted);
-      }
-    } catch (error) {
-      console.error('Error fetching chat', error);
-    }
-  };
-
-  useEffect(() => {
-    if (!chatOpen || !chatData.chatId) return;
-    fetchChatMsgs(chatData.chatId);
-    return iniciarIntervaloVisible(() => fetchChatMsgs(chatData.chatId), REFRESCO_CHAT_MS);
-  }, [chatOpen, chatData.chatId]);
-
-  const enviarMensajeChat = async () => {
-    if (!msgInput.trim() || !chatData.chatId) return;
-    const myId = getUserId(currentUser);
-    
-    // Add locally immediately for fast UI
-    const newMsg = { sender: 'me', text: msgInput.trim() };
-    setCurrentChatMsgs([...currentChatMsgs, newMsg]);
-    setMsgInput('');
-
-    // Si el envío falla, el mensaje no queda como enviado: se saca y vuelve al input (BUGS F29)
-    const descartarMensaje = () => {
-      setCurrentChatMsgs(prev => prev.filter(m => m !== newMsg));
-      setMsgInput(newMsg.text);
-      toast.error('No se pudo enviar el mensaje');
-    };
-
-    try {
-      const res = await fetchConSesion('/api/mensajes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: chatData.chatId,
-          senderId: myId,
-          text: newMsg.text
-        })
-      });
-      if (!res.ok) descartarMensaje();
-    } catch (e) {
-      console.error('Error enviando mensaje', e);
-      descartarMensaje();
-    }
-  };
 
   const buscarViajes = async () => {
     const toastId = toast.loading('Buscando viajes...');
@@ -510,43 +238,6 @@ export default function DashboardPage() {
     }
   };
 
-  const guardarRuta = async (e) => {
-    e.preventDefault();
-    // Sin usuario no se publica: antes se usaba el ID 1 (BUGS F1)
-    const uId = getUserId(currentUser);
-    if (!uId) {
-      toast.error(MENSAJE_SIN_SESION);
-      return;
-    }
-    const toastId = toast.loading('Publicando tu ruta...');
-
-    try {
-      const res = await fetchConSesion('/api/viajes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...nuevaRuta, usuarioId: uId })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        const nueva = {
-          id: data.id,
-          ...nuevaRuta
-        };
-        // La lista va de la más nueva a la más vieja: la ruta publicada va primera (BUGS F30)
-        setRutasPublicadas([nueva, ...rutasPublicadas]);
-        setIsModalOpen(false);
-        setNuevaRuta({ origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: '' });
-        toast.success('Ruta publicada correctamente', { id: toastId });
-      } else {
-        toast.error(data.error || 'Error al publicar', { id: toastId });
-      }
-    } catch (error) {
-      toast.error('Error de conexión', { id: toastId });
-    }
-  };
-
   const gestionarSolicitud = async (id, estado) => {
     const toastId = toast.loading(estado === 'Aceptado' ? 'Aceptando solicitud...' : 'Rechazando solicitud...');
     try {
@@ -583,7 +274,7 @@ export default function DashboardPage() {
     activePage,
     solicitudesRecibidas,
     rutasSolicitadas,
-    rutasSolicitadasLeidas,
+    rutasSolicitadasLeidas: rutas.rutasSolicitadasLeidas,
     mensajes,
     mensajesLeidos,
     alertasRecibidas,
@@ -721,7 +412,7 @@ export default function DashboardPage() {
             searchParams={searchParams}
             setSearchParams={setSearchParams}
             municipios={municipiosDB}
-            onCrear={() => setIsModalOpen(true)}
+            onCrear={rutas.abrirPublicar}
             onBuscar={() => { buscarViajes(); setActivePage('buscar'); }}
           />
         )}
@@ -737,7 +428,7 @@ export default function DashboardPage() {
         )}
 
         {activePage === 'mis-rutas' && (
-          <MisRutasTab rutasPublicadas={rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
+          <MisRutasTab rutasPublicadas={rutas.rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
         )}
 
         {activePage === 'solicitudes' && (
@@ -751,14 +442,14 @@ export default function DashboardPage() {
         {activePage === 'mensajes' && (
           <MensajesTab
             mensajes={mensajes}
-            chatOpen={chatOpen}
-            chatData={chatData}
-            currentChatMsgs={currentChatMsgs}
-            msgInput={msgInput}
-            onAbrirChat={(chat) => { setChatData({ name: chat.nombre, avatar: chat.nombre.charAt(0), chatId: chat.chatId }); setCurrentChatMsgs([]); setChatOpen(true); }}
-            onCerrarChat={() => setChatOpen(false)}
-            onMsgInputChange={setMsgInput}
-            onEnviar={enviarMensajeChat}
+            chatOpen={chat.chatOpen}
+            chatData={chat.chatData}
+            currentChatMsgs={chat.currentChatMsgs}
+            msgInput={chat.msgInput}
+            onAbrirChat={chat.abrirChat}
+            onCerrarChat={chat.cerrarChat}
+            onMsgInputChange={chat.setMsgInput}
+            onEnviar={chat.enviarMensaje}
           />
         )}
 
@@ -771,35 +462,39 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {guardianActivo && guardianViaje && (
-              <GuardianEnCurso
-                viaje={guardianViaje}
-                contactoEmail={guardianConfig.email}
-                tiempoRestante={guardianTiempoRestante}
-                segundosPreAlerta={PRE_ALERTA_SEG}
-                horaInicio={guardianHoraInicio}
-                alertaEnviada={guardianAlertaEnviada}
-                preAlerta={guardianPreAlerta}
-                onLlegue={finalizarGuardian}
-              />
+            {guardian.activo && guardian.viaje && (
+              <ContadorGuardian cuenta={guardian.cuenta}>
+                {(tiempoRestante) => (
+                  <GuardianEnCurso
+                    viaje={guardian.viaje}
+                    contactoEmail={guardian.config.email}
+                    tiempoRestante={tiempoRestante}
+                    segundosPreAlerta={PRE_ALERTA_SEG}
+                    horaInicio={guardian.horaInicio}
+                    alertaEnviada={guardian.alertaEnviada}
+                    preAlerta={guardian.preAlerta}
+                    onLlegue={guardian.finalizar}
+                  />
+                )}
+              </ContadorGuardian>
             )}
 
-            {!guardianActivo && (
+            {!guardian.activo && (
               <GuardianInicio
                 rutasSolicitadas={rutasSolicitadas}
                 alertasRecibidas={alertasRecibidas}
-                onElegirViaje={(viaje) => { setGuardianViaje(viaje); setGuardianConfigOpen(true); }}
+                onElegirViaje={guardian.elegirViaje}
               />
             )}
 
 
-            {guardianConfigOpen && guardianViaje && (
+            {guardian.configOpen && guardian.viaje && (
               <ConfigurarGuardianModal
-                viaje={guardianViaje}
-                config={guardianConfig}
-                setConfig={setGuardianConfig}
-                onCerrar={() => setGuardianConfigOpen(false)}
-                onIniciar={() => iniciarGuardian(guardianViaje)}
+                viaje={guardian.viaje}
+                config={guardian.config}
+                setConfig={guardian.setConfig}
+                onCerrar={() => guardian.setConfigOpen(false)}
+                onIniciar={() => guardian.iniciar(guardian.viaje)}
               />
             )}
           </section>
@@ -826,15 +521,15 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {isModalOpen && (
+        {rutas.publicarOpen && (
           <PublicarViajeModal
-            nuevaRuta={nuevaRuta}
-            setNuevaRuta={setNuevaRuta}
+            nuevaRuta={rutas.nuevaRuta}
+            setNuevaRuta={rutas.setNuevaRuta}
             municipios={municipiosDB}
             marcas={marcas}
-            onInputChange={handleInputChange}
-            onSubmit={guardarRuta}
-            onCerrar={() => setIsModalOpen(false)}
+            onInputChange={rutas.handleInputChange}
+            onSubmit={rutas.guardarRuta}
+            onCerrar={rutas.cerrarPublicar}
           />
         )}
 
@@ -846,11 +541,11 @@ export default function DashboardPage() {
             onSolicitar={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }}
           />
         )}
-        {showReadjustModal && (
+        {guardian.showReadjustModal && (
           <PreAlertaGuardianModal
             minutosExtension={EXTENSION_GUARDIAN_MIN}
-            onLlegue={finalizarGuardian}
-            onReajustar={reajustarTiempo}
+            onLlegue={guardian.finalizar}
+            onReajustar={guardian.reajustarTiempo}
           />
         )}
       </main>

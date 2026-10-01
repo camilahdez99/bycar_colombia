@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-10-01 — DT-34 paso 3 (hooks del dashboard) y DT-35 (temporizador del guardián)
+
+Rama `refactor/dashboard-hooks`, desde `main` (`0d7add3`). Era la única fase que había quedado esperando la integración (sesiones 4 y 7).
+
+**Qué cambió**
+- `useGuardian`, `useChat` y `useRutas` en `hooks/dashboard/`: el estado y las llamadas a la API de cada dominio salen de `app/dashboard/page.jsx` (860 → 555 líneas). Sin cambios de comportamiento.
+- DT-35: el tick del guardián ya no vuelve a renderizar el dashboard entero. Los segundos restantes viven en `lib/client/cuentaRegresiva.js` y solo `ContadorGuardian` se suscribe. En Inicio, commits/s 1,1 → 0,1 y `normalizar()`/s 1 125 → 102 (`docs/PERFORMANCE.md`).
+- `MENSAJE_SIN_SESION` pasa a `lib/client/usuario.js`, compartido por la página y `useRutas`.
+
+**Tests corridos (antes de cada commit)**
+- `npx vitest run --maxWorkers=4`: 777 tests en 54 archivos, todos OK (773 previos + 4 de `cuentaRegresiva`). Los 98 tests del dashboard no se tocaron.
+- `npm run build`: OK.
+- `npm run lint`: 3 errores y 3 warnings, los mismos de antes (DT-38). Dos errores y un warning se mudaron de la página a `useChat` y `useRutas` junto con su código.
+- `npm run perf:dashboard`: 3 corridas después del cambio, comparadas con la línea base del mismo día.
+
+**Riesgos pendientes**
+- F39 sigue abierto a propósito: el contador descuenta 1 por tick y se atrasa con la pestaña en segundo plano. Va como fix aparte.
+- Sin revisión visual en el navegador: no hay BD local para levantar el dashboard con datos.
+
 ## 2026-10-01 — Integración de las ramas de deuda técnica y bugs
 
 Rama `integracion/2026-10-01` (worktree `../bycar_colombia-integracion`), creada desde `main` (`1e7f479`). Un merge `--no-ff` por rama, con la suite completa después de cada uno.

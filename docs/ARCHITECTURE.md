@@ -19,7 +19,8 @@ Variables de entorno: `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING`.
 app/
   page.jsx              Landing (server component; → /login, /register)
   login/ register/      Formularios de auth
-  dashboard/page.jsx    App principal del usuario (monolito ~grande, client component)
+  dashboard/page.jsx    App principal del usuario (client component): navegación, carga inicial,
+                        polling y pestañas; el estado de cada dominio vive en hooks/dashboard/
   admin/page.jsx        CRUD genérico sobre tablas + gestor de permisos
   api/**/route.js       Route handlers (ver abajo)
 components/             Componentes React reutilizables (única carpeta; app/ solo tiene rutas)
@@ -28,8 +29,11 @@ components/             Componentes React reutilizables (única carpeta; app/ so
   admin/                PermisosManager
   dashboard/            Presentación del dashboard: una pestaña por archivo (*Tab, Guardian*), los
                         modales (*Modal) y Autocomplete. Sin estado propio de negocio: reciben
-                        datos y callbacks; el estado, el polling y las llamadas a la API siguen
-                        en app/dashboard/page.jsx
+                        datos y callbacks. ContadorGuardian se suscribe a la cuenta regresiva
+                        para que el tick solo renderice el panel del guardián (DT-35)
+hooks/dashboard/        Estado y llamadas a la API del dashboard por dominio: useGuardian
+                        (temporizador, pre-alerta, alerta), useChat (chat abierto) y useRutas
+                        (mis rutas y publicar)
   landing/              Islas de cliente de la landing (nav, hero, secciones animadas); la página es server component
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
@@ -38,7 +42,8 @@ lib/api/errores.js      mensajeDeError(): mensaje seguro para los 500 (nunca el 
 lib/api/validacion.js   badRequest(), readJson(): respuestas 400 y lectura segura del body
 lib/domain/             Reglas puras y constantes del dominio (estados, perfil, solicitudes, viajes, mensajes, validadores)
 lib/api/cache.js        Caché HTTP opcional de catálogos (CATALOG_CACHE_SECONDS)
-lib/client/             Código de navegador: fetchConSesion, logout, formato, usuario, badges
+lib/client/             Código de navegador: fetchConSesion, logout, formato, usuario, badges,
+                        intervaloVisible, cuentaRegresiva
 scripts/                DDL/DML de referencia y utilidades (ver scripts/README.md)
 .github/workflows/      CI: tests, build y lint informativo
 ```
