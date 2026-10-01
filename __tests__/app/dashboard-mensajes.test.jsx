@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { toast } from 'react-hot-toast';
 import DashboardPage from '@/app/dashboard/page';
 import { clickNav, iniciarSesion, llamadas, stubApi } from '../helpers/dashboard';
 
@@ -121,7 +122,7 @@ describe('Dashboard · mensajes (caracterización)', () => {
     expect(llamadas('POST', '/api/mensajes')[0].body.text).toBe('ok');
   });
 
-  test('comportamiento actual: si el POST falla el mensaje queda en pantalla como enviado (F29)', async () => {
+  test('si el POST falla, el mensaje se saca, vuelve al input y se avisa (F29)', async () => {
     stubApi({
       '/api/mensajes/chats': CHATS,
       '/api/mensajes?chatId=31': [],
@@ -131,11 +132,12 @@ describe('Dashboard · mensajes (caracterización)', () => {
     fireEvent.change(screen.getByPlaceholderText('Escribe...'), { target: { value: 'hola' } });
     fireEvent.click(screen.getByText('Enviar'));
 
-    await waitFor(() => expect(llamadas('POST', '/api/mensajes')).toHaveLength(1));
-    expect(burbujas()).toEqual([{ texto: 'hola', mio: true }]);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se pudo enviar el mensaje'));
+    expect(burbujas().some((b) => b.texto === 'hola')).toBe(false);
+    expect(screen.getByPlaceholderText('Escribe...').value).toBe('hola');
   });
 
-  test('comportamiento actual: el mensaje enviado con falla de red también queda en pantalla', async () => {
+  test('con falla de red pasa lo mismo y queda registrado en consola (F29)', async () => {
     stubApi({
       '/api/mensajes/chats': CHATS,
       '/api/mensajes?chatId=31': [],
@@ -146,7 +148,9 @@ describe('Dashboard · mensajes (caracterización)', () => {
     fireEvent.click(screen.getByText('Enviar'));
 
     await waitFor(() => expect(console.error).toHaveBeenCalledWith('Error enviando mensaje', expect.any(TypeError)));
-    expect(burbujas()).toEqual([{ texto: 'hola', mio: true }]);
+    await waitFor(() => expect(burbujas().some((b) => b.texto === 'hola')).toBe(false));
+    expect(toast.error).toHaveBeenCalledWith('No se pudo enviar el mensaje');
+    expect(screen.getByPlaceholderText('Escribe...').value).toBe('hola');
   });
 
   test('con el chat abierto repite el pedido del historial cada 3 s; al cerrarlo deja de pedir', async () => {

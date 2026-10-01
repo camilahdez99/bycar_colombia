@@ -79,17 +79,18 @@ describe('Dashboard · publicar viaje (caracterización)', () => {
     });
   });
 
-  test('comportamiento actual: sin usuario en sesión publica a nombre del usuario 1 (F1)', async () => {
+  test('sin usuario en sesión no publica y avisa que hay que iniciar sesión (F1)', async () => {
     stubApi({ 'POST /api/viajes': { id: 55 } });
     render(<DashboardPage />);
     await abrirFormulario();
     fireEvent.submit(formulario());
 
-    await waitFor(() => expect(llamadas('POST', '/api/viajes')).toHaveLength(1));
-    expect(llamadas('POST', '/api/viajes')[0].body.usuarioId).toBe(1);
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Inicia sesión para continuar'));
+    expect(llamadas('POST', '/api/viajes')).toHaveLength(0);
+    expect(toast.loading).not.toHaveBeenCalled();
   });
 
-  test('publicación correcta: cierra el modal, avisa y agrega la ruta al FINAL de Mis Rutas con los datos del formulario (F30)', async () => {
+  test('publicación correcta: cierra el modal, avisa y agrega la ruta PRIMERA en Mis Rutas, como el orden del servidor (F30)', async () => {
     iniciarSesion();
     let pedidosMisRutas = 0;
     stubApi({
@@ -113,7 +114,7 @@ describe('Dashboard · publicar viaje (caracterización)', () => {
 
     clickNav('Mis Rutas');
     const tarjetas = (await screen.findAllByText(/→/)).map((el) => el.textContent);
-    expect(tarjetas).toEqual(['CALI → PASTO', 'BOGOTA → MEDELLIN']);
+    expect(tarjetas).toEqual(['BOGOTA → MEDELLIN', 'CALI → PASTO']);
     expect(screen.getByText('Placa: ABC123 • 2026-10-05')).toBeTruthy();
   });
 

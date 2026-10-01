@@ -27,6 +27,7 @@ const REFRESCO_MS = 10000;
 const REFRESCO_CHAT_MS = 3000;
 const PRE_ALERTA_SEG = 5 * 60;
 const EXTENSION_GUARDIAN_MIN = 15;
+const MENSAJE_SIN_SESION = 'Inicia sesión para continuar';
 
 // Iconos para los menús según la URL
 const MENU_ICONS = {
@@ -161,8 +162,17 @@ export default function DashboardPage() {
             setGuardianHoraInicio(startTime);
             setGuardianTiempoRestante(remaining);
             setGuardianActivo(true);
-            if (remaining <= 0 && dataGuardian.estado?.toUpperCase() !== 'ALERTA') {
+            // Vencido mientras la pestaña estaba cerrada: si la alerta no quedó registrada, se registra
+            // ahora (antes solo se mostraba en pantalla, BUGS F28). Si ya estaba en Alerta, no se repite.
+            if (remaining <= 0) {
               setGuardianAlertaEnviada(true);
+              if (dataGuardian.estado?.toUpperCase() !== 'ALERTA') {
+                fetchConSesion('/api/guardian', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: dataGuardian.id, estado: 'Alerta' })
+                }).catch(error => console.error('Error registrando la alerta del guardián:', error));
+              }
             }
           }
         }
@@ -223,7 +233,7 @@ export default function DashboardPage() {
       if (activePage === 'guardian') {
         if (currentUser?.CORREO_USU || currentUser?.correo_usu) {
           const email = currentUser.CORREO_USU || currentUser.correo_usu;
-          fetchConSesion(`/api/guardian?email=${email}`)
+          fetchConSesion(`/api/guardian?email=${encodeURIComponent(email)}`)
             .then(res => res.json())
             .then(data => setAlertasRecibidas(Array.isArray(data) ? data : []))
             .catch(err => console.error(err));
@@ -421,8 +431,15 @@ export default function DashboardPage() {
     setCurrentChatMsgs([...currentChatMsgs, newMsg]);
     setMsgInput('');
 
+    // Si el envío falla, el mensaje no queda como enviado: se saca y vuelve al input (BUGS F29)
+    const descartarMensaje = () => {
+      setCurrentChatMsgs(prev => prev.filter(m => m !== newMsg));
+      setMsgInput(newMsg.text);
+      toast.error('No se pudo enviar el mensaje');
+    };
+
     try {
-      await fetchConSesion('/api/mensajes', {
+      const res = await fetchConSesion('/api/mensajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -431,8 +448,10 @@ export default function DashboardPage() {
           text: newMsg.text
         })
       });
+      if (!res.ok) descartarMensaje();
     } catch (e) {
       console.error('Error enviando mensaje', e);
+      descartarMensaje();
     }
   };
 
@@ -460,9 +479,14 @@ export default function DashboardPage() {
   };
 
   const solicitarViaje = async (id) => {
+    // Sin usuario no se envía nada: antes se usaba el ID 1 (BUGS F1)
+    const uId = getUserId(currentUser);
+    if (!uId) {
+      toast.error(MENSAJE_SIN_SESION);
+      return;
+    }
     const toastId = toast.loading('Enviando solicitud...');
     try {
-      const uId = getUserId(currentUser) || 1;
       const res = await fetchConSesion('/api/solicitudes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -481,10 +505,15 @@ export default function DashboardPage() {
 
   const guardarRuta = async (e) => {
     e.preventDefault();
+    // Sin usuario no se publica: antes se usaba el ID 1 (BUGS F1)
+    const uId = getUserId(currentUser);
+    if (!uId) {
+      toast.error(MENSAJE_SIN_SESION);
+      return;
+    }
     const toastId = toast.loading('Publicando tu ruta...');
-    
+
     try {
-      const uId = getUserId(currentUser) || 1;
       const res = await fetchConSesion('/api/viajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -498,9 +527,10 @@ export default function DashboardPage() {
           id: data.id,
           ...nuevaRuta
         };
-        setRutasPublicadas([...rutasPublicadas, nueva]);
+        // La lista va de la más nueva a la más vieja: la ruta publicada va primera (BUGS F30)
+        setRutasPublicadas([nueva, ...rutasPublicadas]);
         setIsModalOpen(false);
-        setNuevaRuta({ origen: '', destino: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: '' });
+        setNuevaRuta({ origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: '' });
         toast.success('Ruta publicada correctamente', { id: toastId });
       } else {
         toast.error(data.error || 'Error al publicar', { id: toastId });

@@ -4,6 +4,7 @@ import PermisosManager from '@/components/admin/PermisosManager';
 import DynamicForm from '@/components/DynamicForm';
 import HydrationWrapper from '@/components/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
+import { getRowId as getRowIdDeTabla } from '@/lib/client/clavesPrimarias';
 import { Plus, Edit2, Trash2, Search, X, LogOut } from 'lucide-react';
 import { logout } from '@/lib/client/logout';
 import { toast } from 'react-hot-toast';
@@ -102,26 +103,31 @@ export default function AdminPage() {
   // Helper to refresh rows after any mutation
   const refreshData = async () => {
     const dataRes = await fetchConSesion(`/api/admin/tablas?tabla=${activeTable}`);
-    const rows = await dataRes.json();
-    setRowsData(Array.isArray(rows) ? rows : []);
+    setRowsData(await readList(dataRes));
   };
 
   // ---------- CRUD ----------
-  // Llama a la API con su toast de progreso; si responde OK, recarga las filas y ejecuta alTerminar
+  // Llama a la API con su toast de progreso; si responde OK, ejecuta alTerminar y recarga las filas
   const ejecutarMutacion = async ({ url, init, mensajes, alTerminar }) => {
     const t = toast.loading(mensajes.cargando);
     try {
       const r = await fetchConSesion(url, init);
-      if (r.ok) {
-        toast.success(mensajes.exito, { id: t });
-        await refreshData();
-        alTerminar?.();
-      } else {
+      if (!r.ok) {
         const err = await r.json();
         toast.error(err.error || mensajes.error, { id: t });
+        return;
       }
+      toast.success(mensajes.exito, { id: t });
+      alTerminar?.();
     } catch (e) {
       toast.error('Error de red', { id: t });
+      return;
+    }
+    // La mutación ya se guardó: si falla la recarga, se avisa eso y no un "Error de red" (BUGS E6)
+    try {
+      await refreshData();
+    } catch (e) {
+      toast.error('Se guardó el cambio, pero no se pudo recargar la lista');
     }
   };
 
@@ -221,9 +227,7 @@ export default function AdminPage() {
     </div>
   );
 
-  const getRowId = (row) => {
-    return row.ID_USU || row.ID_PER || row.ID_MUN || row.ID_DEP || row.PLACA_VEH || row.ID_VIA || row.ID_ENU || row.ID_GUA || row.ID_MAR || row.ID_MOD || row.ID_EST_SOL || row.ID_EST_GUA || row.ID_ROL || row.ID_MEN || row[columnsInfo[0]?.COLUMN_NAME];
-  };
+  const getRowId = (row) => getRowIdDeTabla(activeTable, row, columnsInfo);
 
   const renderTable = () => {
     if (loading) return <div className="p-12 text-center text-white/30 text-sm">Cargando datos...</div>;

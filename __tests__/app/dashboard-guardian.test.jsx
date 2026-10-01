@@ -310,7 +310,7 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
     expect(screen.getByText('BOGOTA → TUNJA')).toBeTruthy();
   });
 
-  test('comportamiento actual: vencido y sin estado Alerta, muestra "ALERTA ENVIADA" sin hacer el PUT (F28)', async () => {
+  test('vencido y sin estado Alerta: registra la alerta con un PUT al recargar, una sola vez (F28)', async () => {
     stubApi({ '/api/guardian?usuarioId': guardianGuardado({ inicio: haceSegundos(60 * 60) }) });
     render(<DashboardPage />);
     clickNav('Guardian');
@@ -318,16 +318,17 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
     expect(await screen.findByText('🚨 ALERTA ENVIADA')).toBeTruthy();
     expect(screen.getByText('00:00')).toBeTruthy();
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    expect(llamadas('PUT', '/api/guardian')).toEqual([]);
+    expect(llamadas('PUT', '/api/guardian').map((c) => c.body)).toEqual([{ id: 77, estado: 'Alerta' }]);
   });
 
-  test('comportamiento actual: vencido con estado Alerta en la BD, no muestra "ALERTA ENVIADA"', async () => {
+  test('vencido con estado Alerta en la BD: muestra "ALERTA ENVIADA" sin repetir el PUT (F28)', async () => {
     stubApi({ '/api/guardian?usuarioId': guardianGuardado({ inicio: haceSegundos(60 * 60), estado: 'Alerta' }) });
     render(<DashboardPage />);
     clickNav('Guardian');
 
-    expect(await screen.findByText('⚠️ TIEMPO AGOTADO')).toBeTruthy();
-    expect(screen.queryByText('🚨 ALERTA ENVIADA')).toBeNull();
+    expect(await screen.findByText('🚨 ALERTA ENVIADA')).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(llamadas('PUT', '/api/guardian')).toEqual([]);
   });
 
   test('una respuesta sin id se ignora', async () => {
@@ -341,7 +342,7 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
 });
 
 describe('Dashboard · guardián: alertas recibidas (caracterización)', () => {
-  test('pide las alertas con el correo del usuario sin codificar (F9) y distingue ALERTA de EN RUTA', async () => {
+  test('pide las alertas con el correo del usuario codificado (F9) y distingue ALERTA de EN RUTA', async () => {
     iniciarSesion({ ID_USU: 7, NOMBRE_USU: 'ANA', CORREO_USU: 'ana+viajes@x.co' });
     stubApi({
       '/api/guardian?email': [
@@ -355,7 +356,7 @@ describe('Dashboard · guardián: alertas recibidas (caracterización)', () => {
     expect(await screen.findByText('⚠️ ALERTA: PEDRO')).toBeTruthy();
     expect(screen.getByText('✅ EN RUTA: SOFIA')).toBeTruthy();
     expect(screen.getByText('⏱️ Tiempo: 45 min')).toBeTruthy();
-    expect(llamadas('GET', '/api/guardian?email').map((c) => c.url)).toEqual(['/api/guardian?email=ana+viajes@x.co']);
+    expect(llamadas('GET', '/api/guardian?email').map((c) => c.url)).toEqual(['/api/guardian?email=ana%2Bviajes%40x.co']);
   });
 
   test('sin alertas muestra el aviso; sin correo en el usuario no las pide', async () => {

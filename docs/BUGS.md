@@ -22,15 +22,15 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 
 | # | Sev | Ubicación | Descripción |
 |---|---|---|---|
-| F1 | 🟠 | `dashboard/page.jsx:547,569` | Si no hay sesión se usa `|| 1` como ID: las acciones quedan a nombre del usuario 1. |
+| ~~F1~~ | ✅ | `dashboard/page.jsx:547,569` | **Resuelto 2026-10-01: sin usuario se avisa "Inicia sesión para continuar" y no se llama a la API.** Si no hay sesión se usa `|| 1` como ID: las acciones quedan a nombre del usuario 1. |
 | F2 | 🟠 | `solicitudes/route.js:4-23` | No valida cupos, duplicados ni que el usuario se auto-solicite su viaje. Aceptar no descuenta `CUPOS_DISPONIBLES_VIA`. |
 | F3 | 🟠 | `viajes/route.js:159-171` | Si la placa pertenece a otro usuario, igual se publica el viaje con ese vehículo. |
 | F4 | 🟡 | `mensajes/route.js:32-38` | Los mensajes se filtran por par de usuarios y no por chat: dos viajes entre las mismas personas comparten historial. |
 | F5 | 🟡 | `guardian/route.js:50-72` | El conductor nunca ve su guardián, porque el JOIN exige una solicitud aceptada propia. El comentario dice lo contrario. |
 | F6 | 🟡 | `viajes/route.js:9,38` | `parseInt("2024 Mazda")` devuelve 2024 y se usa como ID de marca o municipio. |
 | F7 | 🟡 | `dashboard/page.jsx:192` vs `login/route.js:21` | Se lee `PERFIL_ID_PER`, pero el login no lo devuelve: siempre es null. |
-| F8 | ⚪ | `dashboard/page.jsx:454` | `formatCurrency` falla con valor null. |
-| F9 | ⚪ | `dashboard/page.jsx:302` | El correo va en la query sin `encodeURIComponent`. |
+| ~~F8~~ | ✅ | `dashboard/page.jsx:454` | **Resuelto 2026-10-01: null o undefined dan "".** `formatCurrency` falla con valor null. |
+| ~~F9~~ | ✅ | `dashboard/page.jsx:302` | **Resuelto 2026-10-01: el correo va con encodeURIComponent.** El correo va en la query sin `encodeURIComponent`. |
 | F10 | ⚪ | `guardian/route.js:154` | El estado se resuelve comparando los primeros 6 caracteres del texto: es frágil. |
 
 ### Detectados al caracterizar la API (2026-09-28)
@@ -65,12 +65,12 @@ Encontrados leyendo el código; ninguno tiene test que lo fije todavía.
 
 | # | Sev | Ubicación | Descripción |
 |---|---|---|---|
-| F28 | 🟠 | `dashboard/page.jsx:238-240, 336-372` | La alerta del guardián depende de que el viajero tenga el dashboard abierto: el estado `Alerta` solo se escribe desde el temporizador del navegador. Si cierra la pestaña o se queda sin señal, el contacto nunca ve la alerta. Al recargar con el tiempo vencido se marca "alerta enviada" en pantalla sin hacer el `PUT`. Tampoco se envía ningún correo, aunque la UI dice "Se envió una alerta a…". |
-| F29 | 🟡 | `dashboard/page.jsx:498-520` | El mensaje de chat se agrega a la lista antes de enviarlo y no se revisa `res.ok`: si la API responde 403 o 500, queda en pantalla como enviado hasta el próximo refresco (3 s), donde desaparece sin aviso. |
-| F30 | ⚪ | `dashboard/page.jsx:584-586` | Tras publicar, el reinicio de `nuevaRuta` omite `marca` (el `select` pasa de controlado a no controlado) y la ruta nueva se agrega al final de una lista ordenada de forma descendente, con los datos crudos del formulario, hasta el próximo refresco. |
-| F31 | 🟡 | `admin/page.jsx:234-236` | `getRowId` usa una lista manual de PKs que no incluye `ID_SOL` ni `ID_EST_VIA`. Para SOLICITUDES y ESTADOS_VIA cae en "la primera columna" de una consulta de metadatos sin orden garantizado: editar o borrar puede mandar como id el valor de otra columna. Además, un id con valor 0 se trata como ausente. |
+| F28 | 🟠 | `dashboard/page.jsx:238-240, 336-372` | **Parcial 2026-10-01:** al recargar con el tiempo vencido ahora se registra la alerta (PUT, una sola vez). Sigue abierto: si el viajero no vuelve a abrir el dashboard, la alerta nunca se registra, porque no hay un proceso en el servidor que la dispare, y tampoco se envía correo. La alerta del guardián depende de que el viajero tenga el dashboard abierto: el estado `Alerta` solo se escribe desde el temporizador del navegador. Si cierra la pestaña o se queda sin señal, el contacto nunca ve la alerta. Al recargar con el tiempo vencido se marca "alerta enviada" en pantalla sin hacer el `PUT`. Tampoco se envía ningún correo, aunque la UI dice "Se envió una alerta a…". |
+| ~~F29~~ | ✅ | `dashboard/page.jsx:498-520` | **Resuelto 2026-10-01: si el POST falla, el mensaje se saca, vuelve al input y se avisa.** El mensaje de chat se agrega a la lista antes de enviarlo y no se revisa `res.ok`: si la API responde 403 o 500, queda en pantalla como enviado hasta el próximo refresco (3 s), donde desaparece sin aviso. |
+| ~~F30~~ | ✅ | `dashboard/page.jsx:584-586` | **Resuelto 2026-10-01: la ruta publicada va primera.** Tras publicar, el reinicio de `nuevaRuta` omite `marca` (el `select` pasa de controlado a no controlado) y la ruta nueva se agrega al final de una lista ordenada de forma descendente, con los datos crudos del formulario, hasta el próximo refresco. |
+| ~~F31~~ | ✅ | `admin/page.jsx:234-236` | **Resuelto 2026-10-01: la fila se identifica por la PK de su tabla (`lib/client/clavesPrimarias.js`).** `getRowId` usa una lista manual de PKs que no incluye `ID_SOL` ni `ID_EST_VIA`. Para SOLICITUDES y ESTADOS_VIA cae en "la primera columna" de una consulta de metadatos sin orden garantizado: editar o borrar puede mandar como id el valor de otra columna. Además, un id con valor 0 se trata como ausente. |
 | ~~F32~~ | ✅ | `scripts/create_admin_user.js` | **Resuelto 2026-09-30:** se eliminó el script, que no podía ejecutarse (DT-23). |
-| E6 | ⚪ | `admin/page.jsx:103-107, 119-131` | Si el registro se guarda pero falla la recarga posterior (`refreshData` no valida `res.ok`), se muestra "Registro creado" y enseguida "Error de red", y el modal queda abierto. |
+| ~~E6~~ | ✅ | `admin/page.jsx:103-107, 119-131` | **Resuelto 2026-10-01: se avisa "Se guardó el cambio, pero no se pudo recargar la lista" y el modal se cierra.** Si el registro se guarda pero falla la recarga posterior (`refreshData` no valida `res.ok`), se muestra "Registro creado" y enseguida "Error de red", y el modal queda abierto. |
 
 ### Detectados al caracterizar el frontend (2026-09-30)
 

@@ -50,8 +50,10 @@ describe('formatCurrency', () => {
     expect(formatCurrency('')).toBe('');
   });
 
-  test('con null lanza error (comportamiento actual, BUGS F8)', () => {
-    expect(() => formatCurrency(null)).toThrow(TypeError);
+  test('con null, undefined o un número no falla (F8)', () => {
+    expect(formatCurrency(null)).toBe('');
+    expect(formatCurrency(undefined)).toBe('');
+    expect(formatCurrency(25000)).toBe('25,000');
   });
 });
 

@@ -76,6 +76,27 @@ Rama `chore/dt46-rutas-admin` (worktree `../bycar_colombia-dt46`, desde `7e19e1b
 **Riesgos pendientes**
 - No se pudo verificar desde el código si hay consumidores externos (Postman, integraciones). Si aparecen 404 en los logs de producción para esas URL, el commit se puede revertir sin afectar al resto.
 - Con `npm test` a secas (48 workers) fallan entre 19 y 28 tests de UI por timeout, distintos en cada corrida, aun sin cambios; con `--maxWorkers=4` pasan. Conviene fijar `maxWorkers` o subir los timeouts en `vitest.config.mjs` en una tarea aparte.
+## 2026-10-01 — Bugs del frontend (dashboard y panel admin)
+
+Rama `fix/frontend-bugs-2` (worktree `../bycar_colombia-frontend2`), creada sobre `refactor/organizacion` (`47e7c0a`, dashboard dividido por la sesión 4). Un commit por bug.
+
+**Qué cambió (fixes: cambian el comportamiento a propósito)**
+- **F1:** sin usuario, publicar viaje y solicitar cupo avisan "Inicia sesión para continuar" y no llaman a la API (antes usaban el ID 1).
+- **F8:** `formatCurrency` no falla con null.
+- **F9:** el correo va codificado al pedir las alertas del guardián.
+- **F28 (parte cliente):** al recargar con el tiempo vencido se registra la alerta con un PUT, una sola vez. Sigue abierto el resto (sin proceso en el servidor).
+- **F29:** un mensaje de chat que no se pudo enviar se saca de la conversación, vuelve al input y se avisa.
+- **F30:** la ruta recién publicada va primera en Mis Rutas.
+- **F31:** el panel admin identifica cada fila por la PK de su tabla (`lib/client/clavesPrimarias.js`).
+- **E6:** si falla la recarga después de guardar, se avisa eso (no "Error de red") y el modal se cierra.
+
+**Tests corridos (antes de cada commit)**
+- `npx vitest run --maxWorkers=2`: de 743 a 750 tests, 50 archivos, todos OK. `npm run build`: OK.
+- `npm run lint`: 3 errores y 3 warnings, la línea base de `refactor/organizacion` (la sesión 4 ya corrigió parte de DT-38).
+
+**Riesgos pendientes**
+- F38 (finalizar y extender el guardián sin revisar el PUT) se hace después de integrar `fix/frontend-bugs`, porque toca las mismas funciones que su fix de F36.
+
 ## 2026-10-01 — Organización y legibilidad: componentes, lint y división del dashboard
 
 Rama `refactor/organizacion` (worktree `../bycar_colombia-organizacion`, desde `7e19e1b`). Un commit por lote.
