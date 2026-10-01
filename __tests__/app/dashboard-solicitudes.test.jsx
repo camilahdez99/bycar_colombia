@@ -63,8 +63,7 @@ describe('Dashboard · solicitudes recibidas (caracterización)', () => {
     await waitFor(() => expect(screen.queryByText('JUAN GOMEZ')).toBeNull());
     expect(llamadas('PUT', '/api/solicitudes').map((c) => c.body)).toEqual([{ solicitudId: 31, estado: 'Aceptado' }]);
     expect(toast.loading).toHaveBeenCalledWith('Aceptando solicitud...');
-    // Comportamiento actual: el texto no concuerda en género ("Solicitud aceptado")
-    expect(toast.success).toHaveBeenCalledWith('Solicitud aceptado', { id: 'toast-id' });
+    expect(toast.success).toHaveBeenCalledWith('Solicitud aceptada', { id: 'toast-id' });
     await waitFor(() => expect(llamadas('GET', '/api/mensajes/chats').length).toBe(chatsAntes + 1));
     expect(screen.getByText('MARIA DIAZ')).toBeTruthy();
   });
@@ -79,7 +78,7 @@ describe('Dashboard · solicitudes recibidas (caracterización)', () => {
     await waitFor(() => expect(screen.queryByText('MARIA DIAZ')).toBeNull());
     expect(llamadas('PUT', '/api/solicitudes').map((c) => c.body)).toEqual([{ solicitudId: 32, estado: 'Rechazado' }]);
     expect(toast.loading).toHaveBeenCalledWith('Rechazando solicitud...');
-    expect(toast.success).toHaveBeenCalledWith('Solicitud rechazado', { id: 'toast-id' });
+    expect(toast.success).toHaveBeenCalledWith('Solicitud rechazada', { id: 'toast-id' });
     expect(llamadas('GET', '/api/mensajes/chats').length).toBe(chatsAntes);
   });
 

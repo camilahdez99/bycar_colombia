@@ -37,6 +37,12 @@ npm test
 ```
 
 ```bash
+npm run test:coverage
+```
+
+`test:coverage` corre la misma suite y reporta la cobertura de `app/`, `lib/`, `components/` y `proxy.js` (el detalle queda en `coverage/`, que no se versiona).
+
+```bash
 npm run build
 ```
 

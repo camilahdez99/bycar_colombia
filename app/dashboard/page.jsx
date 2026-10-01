@@ -336,8 +336,9 @@ export default function DashboardPage() {
       setGuardianTiempoRestante(prev => {
         const next = prev - 1;
 
-        // PRE_ALERTA_SEG antes de terminar → pre-alerta
-        if (next === PRE_ALERTA_SEG && !guardianPreAlertaRef.current) {
+        // PRE_ALERTA_SEG antes de terminar → pre-alerta. Con "<=" también sale si el viaje
+        // arranca (o se retoma al recargar) con menos de ese tiempo (BUGS F35)
+        if (next > 0 && next <= PRE_ALERTA_SEG && !guardianPreAlertaRef.current) {
           setGuardianPreAlerta(true);
           setShowReadjustModal(true);
           toast('⚠️ ¿Has llegado? Tu tiempo está por terminar.', { duration: 10000, icon: '🔔' });
@@ -420,7 +421,13 @@ export default function DashboardPage() {
     setGuardianActivo(false);
     setGuardianTiempoRestante(0);
     setGuardianId(null);
-    toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
+    setShowReadjustModal(false);
+    // Sin id no hubo PUT: la llegada no quedó registrada (BUGS F36)
+    if (guardianId) {
+      toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
+    } else {
+      toast.error('El guardián se desactivó en este dispositivo, pero no se pudo registrar tu llegada.');
+    }
   };
 
   const reajustarTiempo = async () => {
@@ -585,7 +592,7 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         setSolicitudesRecibidas(solicitudesRecibidas.filter(s => s.id !== id));
-        toast.success(`Solicitud ${estado.toLowerCase()}`, { id: toastId });
+        toast.success(estado === 'Aceptado' ? 'Solicitud aceptada' : 'Solicitud rechazada', { id: toastId });
         
         // Refresh chat list immediately if accepted
         if (estado === 'Aceptado') {
