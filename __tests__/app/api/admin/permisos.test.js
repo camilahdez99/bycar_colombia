@@ -95,9 +95,9 @@ describe('POST /api/admin/permisos (caracterización)', () => {
     });
   });
 
-  test('500 si el JSON es inválido (req.json dentro del try)', async () => {
+  test('400 si el JSON es inválido, sin abrir conexión (DT-31)', async () => {
     const res = await readResponse(await post('{no json'));
-    expect(res.status).toBe(500);
+    expect(res).toEqual({ status: 400, body: { error: 'El cuerpo no es un JSON válido' } });
     expect(getConnection).not.toHaveBeenCalled();
   });
 });

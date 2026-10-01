@@ -33,6 +33,8 @@ export async function GET(req) {
     if (!email && !usuarioId) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
     }
+    // Con email se usa la rama del correo; si no, el usuarioId debe ser un entero (DT-31)
+    if (!email && !enteroPositivo(usuarioId)) return badRequest('usuarioId inválido');
 
     connection = await getConnection();
 
