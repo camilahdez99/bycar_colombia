@@ -29,8 +29,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      # El lint falla en la línea base (5 errores y 3 warnings, BACKLOG DT-38).
-      # Se corre para dejar el reporte, sin bloquear, hasta que DT-38 lo deje en verde.
-      - name: Lint (informativo)
+      # Obligatorio desde que DT-38 lo dejó en verde (0 errores y 0 warnings)
+      - name: Lint
         run: npm run lint
-        continue-on-error: true

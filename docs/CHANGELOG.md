@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-10-01 — Lint en verde (DT-38, DT-51) y obligatorio en CI
+
+Rama `chore/lint-dt38`, desde `main` (`5abb90f`).
+
+**Qué cambió**
+- ESLint ignora `.claude/**`: recorría los worktrees de otras sesiones y su `.next`.
+- DT-38, sin cambios de comportamiento:
+  - Marcar los chats como leídos al entrar a Mensajes y las rutas como vistas al entrar a Mis Rutas ahora lo hace `navegar()`, no un efecto sobre `activePage`. Si el refresco llega estando en Mis Rutas, los estados quedan vistos en `aplicarMisRutas`.
+  - El primer pedido del historial del chat lo hace `abrirChat`, y el efecto solo arma el refresco cada 3 s.
+  - `useInView` declara `threshold` como dependencia.
+- DT-51: `logout` y `expireSession` siguen con `location.assign` (la recarga completa es intencional), con la regla desactivada en esas dos líneas y el motivo en un comentario.
+- CI: el paso de lint deja de ser informativo. `CLAUDE.md` actualiza la nota del lint.
+- Bug nuevo registrado, sin corregir: **F41** (tocar el chat que ya está abierto lo vacía hasta 3 s).
+
+**Tests corridos**
+- Antes de tocar el código se agregaron 2 tests de caracterización (rutas vistas al refrescar estando en Mis Rutas; tocar el chat ya abierto), y se verificó que pasaban con el código anterior.
+- Al final se reinstalaron las dependencias con `npm ci`, porque el `node_modules` local tenía `eslint-config-next` 16.2.4 en vez de 16.3.8 y por eso no aparecían los warnings de DT-51. Con las versiones del lockfile: `npx vitest run --maxWorkers=4` dio 784 tests en 54 archivos, todos OK; `npm run build` OK; `npm run lint` con 0 errores y 0 warnings.
+
+**Riesgos pendientes**
+- Con el lint obligatorio, cualquier warning nuevo hace fallar el CI de GitHub. Hoy no hay CI corriendo porque no se pusheó.
+
 ## 2026-10-01 — Fix de F40 (extender el guardián después de la alerta)
 
 Rama `fix/f40-extender-tras-alerta`, desde `main` (`1e2e682`). Opción elegida: después de la alerta ya no se puede extender.

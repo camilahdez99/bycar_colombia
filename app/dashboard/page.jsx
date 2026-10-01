@@ -181,12 +181,13 @@ export default function DashboardPage() {
     return iniciarIntervaloVisible(refreshTabs, REFRESCO_MS);
   }, [activePage, currentUser, aplicarMisRutas]);
 
-  // Cuando el usuario navega HACIA la pestaña mensajes, marcar todos como leídos
-  useEffect(() => {
-    if (activePage === 'mensajes') {
-      setMensajesLeidos(mensajes.length);
-    }
-  }, [activePage]);
+  // Al navegar HACIA Mensajes o Mis Rutas se marca todo como visto. Va en el evento y no en un
+  // efecto sobre activePage, que volvía a renderizar en cascada (DT-38)
+  const navegar = (pagina) => {
+    setActivePage(pagina);
+    if (pagina === 'mensajes') setMensajesLeidos(mensajes.length);
+    if (pagina === 'mis-rutas') rutas.marcarSolicitadasLeidas();
+  };
 
 
 
@@ -358,7 +359,7 @@ export default function DashboardPage() {
       
       <div className="mobile-nav">
         {navItems.map((item) => (
-          <div key={item.id} className={`mobile-item ${activePage === item.id ? 'active' : ''}`} onClick={() => setActivePage(item.id)}>
+          <div key={item.id} className={`mobile-item ${activePage === item.id ? 'active' : ''}`} onClick={() => navegar(item.id)}>
             <div style={{ position: 'relative' }}>
               <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d={item.icon} /></svg>
               {item.badge > 0 && <span style={{ position: 'absolute', top: '-5px', right: '-8px', background: 'var(--red)', color: '#fff', borderRadius: '10px', padding: '1px 5px', fontSize: '0.6rem' }}>{item.badge}</span>}
@@ -379,7 +380,7 @@ export default function DashboardPage() {
             [1,2,3,4,5].map(i => <div key={i} className="nav-skeleton" />)
           ) : (
             navItems.map((item) => (
-              <div key={item.id} className={`nav-item ${activePage === item.id ? 'active' : ''}`} onClick={() => setActivePage(item.id)}>
+              <div key={item.id} className={`nav-item ${activePage === item.id ? 'active' : ''}`} onClick={() => navegar(item.id)}>
                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d={item.icon} /></svg>
                 {item.label}
                 {item.badge > 0 && <span style={{ background: 'var(--red)', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '0.7rem', marginLeft: 'auto' }}>{item.badge}</span>}
@@ -413,7 +414,7 @@ export default function DashboardPage() {
             setSearchParams={setSearchParams}
             municipios={municipiosDB}
             onCrear={rutas.abrirPublicar}
-            onBuscar={() => { buscarViajes(); setActivePage('buscar'); }}
+            onBuscar={() => { buscarViajes(); navegar('buscar'); }}
           />
         )}
 
@@ -421,7 +422,7 @@ export default function DashboardPage() {
           <BuscarTab
             resultados={resultados}
             solicitados={solicitados}
-            onVolver={() => setActivePage('inicio')}
+            onVolver={() => navegar('inicio')}
             onVerDetalles={(viaje) => { setViajeDetalle(viaje); setDetallesModalOpen(true); }}
             onSolicitar={solicitarViaje}
           />

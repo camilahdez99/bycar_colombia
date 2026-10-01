@@ -15,6 +15,6 @@ export function useInView(threshold = 0.15) {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [threshold]);
   return [ref, visible];
 }
