@@ -224,7 +224,7 @@ export default function DashboardPage() {
       if (activePage === 'guardian') {
         if (currentUser?.CORREO_USU || currentUser?.correo_usu) {
           const email = currentUser.CORREO_USU || currentUser.correo_usu;
-          fetchConSesion(`/api/guardian?email=${email}`)
+          fetchConSesion(`/api/guardian?email=${encodeURIComponent(email)}`)
             .then(res => res.json())
             .then(data => setAlertasRecibidas(Array.isArray(data) ? data : []))
             .catch(err => console.error(err));

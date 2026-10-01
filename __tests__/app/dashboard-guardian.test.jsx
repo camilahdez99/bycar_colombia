@@ -296,7 +296,7 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
 });
 
 describe('Dashboard · guardián: alertas recibidas (caracterización)', () => {
-  test('pide las alertas con el correo del usuario sin codificar (F9) y distingue ALERTA de EN RUTA', async () => {
+  test('pide las alertas con el correo del usuario codificado (F9) y distingue ALERTA de EN RUTA', async () => {
     iniciarSesion({ ID_USU: 7, NOMBRE_USU: 'ANA', CORREO_USU: 'ana+viajes@x.co' });
     stubApi({
       '/api/guardian?email': [
@@ -310,7 +310,7 @@ describe('Dashboard · guardián: alertas recibidas (caracterización)', () => {
     expect(await screen.findByText('⚠️ ALERTA: PEDRO')).toBeTruthy();
     expect(screen.getByText('✅ EN RUTA: SOFIA')).toBeTruthy();
     expect(screen.getByText('⏱️ Tiempo: 45 min')).toBeTruthy();
-    expect(llamadas('GET', '/api/guardian?email').map((c) => c.url)).toEqual(['/api/guardian?email=ana+viajes@x.co']);
+    expect(llamadas('GET', '/api/guardian?email').map((c) => c.url)).toEqual(['/api/guardian?email=ana%2Bviajes%40x.co']);
   });
 
   test('sin alertas muestra el aviso; sin correo en el usuario no las pide', async () => {
