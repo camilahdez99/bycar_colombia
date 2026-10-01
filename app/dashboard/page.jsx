@@ -8,6 +8,8 @@ import Autocomplete from '@/components/dashboard/Autocomplete';
 import DetallesViajeModal from '@/components/dashboard/DetallesViajeModal';
 import PreAlertaGuardianModal from '@/components/dashboard/PreAlertaGuardianModal';
 import PublicarViajeModal from '@/components/dashboard/PublicarViajeModal';
+import MisRutasTab from '@/components/dashboard/MisRutasTab';
+import SolicitudesTab from '@/components/dashboard/SolicitudesTab';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
 import { formatCurrency, formatTiempo } from '@/lib/client/formato';
@@ -744,56 +746,15 @@ export default function DashboardPage() {
         )}
 
         {activePage === 'mis-rutas' && (
-          <section>
-            <div className="page-header">
-              <div>
-                <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>Mis Rutas</h1>
-                <p style={{ color: 'var(--muted)' }}>Gestiona tus viajes publicados y solicitudes enviadas</p>
-              </div>
-            </div>
-            <div className="grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
-              <div>
-                <h3 style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>RUTAS PUBLICADAS</h3>
-                {rutasPublicadas.map(r => (
-                  <div key={r.id} className="route-card">
-                    <div><strong>{r.origen} → {r.destino}</strong><p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Placa: {r.placa} • {r.fecha}</p></div>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <h3 style={{ color: 'var(--muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>RUTAS SOLICITADAS</h3>
-                {rutasSolicitadas.map(r => (
-                  <div key={r.id} className="route-card">
-                    <div><strong>{r.origen} → {r.destino}</strong><p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Conductor: {r.conductor} • {r.fecha}</p></div>
-                    <span className={`badge-status ${r.estado}`}>{r.estado}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
+          <MisRutasTab rutasPublicadas={rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
         )}
 
         {activePage === 'solicitudes' && (
-          <section>
-            <div className="page-header">
-              <div>
-                <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>Solicitudes Recibidas</h1>
-                <p style={{ color: 'var(--muted)' }}>Gestiona quiénes viajarán contigo en tus próximas rutas</p>
-              </div>
-            </div>
-            {solicitudesRecibidas.map(s => (
-              <div key={s.id} className="route-card">
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{ width: 40, height: 40, background: 'var(--red)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{s.avatar}</div>
-                  <div><strong>{s.pasajero}</strong><p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Ruta: {s.ruta}</p></div>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => aceptarSolicitud(s.id)} style={{ background: '#4ade80', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: 'bold' }}>Aceptar</button>
-                  <button onClick={() => rechazarSolicitud(s.id)} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', padding: '8px 15px', borderRadius: '8px' }}>Rechazar</button>
-                </div>
-              </div>
-            ))}
-          </section>
+          <SolicitudesTab
+            solicitudesRecibidas={solicitudesRecibidas}
+            onAceptar={aceptarSolicitud}
+            onRechazar={rechazarSolicitud}
+          />
         )}
 
         {activePage === 'mensajes' && (
