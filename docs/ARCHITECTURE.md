@@ -126,7 +126,7 @@ Desde 2026-10-01 (DT-31, DT-06):
 
 ## Logs
 
-Los handlers registran con `lib/log.js`: `logError('api_error', error, { route: 'GET /api/x' })`. Cada log es una línea JSON con `event`, el contexto y, del error, solo `name`, `message`, `code` y `errorNum` (sin stack). `lib/auth` emite el mismo formato. No se loguean contraseñas, tokens ni cookies.
+Los handlers registran con `lib/log.js`: `logError('api_error', error, { route: 'GET /api/x' })`; además `logInfo`, `logWarn` (avisos manejados) y `logAlerta` (fallas sin excepción, como configuración rota). Cada log es una línea JSON con `event`, el contexto y, del error, solo `name`, `message`, `code` y `errorNum` (sin stack). `lib/auth` emite el mismo formato. No se loguean contraseñas, tokens ni cookies.
 
 ## Candidatos a tests unitarios (lógica pura)
 

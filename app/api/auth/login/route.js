@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
-import { logError } from '@/lib/log';
+import { logError, logWarn } from '@/lib/log';
 import {
   ROLES,
   SESSION_COOKIE,
@@ -14,7 +14,7 @@ import { isAdminCredentials } from '@/lib/auth/adminCredentials';
 // Emite la cookie de sesión solo si SESSION_SECRET está configurado; si no, el login responde como antes
 async function withSession(response, session) {
   if (!isSessionConfigured()) {
-    console.warn(JSON.stringify({ event: 'session_not_issued', reason: 'SESSION_SECRET no configurado' }));
+    logWarn('session_not_issued', { reason: 'SESSION_SECRET no configurado' });
     return response;
   }
   response.cookies.set(SESSION_COOKIE, await encodeSession(session), sessionCookieOptions());
