@@ -208,6 +208,30 @@ describe('Dashboard · refresco periódico (caracterización, DT-33)', () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
+  test('un cambio de estado que llega por refresco estando en Mis Rutas queda visto; fuera de la pestaña suma al contador', async () => {
+    iniciarSesion();
+    let solicitadas = [{ id: 1, estado: 'Pendiente', origen: 'A', destino: 'B' }];
+    stubApi({ '/api/viajes/mis-rutas': () => ({ publicadas: [], solicitadas }) });
+    const { container } = render(<DashboardPage />);
+    const badgeRutas = () =>
+      [...container.querySelectorAll('.mobile-item')].find((el) => el.textContent.includes('Mis Rutas')).textContent;
+    await waitFor(() => expect(llamadas('GET', '/api/viajes/mis-rutas')).toHaveLength(1));
+
+    clickNav('Mis Rutas');
+    await waitFor(() => expect(llamadas('GET', '/api/viajes/mis-rutas')).toHaveLength(2));
+    solicitadas = [{ id: 1, estado: 'Aceptada', origen: 'A', destino: 'B' }];
+    act(() => { vi.advanceTimersByTime(10000); });
+    await waitFor(() => expect(screen.getByText('Aceptada')).toBeTruthy());
+
+    clickNav('Inicio');
+    await waitFor(() => expect(llamadas('GET', '/api/viajes/mis-rutas')).toHaveLength(4));
+    expect(badgeRutas()).toBe('Mis Rutas');
+
+    solicitadas = [{ id: 1, estado: 'Rechazada', origen: 'A', destino: 'B' }];
+    act(() => { vi.advanceTimersByTime(10000); });
+    await waitFor(() => expect(badgeRutas()).toBe('1Mis Rutas'));
+  });
+
   test('un chat nuevo que llega por refresco suma al contador de Mensajes hasta que se abre la pestaña', async () => {
     iniciarSesion();
     let chats = [];
