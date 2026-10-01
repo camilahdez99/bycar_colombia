@@ -21,7 +21,7 @@ exports[`GET /api/mensajes (caracterización) > 200: busca el par pasajero/condu
     },
     "options": undefined,
     "sql": "
-      SELECT TO_CHAR(CONTENIDO_MEN) as "content", USUARIOS_EMISOR_ID as "senderId"
+      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId"
       FROM MENSAJES
       WHERE (USUARIO_RECEPTOR_ID = :passengerId AND USUARIOS_EMISOR_ID = :driverId)
          OR (USUARIO_RECEPTOR_ID = :driverId AND USUARIOS_EMISOR_ID = :passengerId)
@@ -57,7 +57,7 @@ exports[`POST /api/mensajes (caracterización) > 201: el pasajero escribe → re
     },
     "sql": "
       INSERT INTO MENSAJES (ID_MEN, CONTENIDO_MEN, FECHA_ENVIO_MEN, USUARIO_RECEPTOR_ID, USUARIOS_EMISOR_ID)
-      VALUES (:idMen, :contenido, SYSTIMESTAMP, :receptorId, :emisorId)
+      VALUES (:idMen, :contenido, CURRENT_TIMESTAMP, :receptorId, :emisorId)
     ",
   },
 ]

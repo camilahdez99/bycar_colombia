@@ -34,7 +34,7 @@ export async function POST(req) {
 
     const sql = `
       INSERT INTO SOLICITUDES (ID_SOL, FECHA_SOL, ESTADO_ID_EST, VIAJES_ID_VIA, USUARIOS_ID_USU)
-      VALUES (:idSol, SYSDATE, 1, :viajeId, :usuarioId)
+      VALUES (:idSol, LOCALTIMESTAMP(0), 1, :viajeId, :usuarioId)
     `;
 
     await connection.execute(sql, { idSol, viajeId, usuarioId }, { autoCommit: true });

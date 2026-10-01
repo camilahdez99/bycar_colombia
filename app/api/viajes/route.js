@@ -26,7 +26,7 @@ async function getOrCreateMunicipio(connection, name) {
     return res.rows[0].ID_MUN;
   }
   
-  const maxRes = await connection.execute(`SELECT NVL(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS`);
+  const maxRes = await connection.execute(`SELECT COALESCE(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS`);
   const nextId = maxRes.rows[0].nextId || 1;
   
   await connection.execute(
@@ -66,7 +66,7 @@ async function getOrCreateMarca(connection, carroInput) {
     return fullRes.rows[0].ID_MAR;
   }
   
-  const maxRes = await connection.execute(`SELECT NVL(MAX(ID_MAR), 0) + 1 as "nextId" FROM MARCAS`);
+  const maxRes = await connection.execute(`SELECT COALESCE(MAX(ID_MAR), 0) + 1 as "nextId" FROM MARCAS`);
   const nextId = maxRes.rows[0].nextId || 1;
   
   const formattedBrand = brandName.charAt(0) + brandName.slice(1).toLowerCase();
@@ -109,7 +109,7 @@ export async function GET(req) {
       INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
       INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
       INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
-      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= CURRENT_DATE
     `;
 
     const binds = {};

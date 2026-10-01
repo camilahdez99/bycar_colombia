@@ -55,7 +55,7 @@ export async function GET(req) {
                  (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU 
                   FROM SOLICITUDES s 
                   JOIN USUARIOS u_pas ON s.USUARIOS_ID_USU = u_pas.ID_USU 
-                  WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 AND ROWNUM = 1),
+                  WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 LIMIT 1),
                  u.NOMBRE_USU || ' ' || u.APELLIDO_USU
                ) as "pasajero",
                vh.PLACA_VEH as "placa",
@@ -151,7 +151,7 @@ export async function POST(req) {
 
     const sql = `
       INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA)
-      VALUES (:idGua, :email, SYSTIMESTAMP, :viajeId, 1, :tiempo)
+      VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo)
     `;
     // Estado 1 asume Activo/Iniciado
 
@@ -214,7 +214,7 @@ export async function PUT(req) {
             SELECT ID_EST_GUA 
             FROM ESTADOS_GUA 
             WHERE UPPER(SUBSTR(ESTADO_EST_GUA, 1, 6)) = UPPER(SUBSTR(:estadoStr, 1, 6))
-            AND ROWNUM = 1
+            LIMIT 1
           )
           WHERE ID_GUA = :id
         `;

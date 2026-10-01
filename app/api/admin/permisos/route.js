@@ -89,7 +89,7 @@ export async function POST(req) {
     await connection.execute(sql, { usuarioId: Number(usuarioId), menuId: Number(menuId) }, { autoCommit: true });
     return NextResponse.json({ message: 'Permiso asignado' }, { status: 201 });
   } catch (error) {
-    if (error.message?.includes('ORA-00001')) {
+    if (error.errorNum === 1) {
       return NextResponse.json({ error: 'Este permiso ya existe' }, { status: 409 });
     }
     logError('api_error', error, { route: 'POST /api/admin/permisos' });

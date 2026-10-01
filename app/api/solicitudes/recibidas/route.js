@@ -40,7 +40,7 @@ export async function GET(req) {
         AND v.USUARIOS_ID_USU = :usuarioId
     `;
     
-    // Convertir usuarioId a número para asegurar compatibilidad en Oracle
+    // Convertir usuarioId a número para comparar con la columna BIGINT
     const result = await connection.execute(sql, { usuarioId: Number(usuarioId) });
     
     const solicitudes = result.rows || [];

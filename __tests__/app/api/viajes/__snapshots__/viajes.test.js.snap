@@ -25,7 +25,7 @@ exports[`GET /api/viajes (caracterización) > 200 con origen y destino numérico
       INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
       INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
       INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
-      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= CURRENT_DATE
      AND v.MUNICIPIO_ORIGEN_ID = :origenId AND v.MUNICIPIOS_DESTINO_ID = :destinoId",
   },
 ]
@@ -56,7 +56,7 @@ exports[`GET /api/viajes (caracterización) > 200 con origen y destino por nombr
       INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
       INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
       INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
-      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= CURRENT_DATE
      AND UPPER(mo.NOMBRE_MUN) = UPPER(:origenName) AND UPPER(md.NOMBRE_MUN) = UPPER(:destinoName)",
   },
 ]
@@ -84,7 +84,7 @@ exports[`GET /api/viajes (caracterización) > 200 sin filtros: solo viajes dispo
       INNER JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
       INNER JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
       INNER JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
-      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= TRUNC(SYSDATE)
+      WHERE v.ESTADO_VIA_ID_EST_VIA = 1 AND v.TIEMPO_SALIDA_VIA >= CURRENT_DATE
     ",
   },
 ]
@@ -102,7 +102,7 @@ exports[`POST /api/viajes (caracterización) > 201: crea municipios, marca y veh
   {
     "binds": undefined,
     "options": undefined,
-    "sql": "SELECT NVL(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS",
+    "sql": "SELECT COALESCE(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS",
   },
   {
     "binds": {
@@ -124,7 +124,7 @@ exports[`POST /api/viajes (caracterización) > 201: crea municipios, marca y veh
   {
     "binds": undefined,
     "options": undefined,
-    "sql": "SELECT NVL(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS",
+    "sql": "SELECT COALESCE(MAX(ID_MUN), 0) + 1 as "nextId" FROM MUNICIPIOS",
   },
   {
     "binds": {
@@ -153,7 +153,7 @@ exports[`POST /api/viajes (caracterización) > 201: crea municipios, marca y veh
   {
     "binds": undefined,
     "options": undefined,
-    "sql": "SELECT NVL(MAX(ID_MAR), 0) + 1 as "nextId" FROM MARCAS",
+    "sql": "SELECT COALESCE(MAX(ID_MAR), 0) + 1 as "nextId" FROM MARCAS",
   },
   {
     "binds": {

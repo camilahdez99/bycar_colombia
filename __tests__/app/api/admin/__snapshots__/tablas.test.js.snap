@@ -8,12 +8,15 @@ exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con el 
     },
     "options": undefined,
     "sql": "
-    SELECT cols.column_name
-    FROM user_constraints cons
-    JOIN user_cons_columns cols
-      ON cons.constraint_name = cols.constraint_name
-    WHERE cons.constraint_type = 'P'
-      AND cons.table_name = :tabla
+    SELECT UPPER(kcu.column_name) AS column_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+     AND tc.table_schema = kcu.table_schema
+    WHERE tc.constraint_type = 'PRIMARY KEY'
+      AND tc.table_schema = current_schema()
+      AND tc.table_name = LOWER(:tabla)
+    ORDER BY kcu.ordinal_position
   ",
   },
   {
@@ -39,12 +42,15 @@ exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra
     },
     "options": undefined,
     "sql": "
-    SELECT cols.column_name
-    FROM user_constraints cons
-    JOIN user_cons_columns cols
-      ON cons.constraint_name = cols.constraint_name
-    WHERE cons.constraint_type = 'P'
-      AND cons.table_name = :tabla
+    SELECT UPPER(kcu.column_name) AS column_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+     AND tc.table_schema = kcu.table_schema
+    WHERE tc.constraint_type = 'PRIMARY KEY'
+      AND tc.table_schema = current_schema()
+      AND tc.table_name = LOWER(:tabla)
+    ORDER BY kcu.ordinal_position
   ",
   },
   {
@@ -63,8 +69,10 @@ exports[`GET /api/admin/tablas (caracterización) > list: devuelve solo los nomb
     "binds": {},
     "options": undefined,
     "sql": "
-        SELECT table_name
-        FROM user_tables
+        SELECT UPPER(table_name) AS table_name
+        FROM information_schema.tables
+        WHERE table_schema = current_schema()
+          AND table_type = 'BASE TABLE'
         ORDER BY table_name
       ",
   },
@@ -79,9 +87,20 @@ exports[`GET /api/admin/tablas (caracterización) > metadata=true: devuelve las 
     },
     "options": undefined,
     "sql": "
-    SELECT column_name, data_type, nullable
-    FROM user_tab_columns
-    WHERE table_name = :tabla
+    SELECT UPPER(column_name) AS column_name,
+           CASE
+             WHEN data_type IN ('numeric', 'bigint', 'integer', 'smallint') THEN 'NUMBER'
+             WHEN data_type = 'character varying' THEN 'VARCHAR2'
+             WHEN data_type = 'text' THEN 'CLOB'
+             WHEN data_type = 'timestamp without time zone' THEN 'DATE'
+             WHEN data_type = 'timestamp with time zone' THEN 'TIMESTAMP(6) WITH LOCAL TIME ZONE'
+             ELSE UPPER(data_type)
+           END AS data_type,
+           CASE is_nullable WHEN 'YES' THEN 'Y' ELSE 'N' END AS nullable
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = LOWER(:tabla)
+    ORDER BY ordinal_position
   ",
   },
 ]
@@ -105,9 +124,20 @@ exports[`POST /api/admin/tablas (caracterización) > 201: filtra columnas contra
     },
     "options": undefined,
     "sql": "
-    SELECT column_name, data_type, nullable
-    FROM user_tab_columns
-    WHERE table_name = :tabla
+    SELECT UPPER(column_name) AS column_name,
+           CASE
+             WHEN data_type IN ('numeric', 'bigint', 'integer', 'smallint') THEN 'NUMBER'
+             WHEN data_type = 'character varying' THEN 'VARCHAR2'
+             WHEN data_type = 'text' THEN 'CLOB'
+             WHEN data_type = 'timestamp without time zone' THEN 'DATE'
+             WHEN data_type = 'timestamp with time zone' THEN 'TIMESTAMP(6) WITH LOCAL TIME ZONE'
+             ELSE UPPER(data_type)
+           END AS data_type,
+           CASE is_nullable WHEN 'YES' THEN 'Y' ELSE 'N' END AS nullable
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = LOWER(:tabla)
+    ORDER BY ordinal_position
   ",
   },
   {
@@ -137,9 +167,20 @@ exports[`POST /api/admin/tablas (caracterización) > MENUS con ID_ENU: inserta s
     },
     "options": undefined,
     "sql": "
-    SELECT column_name, data_type, nullable
-    FROM user_tab_columns
-    WHERE table_name = :tabla
+    SELECT UPPER(column_name) AS column_name,
+           CASE
+             WHEN data_type IN ('numeric', 'bigint', 'integer', 'smallint') THEN 'NUMBER'
+             WHEN data_type = 'character varying' THEN 'VARCHAR2'
+             WHEN data_type = 'text' THEN 'CLOB'
+             WHEN data_type = 'timestamp without time zone' THEN 'DATE'
+             WHEN data_type = 'timestamp with time zone' THEN 'TIMESTAMP(6) WITH LOCAL TIME ZONE'
+             ELSE UPPER(data_type)
+           END AS data_type,
+           CASE is_nullable WHEN 'YES' THEN 'Y' ELSE 'N' END AS nullable
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = LOWER(:tabla)
+    ORDER BY ordinal_position
   ",
   },
   {
@@ -193,12 +234,15 @@ exports[`PUT /api/admin/tablas (caracterización) > 200: excluye la PK y columna
     },
     "options": undefined,
     "sql": "
-    SELECT cols.column_name
-    FROM user_constraints cons
-    JOIN user_cons_columns cols
-      ON cons.constraint_name = cols.constraint_name
-    WHERE cons.constraint_type = 'P'
-      AND cons.table_name = :tabla
+    SELECT UPPER(kcu.column_name) AS column_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+     AND tc.table_schema = kcu.table_schema
+    WHERE tc.constraint_type = 'PRIMARY KEY'
+      AND tc.table_schema = current_schema()
+      AND tc.table_name = LOWER(:tabla)
+    ORDER BY kcu.ordinal_position
   ",
   },
   {
@@ -207,9 +251,20 @@ exports[`PUT /api/admin/tablas (caracterización) > 200: excluye la PK y columna
     },
     "options": undefined,
     "sql": "
-    SELECT column_name, data_type, nullable
-    FROM user_tab_columns
-    WHERE table_name = :tabla
+    SELECT UPPER(column_name) AS column_name,
+           CASE
+             WHEN data_type IN ('numeric', 'bigint', 'integer', 'smallint') THEN 'NUMBER'
+             WHEN data_type = 'character varying' THEN 'VARCHAR2'
+             WHEN data_type = 'text' THEN 'CLOB'
+             WHEN data_type = 'timestamp without time zone' THEN 'DATE'
+             WHEN data_type = 'timestamp with time zone' THEN 'TIMESTAMP(6) WITH LOCAL TIME ZONE'
+             ELSE UPPER(data_type)
+           END AS data_type,
+           CASE is_nullable WHEN 'YES' THEN 'Y' ELSE 'N' END AS nullable
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = LOWER(:tabla)
+    ORDER BY ordinal_position
   ",
   },
   {
