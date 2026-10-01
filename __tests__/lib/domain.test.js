@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { canChangeSolicitud, resolverEstadoSolicitud } from '@/lib/domain/solicitudes';
-import { limpiarDatosViaje } from '@/lib/domain/viajes';
+import { idDeCatalogo, limpiarDatosViaje, validarDatosViaje } from '@/lib/domain/viajes';
 import { calcularParticipantesMensaje } from '@/lib/domain/mensajes';
 
 describe('resolverEstadoSolicitud', () => {
@@ -59,19 +59,48 @@ describe('limpiarDatosViaje', () => {
     expect(limpiarDatosViaje({ placa: 'A', puestos: 1, valor: 1, comentarios: 'x'.repeat(600) }).cleanComentarios).toHaveLength(500);
   });
 
-  test('sin validar: NaN en puestos y valor (comportamiento actual, BUGS F23)', () => {
+  test('no valida por sí sola: los datos inválidos los frena antes validarDatosViaje', () => {
     const datos = limpiarDatosViaje({ placa: 'A', puestos: 'dos', valor: 'mucho' });
     expect(datos.numPuestos).toBeNaN();
     expect(datos.valorNum).toBeNaN();
   });
+});
 
-  test('placas distintas pueden colisionar al recortar a 6 (BUGS F23)', () => {
-    expect(limpiarDatosViaje({ placa: 'ABC1234', puestos: 1, valor: 1 }).cleanPlaca)
-      .toBe(limpiarDatosViaje({ placa: 'ABC1235', puestos: 1, valor: 1 }).cleanPlaca);
+describe('validarDatosViaje (BUGS F23)', () => {
+  const validos = { placa: 'abc-123', fecha: '2026-10-01', puestos: '3', valor: '5,000.50' };
+
+  test('datos válidos → null', () => {
+    expect(validarDatosViaje(validos)).toBeNull();
+    expect(validarDatosViaje({ ...validos, puestos: 4, valor: 12000 })).toBeNull();
   });
 
-  test('una placa que no es texto lanza (BUGS F23)', () => {
-    expect(() => limpiarDatosViaje({ placa: 123, puestos: 1, valor: 1 })).toThrow(TypeError);
+  test.each([
+    [{ placa: 123 }, 'La placa debe ser un texto'],
+    [{ placa: '- -' }, 'La placa debe tener entre 1 y 6 letras o números'],
+    [{ placa: 'ABC1234' }, 'La placa debe tener entre 1 y 6 letras o números'],
+    [{ fecha: '2026-1-1' }, 'La fecha debe tener el formato AAAA-MM-DD'],
+    [{ fecha: 20261001 }, 'La fecha debe tener el formato AAAA-MM-DD'],
+    [{ puestos: '0' }, 'Los puestos deben ser un número entero mayor a 0'],
+    [{ puestos: '3 puestos' }, 'Los puestos deben ser un número entero mayor a 0'],
+    [{ valor: '-100' }, 'El valor debe ser un número mayor a 0'],
+    [{ valor: 'gratis' }, 'El valor debe ser un número mayor a 0'],
+  ])('%j → %s', (cambio, mensaje) => {
+    expect(validarDatosViaje({ ...validos, ...cambio })).toBe(mensaje);
+  });
+
+  test('placas que se distinguen en el 7º carácter ya no colisionan: se rechazan', () => {
+    expect(validarDatosViaje({ ...validos, placa: 'ABC1234' })).not.toBeNull();
+    expect(validarDatosViaje({ ...validos, placa: 'ABC1235' })).not.toBeNull();
+  });
+});
+
+describe('idDeCatalogo (BUGS F6)', () => {
+  test.each([['5', 5], [' 12 ', 12], [8, 8]])('%j → %j', (entrada, esperado) => {
+    expect(idDeCatalogo(entrada)).toBe(esperado);
+  });
+
+  test.each(['2024 Mazda', 'MEDELLIN', '0', '', 1.5])('%j no es un ID → null', (entrada) => {
+    expect(idDeCatalogo(entrada)).toBeNull();
   });
 });
 

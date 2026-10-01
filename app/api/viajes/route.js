@@ -6,14 +6,15 @@ import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
-import { limpiarDatosViaje } from '@/lib/domain/viajes';
+import { badRequest } from '@/lib/api/validacion';
+import { idDeCatalogo, limpiarDatosViaje, validarDatosViaje } from '@/lib/domain/viajes';
 
 async function getOrCreateMunicipio(connection, name) {
   if (!name) return 1;
   const cleanName = String(name).trim().toUpperCase();
   
-  const idNum = parseInt(cleanName, 10);
-  if (!isNaN(idNum)) {
+  const idNum = idDeCatalogo(cleanName);
+  if (idNum) {
     return idNum;
   }
   
@@ -41,8 +42,8 @@ async function getOrCreateMunicipio(connection, name) {
 async function getOrCreateMarca(connection, carroInput) {
   if (!carroInput) return 1;
   
-  const idNum = parseInt(carroInput, 10);
-  if (!isNaN(idNum)) {
+  const idNum = idDeCatalogo(carroInput);
+  if (idNum) {
     return idNum;
   }
 
@@ -86,8 +87,9 @@ export async function GET(req) {
   let connection;
   try {
     const { searchParams } = new URL(req.url);
-    const origenId = searchParams.get('origen');
-    const destinoId = searchParams.get('destino');
+    // Un filtro de solo espacios se ignora (BUGS F24)
+    const origenId = searchParams.get('origen')?.trim();
+    const destinoId = searchParams.get('destino')?.trim();
 
     connection = await getConnection();
 
@@ -153,6 +155,9 @@ export async function POST(req) {
     if (!origen || !destino || !placa || !fecha || !puestos || !valor || !usuarioId) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
     }
+
+    const invalido = validarDatosViaje({ placa, fecha, puestos, valor });
+    if (invalido) return badRequest(invalido);
 
     const notOwner = await requireSelf(req, usuarioId);
     if (notOwner) return notOwner;

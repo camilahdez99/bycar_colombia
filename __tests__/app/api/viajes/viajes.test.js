@@ -46,11 +46,11 @@ describe('GET /api/viajes (caracterización)', () => {
     expect(conn.calls).toMatchSnapshot();
   });
 
-  test('origen de solo espacios cuenta como numérico (comportamiento actual: filtra por ID 0)', async () => {
+  test('un filtro de solo espacios se ignora (F24)', async () => {
     const conn = createFakeConnection([{ rows: [] }]);
     getConnection.mockResolvedValue(conn);
-    await get({ origen: ' ' });
-    expect(conn.calls[0].binds).toEqual({ origenId: 0 });
+    await get({ origen: ' ', destino: '  ' });
+    expect(conn.calls[0].binds).toEqual({});
   });
 
   test('200 con [] si rows viene undefined', async () => {
@@ -179,13 +179,27 @@ describe('POST /api/viajes (caracterización)', () => {
     expect(conn.calls[2].binds).toEqual({ nextId: 1, name: 'Bello' });
   });
 
-  test('IDs numéricos y "2024 Mazda" se usan directo sin consultar (comportamiento actual: parseInt de texto mixto)', async () => {
+  test('IDs numéricos completos se usan directo sin consultar', async () => {
     const conn = createFakeConnection([{ rows: [] }, { rowsAffected: 1 }, { rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);
-    await post({ ...validBody, origen: '5', destino: 8, carro: '2024 Mazda' });
+    await post({ ...validBody, origen: '5', destino: 8, carro: '3' });
     expect(conn.execute).toHaveBeenCalledTimes(3);
-    expect(conn.calls[1].binds.marcaId).toBe(2024);
+    expect(conn.calls[1].binds.marcaId).toBe(3);
     expect(conn.calls[2].binds).toMatchObject({ origenId: 5, destinoId: 8 });
+  });
+
+  test('"2024 Mazda" ya no se toma como ID 2024: se busca como nombre de marca (F6)', async () => {
+    const conn = createFakeConnection([
+      { rows: [{ ID_MUN: 10 }] },
+      { rows: [{ ID_MUN: 20 }] },
+      { rows: [{ ID_MAR: 4 }] }, // marca "2024" por primera palabra
+      { rows: [{ PLACA_VEH: 'ABC123' }] },
+      { rowsAffected: 1 },
+    ]);
+    getConnection.mockResolvedValue(conn);
+    expect((await readResponse(await post({ ...validBody, carro: '2024 Mazda' }))).status).toBe(201);
+    expect(conn.calls[2].binds).toEqual({ brandName: '2024' });
+    expect(conn.calls[4].binds).toMatchObject({ origenId: 10, destinoId: 20 });
   });
 
   test('sin carro usa la marca 1 sin consultar', async () => {
@@ -223,7 +237,7 @@ describe('POST /api/viajes (caracterización)', () => {
       { rowsAffected: 1 },
     ]);
     getConnection.mockResolvedValue(conn);
-    await post({ ...validBody, placa: 'xyz-98 7 extra', valor: '1,234,567.5', comentarios: 'a'.repeat(600) });
+    await post({ ...validBody, placa: 'xyz-98 7', valor: '1,234,567.5', comentarios: 'a'.repeat(600) });
     const binds = conn.calls[4].binds;
     expect(binds.cleanPlaca).toBe('XYZ987');
     expect(binds.valorNum).toBe(1234567.5);
@@ -243,18 +257,18 @@ describe('POST /api/viajes (caracterización)', () => {
     expect(conn.calls[4].binds.cleanComentarios).toBeNull();
   });
 
-  test('puestos y valor no numéricos pasan como NaN (comportamiento actual: no valida números)', async () => {
-    const conn = createFakeConnection([
-      { rows: [{ ID_MUN: 10 }] },
-      { rows: [{ ID_MUN: 20 }] },
-      { rows: [{ ID_MAR: 3 }] },
-      { rows: [{ PLACA_VEH: 'ABC123' }] },
-      { rowsAffected: 1 },
-    ]);
-    getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await post({ ...validBody, puestos: 'muchos', valor: 'gratis' }))).status).toBe(201);
-    expect(conn.calls[4].binds.numPuestos).toBeNaN();
-    expect(conn.calls[4].binds.valorNum).toBeNaN();
+  test.each([
+    [{ puestos: 'muchos' }, 'Los puestos deben ser un número entero mayor a 0'],
+    [{ puestos: '2.5' }, 'Los puestos deben ser un número entero mayor a 0'],
+    [{ puestos: '-1' }, 'Los puestos deben ser un número entero mayor a 0'],
+    [{ valor: 'gratis' }, 'El valor debe ser un número mayor a 0'],
+    [{ valor: '0' }, 'El valor debe ser un número mayor a 0'],
+    [{ fecha: '01/10/2026' }, 'La fecha debe tener el formato AAAA-MM-DD'],
+    [{ placa: 'ABC-1234' }, 'La placa debe tener entre 1 y 6 letras o números'],
+    [{ placa: '---' }, 'La placa debe tener entre 1 y 6 letras o números'],
+  ])('400 con datos inválidos %j, sin abrir conexión (F23)', async (cambio, mensaje) => {
+    expect(await readResponse(await post({ ...validBody, ...cambio }))).toEqual({ status: 400, body: { error: mensaje } });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('500 sin exponer error.message (S8); lo creado antes (municipio con autoCommit) no se revierte (comportamiento actual)', async () => {
@@ -279,8 +293,11 @@ describe('POST /api/viajes (caracterización)', () => {
     expect(await readResponse(await post(validBody))).toEqual({ status: 500, body: { error: 'Error al publicar viaje' } });
   });
 
-  test('500 si la placa no es string (placa.replace lanza)', async () => {
-    expect((await readResponse(await post({ ...validBody, placa: 123456 }))).status).toBe(500);
+  test('400 si la placa no es texto (antes daba 500, F23)', async () => {
+    expect(await readResponse(await post({ ...validBody, placa: 123456 }))).toEqual({
+      status: 400,
+      body: { error: 'La placa debe ser un texto' },
+    });
     expect(getConnection).not.toHaveBeenCalled();
   });
 });
