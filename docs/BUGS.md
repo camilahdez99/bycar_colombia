@@ -78,11 +78,12 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual". F28,
 
 | # | Sev | Ubicación | Descripción |
 |---|---|---|---|
-| F33 | 🟡 | `login/page.jsx:31-33`, `auth/login/route.js` | El login del admin no devuelve `user`, así que no pisa el `user` de `localStorage`: si antes había entrado un usuario, sus datos quedan guardados durante la sesión del admin y el dashboard los sigue usando. Test: `__tests__/app/login.test.jsx`. |
+| ~~F33~~ | ✅ | `login/page.jsx` | **Resuelto 2026-10-01.** El login del admin no devuelve `user` y dejaba en `localStorage` los datos del usuario anterior. Ahora, si un login correcto no trae `user`, se borra el guardado; un login de usuario lo reemplaza como antes y un error no lo toca. |
 | ~~F34~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-10-01.** Un municipio sin nombre (`NOMBRE_MUN` nulo) hacía que `normalizar` recibiera el objeto entero y el dashboard se rompía al escribir en Origen o Destino. Ahora el autocompletado toma el texto con `nombreDeOpcion` (`lib/client/formato.js`), que devuelve `''` para un municipio sin nombre: esa opción no coincide con ninguna búsqueda y el resto funciona igual. |
-| F35 | 🟡 | `dashboard/page.jsx:340` | La pre-alerta del guardián solo se dispara si el contador pasa exactamente por 300 s (`next === PRE_ALERTA_SEG`). Con un tiempo de 5 minutos o menos, o al recargar con menos de 5 minutos restantes, el aviso "¿Has llegado?" nunca aparece. Test: `dashboard-guardian.test.jsx`. |
-| F36 | ⚪ | `dashboard/page.jsx:412-424` | "Sí, he llegado" desde el modal de pre-alerta finaliza el guardián pero no cierra el modal (`finalizarGuardian` no llama a `setShowReadjustModal(false)`). Además, si la API no devolvió `id` al activar, finalizar no hace el `PUT` y aun así avisa "Guardián desactivado". Test: `dashboard-guardian.test.jsx`. |
-| F37 | ⚪ | `dashboard/page.jsx:588` | El aviso usa el estado en masculino: "Solicitud aceptado" / "Solicitud rechazado". Test: `dashboard-solicitudes.test.jsx`. |
+| ~~F35~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-10-01.** La pre-alerta del guardián exigía pasar justo por 300 s, así que con 5 minutos o menos (o al recargar con menos de 5 minutos) nunca salía. Ahora sale al estar en 300 s o menos y antes de terminar, una sola vez por tramo; tras extender el tiempo vuelve a salir. |
+| ~~F36~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-10-01.** "Sí, he llegado" ahora cierra el modal de pre-alerta. Sin `id` del guardián (no se hace el `PUT`) ya no avisa "Guardián desactivado": desactiva en pantalla y avisa que la llegada no quedó registrada. Lo que sigue abierto pasó a F38. |
+| ~~F37~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-10-01.** El aviso dice "Solicitud aceptada" / "Solicitud rechazada". El estado que se envía a la API no cambió. |
+| F38 | 🟡 | `dashboard/page.jsx:413-446` | `finalizarGuardian` y `reajustarTiempo` no revisan la respuesta del `PUT`: si la API responde 403/500 igual se avisa "Guardián desactivado" o "Tiempo extendido" y el estado local cambia, aunque en la BD el guardián siga activo con el tiempo anterior. Si el `fetch` falla por red, la promesa se rechaza sin manejo y el estado no se actualiza. Detectado al corregir F36 (2026-10-01); sin test que lo fije. |
 
 ## Manejo de errores
 

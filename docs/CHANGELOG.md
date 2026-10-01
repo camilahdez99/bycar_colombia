@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-10-01 — Fixes de frontend F33, F35, F36, F37 y cobertura en el repo (DT-49)
+
+Rama `fix/frontend-bugs` (worktree `../bycar_colombia-frontend`, desde `f9085de`), en paralelo con otras sesiones: la API y `lib/` del servidor quedan a cargo de la rama `mejoras/backlog-pendiente`. Un commit por cambio.
+
+**Qué cambió**
+- DT-49: `@vitest/coverage-v8@5.0.2` como devDependency, script `npm run test:coverage` y configuración de cobertura en `vitest.config.mjs`. `npm test` no cambia. El lockfile subió por dedupe cuatro paquetes `@babel/*` transitivos (de lint y del provider) a 7.29.x; el lint da el mismo resultado.
+- F33: el login borra el usuario de `localStorage` cuando la respuesta no trae `user` (login del admin).
+- F35: la pre-alerta del guardián sale con 300 s o menos restantes, no solo al pasar justo por 300.
+- F36: "Sí, he llegado" cierra el modal de pre-alerta; sin `id` del guardián se avisa que la llegada no quedó registrada.
+- F37: "Solicitud aceptada" / "Solicitud rechazada".
+- Bug nuevo **F38** 🟡: finalizar y extender el guardián no revisan la respuesta del `PUT`.
+
+**Cambios de comportamiento a propósito**
+- Los cuatro fixes. En cada uno, el test que fijaba el comportamiento anterior se invirtió y se verificó que falla con el código previo. Se sumaron tests de regresión: login de usuario y credenciales inválidas no pierden el usuario, la pre-alerta vuelve a salir tras extender el tiempo y en un guardián nuevo.
+
+**Tests corridos (antes de cada commit)**
+- `npm test`: de 729 a 734 tests, 47 archivos, todos OK. Se corrió con `--maxWorkers=2` porque otras sesiones corrían suites en la misma máquina y los tests de jsdom daban timeout por CPU (con menos carga pasan con la configuración por defecto).
+- `npm run test:coverage`: OK, 96,8 % de sentencias.
+- `npm run build`: OK.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- Integración: esta rama toca `app/dashboard/page.jsx`, que la sesión de reorganización (DT-34) está dividiendo, y `package.json`/`package-lock.json`, que la sesión de dependencias actualiza (vitest 5.0.3). Quien integre segundo rebasa y regenera el lockfile con `npm install`, y sube `@vitest/coverage-v8` a la misma versión que `vitest`.
+- F38 sigue abierto.
+
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 
 Rama `refactor/deuda-bloque-3`, en un commit propio (`fix`), separado de la caracterización.
