@@ -1,8 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import PermisosManager from '@/app/components/admin/PermisosManager';
+import PermisosManager from '@/components/admin/PermisosManager';
 import DynamicForm from '@/components/DynamicForm';
-import HydrationWrapper from '@/components/admin/HydrationWrapper';
+import HydrationWrapper from '@/components/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { Plus, Edit2, Trash2, Search, X, LogOut } from 'lucide-react';
 import { logout } from '@/lib/client/logout';

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
-import PermisosManager from '@/app/components/admin/PermisosManager';
-import { llamadas, stubApi } from '../../../helpers/dashboard';
+import PermisosManager from '@/components/admin/PermisosManager';
+import { llamadas, stubApi } from '../../helpers/dashboard';
 
 vi.mock('react-hot-toast', () => ({
   toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), loading: vi.fn() }),

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import HydrationWrapper from '@/components/admin/HydrationWrapper';
+import HydrationWrapper from '@/components/HydrationWrapper';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
 import { formatCurrency, formatTiempo, nombreDeOpcion, normalizar } from '@/lib/client/formato';

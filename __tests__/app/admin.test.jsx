@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import AdminPage from '@/app/admin/page';
-import PermisosManager from '@/app/components/admin/PermisosManager';
+import PermisosManager from '@/components/admin/PermisosManager';
 import { toast } from 'react-hot-toast';
 
 vi.mock('react-hot-toast', () => ({
