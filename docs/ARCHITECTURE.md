@@ -87,10 +87,6 @@ L = lectura, E = escritura.
 | `auth/register` | POST | Crea usuario y le da permiso a todos los menús (transacción) | USUARIOS, PERMISOS (E), MENUS (L) |
 | `admin/tablas` | GET POST PUT DELETE | CRUD genérico sobre cualquier tabla (`user_tables`) | todas |
 | `admin/permisos` | GET POST DELETE | Asignar / revocar menús por usuario | PERMISOS (L/E) |
-| `admin/usuarios` | GET POST PUT DELETE | CRUD usuarios | USUARIOS |
-| `admin/conductores` | GET POST(no-op) DELETE | Lista conductores; borra sus vehículos y viajes | USUARIOS, VEHICULOS, VIAJES |
-| `admin/vehiculos` | GET POST PUT DELETE | CRUD vehículos | VEHICULOS |
-| `admin/viajes` | GET PUT DELETE | Viajes con pasajeros; cambiar estado / borrar | VIAJES (+ lecturas) |
 | `guardian` | GET POST PUT | Alertas del "guardián de ruta"; activar, cambiar estado o tiempo | GUARDIANES (L/E) |
 | `marcas`, `municipios`, `menus` | GET | Catálogos | L |
 | `mensajes` | GET POST | Chat por solicitud (`ID_SOL`) | MENSAJES (L/E) |
@@ -100,7 +96,7 @@ L = lectura, E = escritura.
 | `viajes` | GET POST | Buscar viajes; publicar (crea municipio/marca/vehículo al vuelo) | VIAJES, VEHICULOS, MUNICIPIOS, MARCAS |
 | `viajes/mis-rutas` | GET | Viajes publicados y solicitados por el usuario | L |
 
-Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viajes` no son usadas por ninguna UI actual (BACKLOG DT-46).
+Las rutas `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viajes` se eliminaron el 2026-10-01 porque ninguna UI las usaba (BACKLOG DT-46). El panel de admin trabaja solo con `admin/tablas` y `admin/permisos`.
 
 ## Frontend
 

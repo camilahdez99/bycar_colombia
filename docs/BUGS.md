@@ -10,7 +10,7 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 | S1 | 🟡 | todas las rutas `app/api/**` | **Mitigado (2026-09-28) detrás de `AUTH_ENFORCED`.** Sesión con cookie firmada. Sigue abierto hasta prender el flag en producción. |
 | S2 | 🟡 | `app/api/admin/tablas/route.js` | **Mitigado detrás de `AUTH_ENFORCED`:** requiere rol admin. Un admin todavía puede leer las contraseñas con `GET ?tabla=USUARIOS` (ver S4). |
 | S3 | 🟡 | `app/api/admin/*`, `app/admin/page.jsx` | **Mitigado detrás de `AUTH_ENFORCED`:** rol admin en la API y en el proxy de `/admin`. |
-| S4 | 🔴 | `auth/login/route.js:23`, `auth/register/route.js:28`, `admin/usuarios/route.js:49` | Contraseñas almacenadas y comparadas en texto plano. |
+| S4 | 🔴 | `auth/login/route.js:23`, `auth/register/route.js:28` | Contraseñas almacenadas y comparadas en texto plano. |
 | S5 | 🟠 | `auth/login/route.js:30-36`, `scripts/insercion_data_DML.txt:16` | Admin hardcodeado (`admin@bycar.co` / `admin`). |
 | S6 | 🟡 | ver abajo | **Mitigado (2026-09-29) detrás de `AUTH_ENFORCED`:** cada ruta de usuario valida la pertenencia del recurso (ver `ARCHITECTURE.md`). Sigue abierto hasta prender el flag. Descripción original: |
 | S6 (orig.) | 🟠 | `mensajes/route.js:8,64`; `solicitudes/route.js:37`; `guardian/route.js:9,133` | IDOR: cualquiera puede leer chats ajenos, suplantar al emisor, aceptar solicitudes ajenas y leer o modificar guardianes ajenos. |
@@ -31,7 +31,7 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 | F7 | 🟡 | `dashboard/page.jsx:192` vs `login/route.js:21` | Se lee `PERFIL_ID_PER`, pero el login no lo devuelve: siempre es null. |
 | F8 | ⚪ | `dashboard/page.jsx:454` | `formatCurrency` falla con valor null. |
 | F9 | ⚪ | `dashboard/page.jsx:302` | El correo va en la query sin `encodeURIComponent`. |
-| F10 | ⚪ | `admin/viajes/route.js:81`, `guardian/route.js:154` | El estado se resuelve comparando los primeros 6 caracteres del texto: es frágil. |
+| F10 | ⚪ | `guardian/route.js:154` | El estado se resuelve comparando los primeros 6 caracteres del texto: es frágil. |
 
 ### Detectados al caracterizar la API (2026-09-28)
 
@@ -44,20 +44,20 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual".
 | F13 | 🟡 | `admin/tablas/route.js:30,96,271,321` | Si la tabla no tiene PK se genera `WHERE undefined = :id`. |
 | F14 | 🟡 | `admin/tablas/route.js:101,326` | GET y DELETE por id usan `Number(id)`, así que las claves de texto (placa) quedan NaN. PUT la envía como string: los tres métodos son inconsistentes. |
 | F15 | 🟡 | `admin/tablas/route.js:161-167,264-272` | Si ninguna clave del body coincide con una columna, arma `INSERT … () VALUES ()` o `SET` vacío. Responde con un error de Oracle en lugar de 400. |
-| F16 | 🟡 | `admin/vehiculos/route.js:62` vs `:101,128` | POST pasa la placa a mayúsculas; PUT y DELETE la usan tal como llega. Una placa en minúsculas no coincide, pero igual responde 200. |
-| F17 | 🟡 | `admin/viajes/route.js:74-89` | `estado` no se valida: si falta queda bindeado como `undefined` (probablemente NULL), y si llega `""` o `null` se convierte en 0. |
-| F18 | 🟡 | `admin/usuarios/route.js:49,88` | Crear o editar desde admin no normaliza el correo (no hace trim ni minúsculas), a diferencia de register. |
-| F19 | 🟡 | todos los PUT y DELETE de `admin/*`; `solicitudes` PUT; `guardian` PUT | Ignoran `rowsAffected`: responden 200 aunque el registro no exista. `guardian` PUT sin `id` también responde 200. |
+| ~~F16~~ | ✅ | `admin/vehiculos/route.js:62` vs `:101,128` | **No aplica (2026-10-01): la ruta se eliminó (DT-46).** POST pasa la placa a mayúsculas; PUT y DELETE la usan tal como llega. Una placa en minúsculas no coincide, pero igual responde 200. |
+| ~~F17~~ | ✅ | `admin/viajes/route.js:74-89` | **No aplica (2026-10-01): la ruta se eliminó (DT-46).** `estado` no se valida: si falta queda bindeado como `undefined` (probablemente NULL), y si llega `""` o `null` se convierte en 0. |
+| ~~F18~~ | ✅ | `admin/usuarios/route.js:49,88` | **No aplica (2026-10-01): la ruta se eliminó (DT-46).** Crear o editar desde admin no normaliza el correo (no hace trim ni minúsculas), a diferencia de register. |
+| F19 | 🟡 | PUT y DELETE de `admin/tablas` y `admin/permisos` (el resto de `admin/*` se eliminó en DT-46); `solicitudes` PUT; `guardian` PUT | Ignoran `rowsAffected`: responden 200 aunque el registro no exista. `guardian` PUT sin `id` también responde 200. |
 | F20 | 🟡 | `solicitudes/route.js:56-69` | Acepta cualquier estado numérico (por ejemplo 99). |
 | F21 | 🟡 | `guardian/route.js:149-158` | Si ningún estado coincide con el texto, `ESTADO_ID_EST` queda en NULL. |
 | F22 | 🟡 | `guardian/route.js:137-141` | Con `extraTiempo: null` suma 0 minutos e ignora el `estado` enviado (solo compara contra `undefined`). |
 | F23 | 🟡 | `viajes/route.js:147-148,174`; `guardian/route.js:118` | `puestos`, `valor` y `tiempo` no se validan: se inserta NaN. La placa se recorta a 6 caracteres (placas distintas pueden colisionar) y una placa que no es texto da 500. |
 | F24 | ⚪ | `viajes/route.js:106-107` | `?origen=%20` pasa el `isNaN` y filtra por el municipio 0. |
 | F25 | ⚪ | `guardian/route.js:118` | No valida que `viajeId` exista ni que pertenezca al usuario. |
-| F26 | ⚪ | `conductores/route.js:38-42` | POST responde 200 con un mensaje informativo y no crea nada. |
+| ~~F26~~ | ✅ | `conductores/route.js:38-42` | **No aplica (2026-10-01): la ruta se eliminó (DT-46).** POST responde 200 con un mensaje informativo y no crea nada. |
 | ~~F27~~ | ✅ | `app/admin/page.jsx` | **Resuelto 2026-09-29.** Guardaba el body de error de `?list=1` y de `?metadata=1` como si fuera una lista: el panel quedaba en blanco o se rompía al abrir "Nuevo". Además, si fallaba la carga al cambiar de tabla, quedaban en pantalla las filas de la tabla anterior. Ahora valida `res.ok` y que sea un array, y ante error vacía columnas y filas. |
 | E4 | 🟡 | `mensajes/route.js:25,81`; `guardian/route.js:75` | Lee `rows.length` o `rows[0]` sin guarda: si el resultado no trae `rows` da 500, y en guardian expone el mensaje de JS. |
-| E5 | ⚪ | `guardian/route.js:12,135`; `admin/usuarios/route.js:73-75` | Abren la conexión o parsean el JSON antes de validar parámetros. |
+| E5 | ⚪ | `guardian/route.js:12,135` | Abren la conexión o parsean el JSON antes de validar parámetros. |
 
 ### Detectados en el relevamiento de deuda técnica (2026-09-30)
 
@@ -90,4 +90,4 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual". F28,
 |---|---|---|---|
 | E1 | 🟡 | `admin/tablas/route.js:134-135,236-237,310` | `sanitizeTable` y `req.json()` se ejecutan fuera del `try`, así que devuelven un 500 no controlado. |
 | E2 | 🟡 | `admin/tablas/route.js:117,218,292,342`; `guardian/route.js:83,126,175` | `connection.close()` sin `try`: si falla, tapa el error original. |
-| E3 | ⚪ | `dashboard/page.jsx:188`, `admin/conductores/route.js:31`, `admin/permisos/route.js:43`, otros | `catch` vacíos. |
+| E3 | ⚪ | `dashboard/page.jsx:188`, `admin/permisos/route.js:43`, otros | `catch` vacíos. |

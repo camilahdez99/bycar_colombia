@@ -92,8 +92,8 @@ Relevamiento de código: 2026-09-30 (solo lectura; no se modificó código). Ree
 
 | ID | Descripción | Archivos | Categoría | Riesgo | Impacto | Esf. |
 |---|---|---|---|---|---|---|
-| DT-46 | ⚠️ **Cuatro rutas admin sin consumidor:** `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viajes` (487 líneas más sus tests) no las llama ninguna UI; el panel usa solo `admin/tablas` y `admin/permisos`. Duplican lo que hace el CRUD genérico y arrastran bugs propios (F16–F19, F26). Borrarlas elimina endpoints públicos: confirmar antes que no haya consumidores externos. | `app/api/admin/{usuarios,conductores,vehiculos,viajes}/route.js` | código muerto | alto | medio | S |
-| DT-47 | **Hash de contraseñas** (S4) con migración de las existentes. Toca BD y login. | `app/api/auth/*`, `app/api/admin/usuarios` | seguridad | alto | alto | L |
+| DT-46 | ✅ **Cuatro rutas admin sin consumidor:** (hecho 2026-10-01: se borraron los 4 handlers, sus tests y snapshots; F16–F18 y F26 dejan de aplicar) `admin/usuarios`, `admin/conductores`, `admin/vehiculos` y `admin/viajes` (487 líneas más sus tests) no las llama ninguna UI; el panel usa solo `admin/tablas` y `admin/permisos`. Duplican lo que hace el CRUD genérico y arrastran bugs propios (F16–F19, F26). Borrarlas elimina endpoints públicos: confirmar antes que no haya consumidores externos. | `app/api/admin/{usuarios,conductores,vehiculos,viajes}/route.js` | código muerto | alto | medio | S |
+| DT-47 | **Hash de contraseñas** (S4) con migración de las existentes. Toca BD y login. | `app/api/auth/*` | seguridad | alto | alto | L |
 | DT-48 | **CRUD genérico sobre cualquier tabla.** `admin/tablas` permite leer y escribir todo `user_tables`, incluidas las contraseñas (S2), con nombres de tabla y columna interpolados (BD-01). Reemplazarlo por una lista blanca de tablas y columnas es un rediseño. | `app/api/admin/tablas/route.js`, `app/admin/page.jsx` | seguridad | alto | alto | L |
 
 ## bd-pendiente (sin priorizar)
@@ -103,21 +103,21 @@ Fuera de alcance hasta que se habilite trabajar la BD. No se modifica esquema ni
 | ID | Descripción | Archivos |
 |---|---|---|
 | BD-01 | Nombres de tabla y columna interpolados en el SQL (mitigado con regex y lista de columnas). La PK puede venir `undefined` y el `SET` puede quedar vacío (F13, F15). | `admin/tablas/route.js:112-113, 182-186, 292-296, 348-351` |
-| BD-02 | IDs generados con `MAX+1` (condición de carrera). | `admin/usuarios/route.js:47`, `viajes/route.js:25, 65` |
+| BD-02 | IDs generados con `MAX+1` (condición de carrera). | `viajes/route.js:25, 65` |
 | BD-03 | IDs generados con `Date.now()`. Usar secuencias o `IDENTITY`. | `auth/register:16`, `guardian:129`, `mensajes:112`, `solicitudes:34`, `viajes:184` |
 | BD-04 | `POST viajes`: varios `autoCommit` sin transacción, que dejan municipios, marcas o vehículos huérfanos si falla el último insert. Los municipios nuevos quedan con `DEPARTAMENTO_ID_DEP = 1` fijo. | `viajes/route.js:28-32, 69-73, 176-193` |
-| BD-05 | Dos `DELETE` sin transacción explícita (el primero depende del `autoCommit` del segundo). | `admin/conductores/route.js:67-69`, `lib/db.js:5` |
+| BD-05 | Dos `DELETE` sin transacción explícita (el primero depende del `autoCommit` del segundo). | `admin/conductores/route.js:67-69` (eliminada en DT-46: ya no aplica), `lib/db.js:5` |
 | BD-06 | Sin pool de conexiones: cada request abre y cierra una conexión, y el dashboard consulta cada 3 a 10 s (DT-33). | `lib/db.js` |
-| BD-07 | Estados y perfiles como literales dentro del SQL (1, 2…). Ver DT-08 para la parte JS. | `solicitudes:38`, `guardian:41,56,88,89,133`, `viajes:107,190`, `chats:42`, `recibidas:34`, `admin/viajes:22`, `admin/usuarios:52` |
+| BD-07 | Estados y perfiles como literales dentro del SQL (1, 2…). Ver DT-08 para la parte JS. | `solicitudes:38`, `guardian:41,56,88,89,133`, `viajes:107,190`, `chats:42`, `recibidas:34` |
 | BD-08 | IDs pasados como string sin `Number()`. | `solicitudes:41`, `guardian:91,168`, `mensajes:32,97`, `admin/*` |
-| BD-09 | Falta `ORDER BY` en el listado de viajes; `ROWNUM = 1` sin orden. | `admin/viajes/route.js:13-28`, `guardian/route.js:41, 184`, `admin/viajes:93` |
+| BD-09 | Falta `ORDER BY` en el listado de viajes; `ROWNUM = 1` sin orden. | `guardian/route.js:41, 184` (el listado de `admin/viajes` se eliminó en DT-46) |
 | BD-10 | Inserts en bucle, uno por fila (N+1): permisos por menú al registrar y permisos por usuario al crear un menú. Candidatos a `executeMany` o `INSERT … SELECT`. | `auth/register/route.js:35-44`, `admin/tablas/route.js:199-210` |
 | BD-11 | Listados sin paginación ni límite: `SELECT *` de cualquier tabla, búsqueda de viajes, todos los permisos, historial completo del chat en cada poll. | `admin/tablas:113`, `viajes:90-108`, `admin/permisos:45-52`, `mensajes:44-50` |
 | BD-12 | La misma query de participantes de una solicitud está escrita tres veces. | `mensajes/route.js:26-31, 91-96`, `lib/auth/ownershipQueries.js:8-13` |
 | BD-13 | Bloques de `JOIN` repetidos casi iguales (viaje + municipios origen/destino + vehículo + marca + conductor) en 6 queries. Candidato a vista. | `guardian:30-57, 68-90`, `viajes:90-108`, `mis-rutas:26-61`, `chats:28-45`, `recibidas:24-36` |
-| BD-14 | Funciones sobre columnas en el `WHERE` (`UPPER`, `LOWER`, `SUBSTR`), que impiden usar índices comunes. | `auth/login:43`, `guardian:56,122,183`, `viajes:17,48,57,116,125`, `admin/viajes:92` |
+| BD-14 | Funciones sobre columnas en el `WHERE` (`UPPER`, `LOWER`, `SUBSTR`), que impiden usar índices comunes. | `auth/login:43`, `guardian:56,122,183`, `viajes:17,48,57,116,125` |
 | BD-15 | Metadatos de columnas sin `ORDER BY column_id`: el orden de columnas del panel admin no está garantizado (F31 depende de esto). | `admin/tablas/route.js:47-51` |
-| BD-16 | Subconsultas correlacionadas por fila (`COUNT`, `LISTAGG`, nombre del pasajero). | `admin/conductores:22-23`, `admin/viajes:19-22`, `guardian:37-43` |
+| BD-16 | Subconsultas correlacionadas por fila (`COUNT`, `LISTAGG`, nombre del pasajero). | `guardian:37-43` |
 | BD-17 | Los mensajes se guardan por par de usuarios y no por solicitud (F4): falta la FK al chat. | `mensajes/route.js:44-50, 114-117` |
 | BD-18 | `getOrCreateMunicipio` y `getOrCreateMarca` hacen 2 a 4 queries secuenciales por publicación, con búsqueda por nombre sin normalizar acentos. | `viajes/route.js:7-76` |
 
