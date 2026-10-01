@@ -122,9 +122,12 @@ describe('ConexionPg.execute', () => {
     await conexion.execute('SELECT 1');
     await conexion.rollback();
 
-    expect(cliente.queries.filter((q) => typeof q === 'string')).toEqual([
-      'BEGIN', 'SAVEPOINT bycar_sentencia', 'RELEASE SAVEPOINT bycar_sentencia',
-      'SAVEPOINT bycar_sentencia', 'RELEASE SAVEPOINT bycar_sentencia', 'ROLLBACK',
+    // SET TRANSACTION va sin savepoint: Postgres descarta READ ONLY al liberar un savepoint
+    expect(cliente.queries).toEqual([
+      'BEGIN',
+      ['SET TRANSACTION READ ONLY', []],
+      'SAVEPOINT bycar_sentencia', ['SELECT 1', []], 'RELEASE SAVEPOINT bycar_sentencia',
+      'ROLLBACK',
     ]);
   });
 });
