@@ -83,6 +83,7 @@ Cada uno está fijado por un test cuyo nombre dice "comportamiento actual". F28,
 | F35 | 🟡 | `dashboard/page.jsx:340` | La pre-alerta del guardián solo se dispara si el contador pasa exactamente por 300 s (`next === PRE_ALERTA_SEG`). Con un tiempo de 5 minutos o menos, o al recargar con menos de 5 minutos restantes, el aviso "¿Has llegado?" nunca aparece. Test: `dashboard-guardian.test.jsx`. |
 | F36 | ⚪ | `dashboard/page.jsx:412-424` | "Sí, he llegado" desde el modal de pre-alerta finaliza el guardián pero no cierra el modal (`finalizarGuardian` no llama a `setShowReadjustModal(false)`). Además, si la API no devolvió `id` al activar, finalizar no hace el `PUT` y aun así avisa "Guardián desactivado". Test: `dashboard-guardian.test.jsx`. |
 | F37 | ⚪ | `dashboard/page.jsx:588` | El aviso usa el estado en masculino: "Solicitud aceptado" / "Solicitud rechazado". Test: `dashboard-solicitudes.test.jsx`. |
+| F38 | 🟡 | `dashboard/page.jsx:335-364` | El contador del guardián descuenta 1 por tick de `setInterval` en vez de calcular contra la hora de inicio. Con la pestaña en segundo plano el navegador espacia los ticks (hasta 1 por minuto): tras 5 min oculto muestra `29:55` en lugar de `25:00` (295 s de atraso), y la pre-alerta y la alerta se disparan tarde. Medido en `bench/dashboard-guardian-timer.perf.jsx` (ver `docs/PERFORMANCE.md`). Relacionado con F28 y DT-35. |
 
 ## Manejo de errores
 

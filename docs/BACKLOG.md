@@ -120,6 +120,7 @@ Fuera de alcance hasta que se habilite trabajar la BD. No se modifica esquema ni
 | BD-16 | Subconsultas correlacionadas por fila (`COUNT`, `LISTAGG`, nombre del pasajero). | `admin/conductores:22-23`, `admin/viajes:19-22`, `guardian:37-43` |
 | BD-17 | Los mensajes se guardan por par de usuarios y no por solicitud (F4): falta la FK al chat. | `mensajes/route.js:44-50, 114-117` |
 | BD-18 | `getOrCreateMunicipio` y `getOrCreateMarca` hacen 2 a 4 queries secuenciales por publicación, con búsqueda por nombre sin normalizar acentos. | `viajes/route.js:7-76` |
+| BD-19 | El chat abierto pide el historial completo cada 3 s (20 req/min; ~62 KB/min con 40 mensajes, ver `docs/PERFORMANCE.md`). Pedir solo los mensajes nuevos requiere una query con filtro por ID o fecha (DT-33). | `mensajes/route.js` (GET), `dashboard/page.jsx:451-478` |
 
 ## Dependencias entre ítems
 
