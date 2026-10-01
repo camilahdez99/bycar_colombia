@@ -73,6 +73,8 @@ export function useGuardian(currentUser) {
       if (next <= 0 && !alertaEnviadaRef.current) {
         alertaEnviadaRef.current = true;
         setAlertaEnviada(true);
+        // Con la alerta enviada ya no se puede extender: se cierra la pre-alerta (BUGS F40)
+        setShowReadjustModal(false);
         toast.error('🚨 TIEMPO AGOTADO. Alerta activada para tu contacto.', { duration: 15000 });
         // Sincronizar estado con la BD
         const gId = guardianIdRef.current;
@@ -201,6 +203,8 @@ export function useGuardian(currentUser) {
   };
 
   const reajustarTiempo = async () => {
+    // Tras la alerta el intervalo ya se detuvo: extender dejaba el contador congelado (BUGS F40)
+    if (alertaEnviadaRef.current) return;
     if (guardianId) {
       if (!(await actualizar({ extraTiempo: EXTENSION_GUARDIAN_MIN }))) {
         toast.error('No se pudo extender el tiempo. Intenta de nuevo.');
