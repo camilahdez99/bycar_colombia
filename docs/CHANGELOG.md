@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-10-01 — Organización y legibilidad: componentes, lint y primeros cortes del dashboard
+## 2026-10-01 — Organización y legibilidad: componentes, lint y división del dashboard
 
 Rama `refactor/organizacion` (worktree `../bycar_colombia-organizacion`, desde `7e19e1b`). Un commit por lote.
 
@@ -9,11 +9,14 @@ Rama `refactor/organizacion` (worktree `../bycar_colombia-organizacion`, desde `
 - `0b9b5b1` DT-38 (parcial): `DynamicForm` reinicia el formulario durante el render cuando cambian `columns` o `initialData` (antes, un efecto con un render extra vacío); `HydrationWrapper` usa `useSyncExternalStore`. Tests nuevos para ambos, que pasan con el código anterior y con el nuevo.
 - `f686ee7` DT-34 (paso 2 parcial): `Autocomplete` a `components/dashboard/`, tal cual y con el fix de F34.
 - `e5e2be5` DT-34 (paso 2 parcial): `DetallesViajeModal` a `components/dashboard/`, con el mismo markup.
+- `71bcf65`, `4f6489a` DT-34 (paso 2): `PreAlertaGuardianModal` y `PublicarViajeModal`. Los 4 modales viven en archivos propios.
+- `978f0b3`, `e4a2a96`, `0487823`, `0428409` DT-34 (paso 4): una pestaña por componente: `MisRutasTab`, `SolicitudesTab`, `MensajesTab`, `InicioTab`, `BuscarTab` y el guardián en `GuardianEnCurso`, `GuardianInicio` y `ConfigurarGuardianModal`. Son solo de presentación: reciben datos y callbacks. `InicioTab` recibe el nombre ya resuelto y los permisos como booleanos, así no conoce columnas de Oracle (DT-42).
+- `app/dashboard/page.jsx` pasa de 1 255 a 816 líneas.
 
 **Lo que no se hizo y por qué**
 - Formateo: el proyecto no tiene Prettier ni otro formateador, y agregarlo es una dependencia nueva (regla 6). Propuesta: `prettier` como devDependency con `singleQuote: true`, `printWidth: 100` y `eslint-config-prettier`, aplicado en un commit propio de solo formato. Requiere confirmación.
 - Valores mágicos: ya estaban centralizados (DT-08, DT-09). Las piezas extraídas no agregan nuevos.
-- Resto de DT-34 y de DT-38: tocan el guardián, las solicitudes y el polling, que están editando otras sesiones (`fix/frontend-bugs` con F35–F37; performance con DT-33/DT-35/DT-45). Se retoman cuando esas ramas estén integradas.
+- DT-34 paso 3 (hooks por dominio) y el resto de DT-38 (3 errores de lint en los efectos del dashboard): mueven o cambian justo las funciones y efectos que modifican `fix/frontend-bugs` (F35–F37) y `perf/mediciones` (DT-33). Se retoman cuando esas ramas estén integradas.
 - DT-42 (normalizar el usuario del login) cambia el contrato de la API: requiere confirmación.
 
 **Tests corridos (en cada lote)**
@@ -24,7 +27,8 @@ Rama `refactor/organizacion` (worktree `../bycar_colombia-organizacion`, desde `
 **Riesgos pendientes**
 - `HydrationWrapper`: en una navegación del lado del cliente (sin hidratación) los hijos se renderizan en el primer render en lugar de después de montar. En el servidor y durante la hidratación sigue devolviendo vacío.
 - Con varias sesiones corriendo `vitest` en la misma máquina, una corrida informó 47 de 49 archivos sin marcar fallas; se repitió y dio 49/49. Conviene mirar el total de archivos y no solo "passed".
-- La rama sale de `7e19e1b`: hay que integrarla en `mejoras/backlog-pendiente` (sin conflictos esperados con `fix/api-backlog`; con `fix/frontend-bugs` solo comparte `app/dashboard/page.jsx`, en zonas distintas).
+- La rama sale de `7e19e1b` y no está integrada. Merge de prueba (`git merge-tree`, sin tocar ramas): `app/dashboard/page.jsx` se integra automáticamente con `fix/frontend-bugs` y con `perf/mediciones`, también las tres juntas; con `fix/api-backlog` no hay conflictos. Solo chocan `CHANGELOG.md` y `BACKLOG.md`, porque todas las ramas agregan arriba: hay que resolverlos a mano.
+- Las pestañas extraídas no tienen tests propios: las cubren los tests del dashboard de punta a punta.
 
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 
