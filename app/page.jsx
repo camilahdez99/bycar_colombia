@@ -1,67 +1,15 @@
-'use client';
+import { LandingNav } from '@/components/landing/LandingNav';
+import { HeroTexto } from '@/components/landing/HeroTexto';
+import { PasosAnimados } from '@/components/landing/PasosAnimados';
+import { GuardianesAnimados } from '@/components/landing/GuardianesAnimados';
+import { CtaFinal } from '@/components/landing/CtaFinal';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-
-/* ─── tiny hook: triggers once when element enters viewport ─── */
-function useInView(threshold = 0.15) {
-  const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
-      { threshold }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return [ref, visible];
-}
-
-/* ─── animated counter ─── */
-function Counter({ target, suffix = '' }) {
-  const [val, setVal] = useState(0);
-  const [ref, visible] = useInView();
-  useEffect(() => {
-    if (!visible) return;
-    const num = parseInt(target.replace(/\D/g, ''), 10);
-    const step = Math.ceil(num / 60);
-    let cur = 0;
-    const id = setInterval(() => {
-      cur = Math.min(cur + step, num);
-      setVal(cur);
-      if (cur >= num) clearInterval(id);
-    }, 18);
-    return () => clearInterval(id);
-  }, [visible, target]);
-  return <span ref={ref}>{target.startsWith('+') ? '+' : ''}{val.toLocaleString()}{suffix}</span>;
-}
-
+/*
+ * Server component: los estilos y el contenido estático se renderizan en el servidor.
+ * Solo son de cliente las partes con estado: el nav (scroll), la entrada del hero
+ * y las secciones que se animan al entrar en pantalla (BACKLOG DT-45).
+ */
 export default function LandingPage() {
-  const router = useRouter();
-  const [heroReady, setHeroReady] = useState(false);
-  const [navScrolled, setNavScrolled] = useState(false);
-
-  /* hero entrance — tiny delay so CSS is painted */
-  useEffect(() => {
-    const t = setTimeout(() => setHeroReady(true), 80);
-    return () => clearTimeout(t);
-  }, []);
-
-  /* nav shadow on scroll */
-  useEffect(() => {
-    const onScroll = () => setNavScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  /* ── in-view refs for each section ── */
-  const [stepsRef, stepsVisible] = useInView();
-  const [featRef, featVisible] = useInView();
-  const [ctaRef, ctaVisible] = useInView();
-
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
@@ -389,24 +337,7 @@ export default function LandingPage() {
       ` }} />
 
       {/* ── NAV ── */}
-      <nav className={navScrolled ? 'scrolled' : ''}>
-        <div onClick={() => router.push('/')} className="nav-logo">
-          <svg width="36" height="24" viewBox="0 0 40 26" fill="none">
-            <rect x="2" y="10" width="36" height="12" rx="3" fill="#E52222" />
-            <circle cx="10" cy="22" r="4" fill="#0d0d0d" stroke="#fff" strokeWidth="1.5" />
-            <circle cx="30" cy="22" r="4" fill="#0d0d0d" stroke="#fff" strokeWidth="1.5" />
-          </svg>
-          <span>Bycar</span>
-        </div>
-        <div className="nav-links">
-          <a href="#como-funciona">Cómo funciona</a>
-          <a href="#seguridad">Seguridad</a>
-        </div>
-        <div className="nav-actions">
-          <button className="btn-ghost" onClick={() => router.push('/login')}>Iniciar sesión</button>
-          <button className="btn-red" onClick={() => router.push('/register')}>Registrarse</button>
-        </div>
-      </nav>
+      <LandingNav />
 
       {/* ── HERO ── */}
       <div className="hero">
@@ -431,45 +362,14 @@ export default function LandingPage() {
           />
         ))}
 
-        <div className="hero-content">
-          <div className={`hero-badge${heroReady ? ' ready' : ''}`}>
-            Carpooling intermunicipal en Colombia
-          </div>
-          <h1 className={`hero-title${heroReady ? ' ready' : ''}`}>
-            Viaja entre ciudades.<br />
-            <span className="accent">
-              <span className="accent-wrap">Comparte el camino.</span>
-            </span>
-          </h1>
-          <p className={`hero-sub${heroReady ? ' ready' : ''}`}>
-            Conectamos conductores y viajeros en rutas intermunicipales.<br />
-            Más económico, más cómodo y más seguro.
-          </p>
-        </div>
+        <HeroTexto />
       </div>
 
       {/* ── CÓMO FUNCIONA ── */}
       <section id="como-funciona">
         <span className="section-label">Proceso</span>
         <h2 className="section-title">¿Cómo funciona Bycar?</h2>
-        <div className="steps" ref={stepsRef}>
-          {[
-            { n: '01', title: 'Regístrate gratis', body: 'Crea tu cuenta y verifica tu identidad para una comunidad más segura.' },
-            { n: '02', title: 'Publica o busca',   body: 'Como conductor ofrece tus puestos; como viajero busca tu ruta ideal.' },
-            { n: '03', title: 'Viaja seguro',       body: 'Coordina el punto de encuentro y disfruta de un viaje cómodo y directo.' },
-            { n: '04', title: 'Comparte tu viaje',  body: 'Califica la experiencia y ayúdanos a construir una comunidad confiable.' },
-          ].map((s, i) => (
-            <div
-              key={i}
-              className={`step-card${stepsVisible ? ' visible' : ''}`}
-              style={{ '--delay': `${i * 0.1}s` }}
-            >
-              <div className="step-num">{s.n}</div>
-              <h3>{s.title}</h3>
-              <p>{s.body}</p>
-            </div>
-          ))}
-        </div>
+        <PasosAnimados />
       </section>
 
       {/* ── SEGURIDAD ── */}
@@ -479,88 +379,11 @@ export default function LandingPage() {
           Red de Guardianes <span style={{ color: 'var(--red)' }}>de Ruta</span>
         </h2>
 
-        <div className="guardianes-container" ref={featRef}>
-          <div className="features-list">
-            {[
-              {
-                icon: '🛡️',
-                title: 'Temporizador de Vida',
-                body: 'Al iniciar tu viaje, defines el tiempo estimado. Si no marcas tu llegada a tiempo, activamos el protocolo.',
-                delay: '0s',
-              },
-              {
-                icon: '🔔',
-                title: 'Alertas Automáticas',
-                body: 'Si el tiempo expira sin confirmación, enviamos una alerta inmediata a tu contacto de confianza.',
-                delay: '.12s',
-              },
-              {
-                icon: '👥',
-                title: 'Contactos de Confianza',
-                body: 'Tú eliges quién recibirá tus notificaciones de seguridad.',
-                delay: '.24s',
-              },
-            ].map((f, i) => (
-              <div
-                key={i}
-                className={`feature-item${featVisible ? ' visible' : ''}`}
-                style={{ '--delay': f.delay }}
-              >
-                <div className="feature-icon">{f.icon}</div>
-                <div className="feature-text">
-                  <h4>{f.title}</h4>
-                  <p>{f.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className={`route-visual${featVisible ? ' visible' : ''}`}>
-            <h4 style={{ marginBottom: '1.5rem', fontFamily: 'Syne' }}>Bogotá → Villa de Leyva</h4>
-            <div className="timeline">
-              <div style={{ marginBottom: '2rem' }}>
-                <div className="timeline-point" style={{ top: '5px' }} />
-                <strong style={{ fontSize: '.9rem' }}>Salida — Portal Norte</strong>
-                <p style={{ fontSize: '.75rem', color: 'var(--muted)' }}>6:00 AM · Confirmado</p>
-              </div>
-              <div style={{
-                border: '1px solid var(--red)', padding: '1rem', borderRadius: '12px',
-                background: 'rgba(229,34,34,0.05)',
-              }}>
-                <p style={{ fontSize: '.8rem', color: 'var(--red)', fontWeight: 'bold' }}>⚠️ Alerta de Tiempo</p>
-                <p style={{ fontSize: '.7rem', color: 'var(--muted)' }}>
-                  ¿Has llegado a tu destino? Confirma para evitar alertar a tus contactos.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <GuardianesAnimados />
       </section>
 
       {/* ── CTA ── */}
-      <div
-        ref={ctaRef}
-        className={`cta-section${ctaVisible ? ' visible' : ''}`}
-      >
-        <h2>Únete a la comunidad<br />de viajeros Bycar</h2>
-        <p style={{ color: 'var(--muted)', marginTop: '1rem', marginBottom: '2.5rem' }}>
-          La forma más inteligente de moverte por Colombia.
-        </p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button className="btn-red" style={{ padding: '1rem 2.5rem' }} onClick={() => router.push('/register')}>
-            Crear cuenta gratis
-          </button>
-          <button
-            className="btn-ghost"
-            style={{ border: '1px solid var(--border)', borderRadius: '8px', transition: 'border-color .2s, color .2s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.4)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
-            onClick={() => router.push('/login')}
-          >
-            Ya tengo cuenta
-          </button>
-        </div>
-      </div>
+      <CtaFinal />
 
       {/* ── FOOTER ── */}
       <footer>
