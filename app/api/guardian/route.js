@@ -22,6 +22,11 @@ export async function GET(req) {
     const email = searchParams.get('email');
     const usuarioId = searchParams.get('usuarioId');
 
+    // Se valida antes de abrir la conexión (BUGS E5)
+    if (!email && !usuarioId) {
+      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
+    }
+
     connection = await getConnection();
 
     if (email) {
@@ -95,8 +100,6 @@ export async function GET(req) {
       const result = await connection.execute(sql, { usuarioId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
       return NextResponse.json(result.rows?.[0] || null, { status: 200 });
     }
-
-    return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
   } catch (error) {
     logError('api_error', error, { route: 'GET /api/guardian', mensaje: 'Error en GET Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
@@ -162,6 +165,11 @@ export async function PUT(req) {
   try {
     const { id, estado, extraTiempo } = await req.json();
 
+    // Se valida antes de abrir la conexión (BUGS E5)
+    if (extraTiempo === undefined && !estado) {
+      return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
+    }
+
     connection = await getConnection();
 
     const notParticipant = await checkOwnership(req, (userId) => isGuardianParticipant(connection, id, userId));
@@ -173,13 +181,12 @@ export async function PUT(req) {
       return NextResponse.json({ message: 'Tiempo de viaje reajustado' });
     }
 
-    if (estado) {
-      let sql;
-      let binds = { id };
-      
-      if (isNaN(estado)) {
-        // Si el estado es un texto, buscar dinámicamente el ID en la BD
-        sql = `
+    let sql;
+    let binds = { id };
+
+    if (isNaN(estado)) {
+      // Si el estado es un texto, buscar dinámicamente el ID en la BD
+      sql = `
           UPDATE GUARDIANES 
           SET ESTADO_ID_EST = (
             SELECT ID_EST_GUA 
@@ -189,18 +196,15 @@ export async function PUT(req) {
           )
           WHERE ID_GUA = :id
         `;
-        binds.estadoStr = estado;
-      } else {
-        // Si el frontend ya envió el ID numérico
-        sql = `UPDATE GUARDIANES SET ESTADO_ID_EST = :estadoId WHERE ID_GUA = :id`;
-        binds.estadoId = Number(estado);
-      }
-
-      await connection.execute(sql, binds, { autoCommit: true });
-      return NextResponse.json({ message: 'Estado actualizado' });
+      binds.estadoStr = estado;
+    } else {
+      // Si el frontend ya envió el ID numérico
+      sql = `UPDATE GUARDIANES SET ESTADO_ID_EST = :estadoId WHERE ID_GUA = :id`;
+      binds.estadoId = Number(estado);
     }
 
-    return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
+    await connection.execute(sql, binds, { autoCommit: true });
+    return NextResponse.json({ message: 'Estado actualizado' });
   } catch (error) {
     logError('api_error', error, { route: 'PUT /api/guardian', mensaje: 'Error en PUT Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });

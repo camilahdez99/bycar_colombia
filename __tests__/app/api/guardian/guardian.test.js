@@ -21,12 +21,12 @@ afterEach(() => {
 describe('GET /api/guardian (caracterización)', () => {
   const get = (query) => GET(makeRequest('/api/guardian', { query }));
 
-  test('400 sin email ni usuarioId (comportamiento actual: abre y cierra conexión antes de validar)', async () => {
+  test('400 sin email ni usuarioId, sin abrir conexión (E5)', async () => {
     const conn = createFakeConnection();
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get())).toEqual({ status: 400, body: { error: 'Faltan parámetros' } });
     expect(conn.execute).not.toHaveBeenCalled();
-    expect(conn.close).toHaveBeenCalledOnce();
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('200 por email: lista de alertas tal cual vienen de la BD', async () => {
@@ -210,12 +210,12 @@ describe('PUT /api/guardian (caracterización)', () => {
     expect(conn.calls[0].binds).toEqual({ id: undefined, estadoId: 2 });
   });
 
-  test('400 si no hay nada que actualizar (conexión abierta y cerrada)', async () => {
+  test('400 si no hay nada que actualizar, sin abrir conexión (E5)', async () => {
     const conn = createFakeConnection();
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await put({ id: 11 }))).toEqual({ status: 400, body: { error: 'Nada que actualizar' } });
     expect(conn.execute).not.toHaveBeenCalled();
-    expect(conn.close).toHaveBeenCalledOnce();
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('500 sin exponer error.message (S8) si falla el update', async () => {
