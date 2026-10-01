@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-01 — Estilos de la landing acotados (sidebar del dashboard y admin)
+
+**Qué se hizo**
+- `app/page.jsx`: la landing va envuelta en `<div className="landing">` y todos sus selectores quedan bajo `.landing` (reset `*`, variables CSS, `nav`, `section`, `footer`, `.btn-red`, `.btn-ghost`, etc.). Solo `html` y `body` siguen globales; `body` ahora tiene `margin: 0` y colores literales, porque ya no lo cubren ni el reset ni las variables.
+- Por qué: el `<style>` de la landing queda inyectado al navegar a otra página. Su `nav { position: fixed; top: 0 … }` convertía el menú del sidebar del dashboard (y el del admin) en una barra superior que tapaba el logo, y `.btn-red`, `section` y las variables `:root` pisaban estilos del dashboard.
+- Snapshot de `page-animaciones` actualizado: cambian solo el wrapper y los selectores; el HTML es el mismo.
+
+**Tests**: `npm test` (822 en verde), `npm run lint` y `npm run build` sin errores. En el navegador, la landing se ve igual y un `nav` o `.btn-red` fuera de `.landing` ya no toma sus estilos.
+
+**Riesgos pendientes**
+- `app/login/page.jsx` y `app/register/page.jsx` tienen el mismo problema con selectores globales (`*`, `h1`, `input`, `:root`), y del login se pasa directo al dashboard. Conviene acotarlos igual en tarea aparte.
+
 ## 2026-10-01 — Base de Supabase conectada
 
 Misma rama `feat/migracion-postgres`. Sin cambios de código.

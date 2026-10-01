@@ -8,13 +8,16 @@ import { CtaFinal } from '@/components/landing/CtaFinal';
  * Server component: los estilos y el contenido estático se renderizan en el servidor.
  * Solo son de cliente las partes con estado: el nav (scroll), la entrada del hero
  * y las secciones que se animan al entrar en pantalla (BACKLOG DT-45).
+ *
+ * Los estilos quedan inyectados al navegar a otra página (dashboard, admin): por eso todo
+ * va acotado a .landing. Solo html y body son globales.
  */
 export default function LandingPage() {
   return (
-    <>
+    <div className="landing">
       <style dangerouslySetInnerHTML={{ __html: `
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
+        .landing, .landing *, .landing *::before, .landing *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        .landing {
           --red: #E52222;
           --red-dark: #c01a1a;
           --bg: #0d0d0d;
@@ -24,7 +27,7 @@ export default function LandingPage() {
           --muted: rgba(255,255,255,0.6);
         }
         html { scroll-behavior: smooth; }
-        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        body { margin: 0; font-family: 'DM Sans', sans-serif; background: #0d0d0d; color: #ffffff; min-height: 100vh; overflow-x: hidden; }
 
         /* ═══════════════════════════════════
            KEYFRAMES
@@ -83,7 +86,7 @@ export default function LandingPage() {
         /* ═══════════════════════════════════
            NAV
         ═══════════════════════════════════ */
-        nav {
+        .landing nav {
           position: fixed; top: 0; left: 0; right: 0; z-index: 100;
           display: flex; align-items: center; justify-content: space-between;
           padding: 0 2.5rem; height: 64px;
@@ -92,55 +95,55 @@ export default function LandingPage() {
           backdrop-filter: blur(12px);
           transition: box-shadow .4s, background .4s;
         }
-        nav.scrolled {
+        .landing nav.scrolled {
           box-shadow: 0 4px 40px rgba(0,0,0,.6);
           background: rgba(8,8,8,0.98);
         }
-        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
-        .nav-logo span { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; color: #fff; }
-        .nav-links { display: flex; align-items: center; gap: 2rem; }
-        .nav-links a {
+        .landing .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
+        .landing .nav-logo span { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; color: #fff; }
+        .landing .nav-links { display: flex; align-items: center; gap: 2rem; }
+        .landing .nav-links a {
           color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 500;
           position: relative; padding-bottom: 2px;
           transition: color .2s;
         }
-        .nav-links a::after {
+        .landing .nav-links a::after {
           content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
           height: 1px; background: var(--red);
           transform: scaleX(0); transform-origin: left;
           transition: transform .25s ease;
         }
-        .nav-links a:hover { color: #fff; }
-        .nav-links a:hover::after { transform: scaleX(1); }
-        .nav-actions { display: flex; align-items: center; gap: 1rem; }
-        .btn-ghost {
+        .landing .nav-links a:hover { color: #fff; }
+        .landing .nav-links a:hover::after { transform: scaleX(1); }
+        .landing .nav-actions { display: flex; align-items: center; gap: 1rem; }
+        .landing .btn-ghost {
           background: none; border: none; color: #fff;
           font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: .9rem;
           cursor: pointer; padding: .5rem 1rem;
           transition: color .2s;
         }
-        .btn-ghost:hover { color: var(--red); }
-        .btn-red {
+        .landing .btn-ghost:hover { color: var(--red); }
+        .landing .btn-red {
           background: var(--red); color: #fff; border: none;
           font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: .9rem;
           padding: .55rem 1.3rem; border-radius: 8px; cursor: pointer;
           transition: background .2s, transform .15s, box-shadow .2s;
           position: relative; overflow: hidden;
         }
-        .btn-red::before {
+        .landing .btn-red::before {
           content: ''; position: absolute; inset: 0;
           background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.15) 50%, transparent 70%);
           background-size: 200% auto;
           opacity: 0; transition: opacity .2s;
         }
-        .btn-red:hover { background: var(--red-dark); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(229,34,34,.35); }
-        .btn-red:hover::before { opacity: 1; animation: shimmer .6s linear; }
-        .btn-red:active { transform: translateY(0); }
+        .landing .btn-red:hover { background: var(--red-dark); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(229,34,34,.35); }
+        .landing .btn-red:hover::before { opacity: 1; animation: shimmer .6s linear; }
+        .landing .btn-red:active { transform: translateY(0); }
 
         /* ═══════════════════════════════════
            HERO
         ═══════════════════════════════════ */
-        .hero {
+        .landing .hero {
           position: relative; min-height: 90vh;
           display: flex; flex-direction: column; justify-content: center;
           align-items: center; text-align: center;
@@ -148,19 +151,19 @@ export default function LandingPage() {
           background: #0d0d0d;
           overflow: hidden;
         }
-        .hero-bg {
+        .landing .hero-bg {
           position: absolute; inset: 0; z-index: 0;
           background: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80') center/cover no-repeat;
           opacity: 0.25;
           animation: bgDrift 20s ease-in-out infinite;
         }
-        .hero-bg::after {
+        .landing .hero-bg::after {
           content: ''; position: absolute; inset: 0;
           background: radial-gradient(circle, rgba(13,13,13,0.4) 0%, rgba(13,13,13,1) 80%);
         }
 
         /* floating ambient dots */
-        .hero-dot {
+        .landing .hero-dot {
           position: absolute; border-radius: 50%;
           background: var(--red); pointer-events: none; z-index: 0;
           animation: floatDot var(--dur, 6s) ease-in-out infinite;
@@ -169,10 +172,10 @@ export default function LandingPage() {
           filter: blur(1px);
         }
 
-        .hero-content { position: relative; z-index: 1; max-width: 850px; }
+        .landing .hero-content { position: relative; z-index: 1; max-width: 850px; }
 
         /* staggered entrance */
-        .hero-badge {
+        .landing .hero-badge {
           display: inline-flex; align-items: center; gap: 6px;
           border: 1px solid rgba(229,34,34,0.3); color: var(--red);
           background: rgba(229,34,34,0.1);
@@ -180,49 +183,49 @@ export default function LandingPage() {
           padding: .4rem 1rem; border-radius: 999px; margin-bottom: 1.5rem;
           opacity: 0;
         }
-        .hero-badge.ready {
+        .landing .hero-badge.ready {
           animation: slideUp .6s cubic-bezier(.22,1,.36,1) .1s forwards;
         }
 
-        .hero-title {
+        .landing .hero-title {
           font-family: 'Syne', sans-serif;
           font-size: clamp(2.5rem, 6vw, 4.2rem); font-weight: 800; line-height: 1.1; margin-bottom: 1.5rem;
           opacity: 0;
         }
-        .hero-title.ready {
+        .landing .hero-title.ready {
           animation: slideUp .7s cubic-bezier(.22,1,.36,1) .25s forwards;
         }
-        .hero-title .accent { color: var(--red); }
+        .landing .hero-title .accent { color: var(--red); }
 
         /* underline on accent */
-        .hero-title .accent-wrap {
+        .landing .hero-title .accent-wrap {
           position: relative; display: inline-block;
         }
-        .hero-title .accent-wrap::after {
+        .landing .hero-title .accent-wrap::after {
           content: ''; position: absolute; bottom: -4px; left: 0; right: 0; height: 3px;
           background: var(--red); border-radius: 2px;
           transform: scaleX(0); transform-origin: left;
         }
-        .hero-title.ready .accent-wrap::after {
+        .landing .hero-title.ready .accent-wrap::after {
           animation: underlineExpand .5s cubic-bezier(.22,1,.36,1) .95s forwards;
         }
 
-        .hero-sub {
+        .landing .hero-sub {
           color: var(--muted); font-size: 1.1rem; line-height: 1.6;
           margin: 0 auto 2.5rem; max-width: 600px;
           opacity: 0;
         }
-        .hero-sub.ready {
+        .landing .hero-sub.ready {
           animation: slideUp .65s cubic-bezier(.22,1,.36,1) .4s forwards;
         }
 
-        .hero-cta {
+        .landing .hero-cta {
           opacity: 0;
         }
-        .hero-cta.ready {
+        .landing .hero-cta.ready {
           animation: slideUp .6s cubic-bezier(.22,1,.36,1) .55s forwards;
         }
-        .hero-cta .btn-red {
+        .landing .hero-cta .btn-red {
           padding: 1rem 2.5rem; font-size: 1rem;
           animation: ring 2.4s ease-in-out 1.8s infinite;
         }
@@ -230,16 +233,16 @@ export default function LandingPage() {
         /* ═══════════════════════════════════
            SECTIONS
         ═══════════════════════════════════ */
-        section { padding: 8rem 2.5rem; max-width: 1200px; margin: 0 auto; }
-        .section-label { color: var(--red); font-size: .75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; display: block; }
-        .section-title { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 3rem; }
+        .landing section { padding: 8rem 2.5rem; max-width: 1200px; margin: 0 auto; }
+        .landing .section-label { color: var(--red); font-size: .75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; display: block; }
+        .landing .section-title { font-family: 'Syne', sans-serif; font-size: clamp(2rem, 4vw, 3rem); font-weight: 800; margin-bottom: 3rem; }
 
         /* ─── STEPS ─── */
-        .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
-        @media (max-width: 1024px) { .steps { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 560px)  { .steps { grid-template-columns: 1fr; } }
+        .landing .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+        @media (max-width: 1024px) { .landing .steps { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px)  { .landing .steps { grid-template-columns: 1fr; } }
 
-        .step-card {
+        .landing .step-card {
           background: var(--card); border: 1px solid var(--border);
           border-radius: 16px; padding: 2.5rem;
           opacity: 0; transform: translateY(40px);
@@ -248,16 +251,16 @@ export default function LandingPage() {
             box-shadow .25s,
             transform .25s cubic-bezier(.22,1,.36,1);
         }
-        .step-card.visible {
+        .landing .step-card.visible {
           animation: cardReveal .55s cubic-bezier(.22,1,.36,1) var(--delay, 0s) forwards;
         }
-        .step-card:hover {
+        .landing .step-card:hover {
           border-color: rgba(229,34,34,.5);
           box-shadow: 0 8px 32px rgba(229,34,34,.1);
           transform: translateY(-4px);
         }
 
-        .step-num {
+        .landing .step-num {
           width: 42px; height: 42px; border-radius: 12px;
           background: rgba(229,34,34,0.15); border: 1px solid rgba(229,34,34,0.3);
           display: flex; align-items: center; justify-content: center;
@@ -265,49 +268,49 @@ export default function LandingPage() {
           margin-bottom: 1.5rem;
           transition: background .25s, transform .25s;
         }
-        .step-card:hover .step-num {
+        .landing .step-card:hover .step-num {
           background: rgba(229,34,34,.28);
           transform: rotate(-6deg) scale(1.08);
         }
-        .step-card h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: .75rem; }
-        .step-card p { color: var(--muted); font-size: .9rem; line-height: 1.6; }
+        .landing .step-card h3 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin-bottom: .75rem; }
+        .landing .step-card p { color: var(--muted); font-size: .9rem; line-height: 1.6; }
 
         /* ─── GUARDIANES ─── */
-        .guardianes-container {
+        .landing .guardianes-container {
           display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; margin-top: 1rem;
         }
-        .feature-item {
+        .landing .feature-item {
           display: flex; gap: 1.5rem; margin-bottom: 2rem;
           opacity: 0; transform: translateX(-24px);
           transition: opacity .5s, transform .5s cubic-bezier(.22,1,.36,1);
         }
-        .feature-item.visible {
+        .landing .feature-item.visible {
           opacity: 1; transform: translateX(0);
           transition-delay: var(--delay, 0s);
         }
-        .feature-icon {
+        .landing .feature-icon {
           width: 48px; height: 48px; background: rgba(229,34,34,0.1);
           border-radius: 12px; display: flex; align-items: center; justify-content: center;
           color: var(--red); flex-shrink: 0;
           transition: background .25s, transform .3s cubic-bezier(.34,1.56,.64,1);
         }
-        .feature-item:hover .feature-icon {
+        .landing .feature-item:hover .feature-icon {
           background: rgba(229,34,34,.22);
           transform: scale(1.12) rotate(-4deg);
         }
-        .feature-text h4 { font-family: 'Syne', sans-serif; font-size: 1.1rem; margin-bottom: .4rem; }
-        .feature-text p { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+        .landing .feature-text h4 { font-family: 'Syne', sans-serif; font-size: 1.1rem; margin-bottom: .4rem; }
+        .landing .feature-text p { color: var(--muted); font-size: .9rem; line-height: 1.5; }
 
-        .route-visual {
+        .landing .route-visual {
           border: 1px solid var(--border); border-radius: 24px; padding: 2rem;
           background: rgba(255,255,255,0.02);
           opacity: 0; transform: translateX(24px);
           transition: opacity .6s .2s, transform .6s .2s cubic-bezier(.22,1,.36,1);
         }
-        .route-visual.visible { opacity: 1; transform: translateX(0); }
+        .landing .route-visual.visible { opacity: 1; transform: translateX(0); }
 
-        .timeline { position: relative; padding-left: 2rem; border-left: 2px dashed var(--border); }
-        .timeline-point {
+        .landing .timeline { position: relative; padding-left: 2rem; border-left: 2px dashed var(--border); }
+        .landing .timeline-point {
           position: absolute; left: -7px; width: 12px; height: 12px;
           background: var(--red); border-radius: 50%;
           box-shadow: 0 0 0 0 rgba(229,34,34,.5);
@@ -315,7 +318,7 @@ export default function LandingPage() {
         }
 
         /* ─── CTA ─── */
-        .cta-section {
+        .landing .cta-section {
           text-align: center;
           background: linear-gradient(135deg, rgba(229,34,34,0.1), rgba(229,34,34,0.03));
           border: 1px solid rgba(229,34,34,0.2); border-radius: 24px;
@@ -323,16 +326,16 @@ export default function LandingPage() {
           opacity: 0; transform: translateY(30px);
           transition: opacity .65s, transform .65s cubic-bezier(.22,1,.36,1);
         }
-        .cta-section.visible { opacity: 1; transform: translateY(0); }
+        .landing .cta-section.visible { opacity: 1; transform: translateY(0); }
 
         /* ─── FOOTER ─── */
-        footer { border-top: 1px solid var(--border); padding: 2.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .landing footer { border-top: 1px solid var(--border); padding: 2.5rem; display: flex; justify-content: space-between; align-items: center; }
 
         /* ─── RESPONSIVE ─── */
         @media (max-width: 900px) {
-          .guardianes-container { grid-template-columns: 1fr; gap: 3rem; }
-          .hero h1 { font-size: 2.8rem; }
-          footer { flex-direction: column; gap: 1.5rem; text-align: center; }
+          .landing .guardianes-container { grid-template-columns: 1fr; gap: 3rem; }
+          .landing .hero h1 { font-size: 2.8rem; }
+          .landing footer { flex-direction: column; gap: 1.5rem; text-align: center; }
         }
       ` }} />
 
@@ -389,6 +392,6 @@ export default function LandingPage() {
       <footer>
         <p>© 2026 Bycar · Medellín, Colombia</p>
       </footer>
-    </>
+    </div>
   );
 }
