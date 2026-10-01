@@ -42,7 +42,7 @@ Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 · Oracle vía `or
 
 - Instalar dependencias: `npm ci`
 - Tests: `npm test` (modo watch: `npm run test:watch`)
-- Lint: `npm run lint` — ⚠️ falla en la línea base (ver `docs/BACKLOG.md`); verificar que no aparezcan errores NUEVOS
+- Lint: `npm run lint` — en verde (0 errores y 0 warnings); es obligatorio en CI
 - Build: `npm run build`
 - Levantar local: `npm run dev` (requiere `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING` en `.env.local`)
 
@@ -55,7 +55,7 @@ Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 · Oracle vía `or
 - Toda ruta de usuario que reciba IDs debe validar la pertenencia (`requireSelf` o `checkOwnership` de `lib/auth/ownership.js`) y declarar su regla en `COBERTURA` de `__tests__/app/api/idor.test.js`.
 - Todo `fetch` del frontend a la API debe usar `fetchConSesion` (`lib/client/sessionFetch.js`). Única excepción: `login` y `register`, que usan `fetch` directo porque sus 401 son credenciales inválidas, no una sesión vencida (con `fetchConSesion` se recargaría la página).
 
-Suite completa antes de commitear: `npm test` + `npm run build` + lint sin errores nuevos.
+Suite completa antes de commitear: `npm test` + `npm run build` + `npm run lint` sin errores ni warnings.
 
 ## Notas de entorno
 
