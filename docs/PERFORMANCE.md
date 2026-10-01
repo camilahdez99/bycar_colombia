@@ -1,0 +1,75 @@
+# Performance — mediciones y optimizaciones
+
+Línea base tomada el 2026-10-01 sobre `7e19e1b` (rama `mejoras/backlog-pendiente`), en el worktree `perf/mediciones`.
+Máquina: Windows 11, 8 núcleos, Node 24.19. Sin BD local (no hay `.env.local`): ver [Fuera de alcance](#fuera-de-alcance-bd-pendiente).
+
+Regla de aceptación: una optimización se queda solo si mejora **al menos 10 %** la métrica principal de su ítem; si no, se revierte.
+
+## Cómo reproducir
+
+| Benchmark | Comando | Qué mide | Ítems |
+|---|---|---|---|
+| `bench/dashboard-polling.perf.jsx` | `npm run perf:dashboard` | Requests y KB por minuto del dashboard en régimen estable (10 min simulados con relojes falsos), por pestaña y con la pestaña del navegador visible u oculta. | DT-33 |
+| `bench/dashboard-guardian-timer.perf.jsx` | `npm run perf:dashboard` | Con el guardián activo: commits de React por segundo (Profiler), llamadas a `normalizar()` por segundo (filtro del Autocomplete), ms de render, y desfase del contador tras 5 min en segundo plano. | DT-35 |
+| `bench/front-load.mjs` | `npm run build && npm run perf:front` | Contra `next start` (producción): TTFB, peso de HTML/JS/CSS (gzip), texto que llega renderizado del servidor, `@import` externos, ruta crítica del CSS en primera visita y RSS del servidor. | DT-26, DT-41, DT-45 |
+| `bench/browser-metrics.js` | Pegar en la consola de Chromium | FCP, LCP, DCL, fuentes y heap de JS. Uso manual: el panel del navegador integrado estaba oculto y no emite eventos de pintado. | DT-26, DT-45 |
+
+Los resultados quedan en `bench/resultados/*.json` (ignorado por git). Los datos de prueba son sintéticos y de tamaño realista (`bench/fixtures.js`: 1 021 municipios, 20 rutas, 5 chats, historial de 40 mensajes).
+
+**Ruido:** los conteos (requests, commits, llamadas) son deterministas. Los milisegundos en jsdom variaron hasta 7× entre corridas por la carga de la máquina (otras sesiones compilando en paralelo), así que se informan como dato secundario con su rango y no se usan para aceptar o rechazar.
+
+## Línea base
+
+### DT-33 · Polling del dashboard (3 corridas, valores idénticos)
+
+| Escenario | requests/min | KB/min | Detalle |
+|---|---|---|---|
+| Inicio, pestaña visible | 12 | 26,3 | `mis-rutas` 6/min, `chats` 6/min |
+| Inicio, pestaña **oculta** | 12 | 26,3 | igual que visible: no se pausa |
+| Mensajes, chat abierto (40 msjs) | 32 | 87,8 | `mensajes?chatId` 20/min (historial completo cada 3 s), `mis-rutas` 6/min, `chats` 6/min |
+| Mensajes, chat abierto, pestaña **oculta** | 32 | 87,8 | igual que visible |
+
+Cada request abre y cierra una conexión a Oracle (BD-06): con el chat abierto son 32 conexiones por minuto y por usuario, aunque nadie esté mirando la pestaña.
+
+### DT-35 · Temporizador del guardián (3 corridas)
+
+| Escenario | commits/s del dashboard | `normalizar()`/s | ms render/s (rango) |
+|---|---|---|---|
+| Inicio, buscando un municipio en el Autocomplete | 1,1 | 1 125 | 24–38 |
+| Pestaña Guardián (mirando el contador) | 1,1 | 0 | 12–91 |
+| Desfase tras 5 min en segundo plano (1 tick/min) | — | — | muestra `29:55`, debería `25:00`: **295 s de error** |
+
+Cada segundo se vuelve a renderizar el dashboard entero (1 255 líneas); en Inicio, cada tick refiltra los 1 021 municipios. El 0,1 commits/s extra viene del polling (DT-33). El desfase es el bug F38 (`docs/BUGS.md`, relacionado con F28): se registra acá como métrica, pero no se corrige dentro de una optimización.
+
+### Carga del front (build de producción, mediana de 15 requests × 3 corridas)
+
+| Ruta | TTFB ms | HTML KB gz | Texto SSR (chars) | JS KB gz (crudo) | CSS KB gz | `@import` externos | Ruta crítica CSS ms |
+|---|---|---|---|---|---|---|---|
+| `/` | 13–14 | 6,7 | 1 331 | 191 (644) | 8,1 | 1 | 113–122 |
+| `/login` | 13–15 | 3,0 | 281 | 191 (640) | 5,1 | 1 | 110–124 |
+| `/dashboard` | 14–16 | 2,3 | **0** | 201 (687) | 5,1 | 1 | 112–118 |
+| `/admin` | 14–15 | 2,3 | **0** | 191 (639) | 5,1 | 1 | 111–115 |
+
+- **RSS del servidor:** 98–102 MB tras calentar, 115–139 MB tras 300 requests.
+- **Texto SSR 0** en dashboard y admin: `HydrationWrapper` renderiza `null` hasta montar (DT-41); el usuario ve la página en blanco hasta que baja y corre todo el JS.
+- **`@import` externo:** `globals.css` importa Google Fonts (Syne y DM Sans) con `@import`. El navegador recién lo descubre cuando terminó de bajar el CSS de la app, así que son dos viajes en serie que bloquean el render en todas las páginas (DT-26).
+- **Navegador (Chromium, primera visita a `/`):** el CSS de la app terminó a los 631 ms y el CSS de Google Fonts recién empezó a los 696 ms y terminó a los 1 064 ms. Es el último recurso que bloquea el render. Con caché caliente, la diferencia desaparece (todo termina en 25–60 ms).
+
+## Fuera de alcance (`bd-pendiente`)
+
+- **Latencia de la API:** no se midió de punta a punta porque no hay BD local. El costo dominante es abrir una conexión por request (BD-06, sin pool). Ninguna optimización de este documento toca queries, conexiones ni el driver.
+- **Historial del chat incremental:** `GET /api/mensajes?chatId` devuelve el historial completo cada 3 s (20 req/min, ~62 KB/min con 40 mensajes). Pedir solo los mensajes nuevos requiere una query con filtro por ID o fecha: se registra como `bd-pendiente` (BD-19 en `docs/BACKLOG.md`).
+
+## Optimizaciones propuestas (ganancia estimada / riesgo)
+
+| # | Ítem | Cambio | Ganancia estimada | Riesgo | Estado |
+|---|---|---|---|---|---|
+| 1 | DT-33a | Pausar el polling (10 s y chat de 3 s) mientras `document.hidden`; al volver, refrescar enseguida. | −100 % de requests con la pestaña oculta (12→0 y 32→0 por min) | bajo | espera DT-34 (sesión 4, mismo archivo) |
+| 2 | DT-26 (acotado) | Sacar el `@import` de Google Fonts de `globals.css` y cargarlo con `<link>` + `preconnect` en el layout. No toca las 42 referencias literales a `'Syne'`/`'DM Sans'`. | Descubrimiento en paralelo con el CSS de la app: menos ruta crítica en primera visita | bajo | en curso |
+| 3 | DT-35 | Mover el contador a un componente propio para que el tick no vuelva a renderizar el dashboard ni refiltre municipios. Sin tocar la forma de descontar (F38 va aparte). | −90 % o más de commits del dashboard por segundo; `normalizar()`/s de 1 125 a 0 | medio | espera DT-34 |
+| 4 | DT-41 | Quitar `HydrationWrapper` del dashboard y del admin (leer `localStorage` en efectos) para que el servidor mande HTML. | Texto SSR > 0; pinta antes que el JS | medio | espera DT-38 (sesión 4 mueve el archivo) |
+| 5 | DT-45 | Landing como server component; el cliente solo para contador, nav y animaciones. | Menos JS en `/` | medio | lo hace la sesión 6; acá solo se mide |
+
+## Resultados (antes / después)
+
+_Se completa a medida que se aplica cada optimización._

@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "perf:dashboard": "vitest run --config bench/vitest.config.mjs",
+    "perf:front": "node bench/front-load.mjs"
   },
   "dependencies": {
     "jose": "^6.2.12",
