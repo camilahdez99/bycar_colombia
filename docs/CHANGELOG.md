@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-10-01 — Integración de las ramas de deuda técnica y bugs
+
+Rama `integracion/2026-10-01` (worktree `../bycar_colombia-integracion`), creada desde `main` (`1e7f479`). Un merge `--no-ff` por rama, con la suite completa después de cada uno.
+
+**Orden de integración**
+1. `mejoras/backlog-pendiente` (fast-forward): bloques 1 a 3 de deuda técnica, caracterización, F34 y DT-06.
+2. `fix/frontend-bugs` (sesión 3): F33, F35, F36, F37 y DT-49.
+3. `chore/deps-seguridad` (sesión 8): dependencias y S5. Conflicto en `package.json`: `@vitest/coverage-v8` quedó en `^5.0.3`, la misma versión que `vitest` (DT-49 lo exige); el lockfile solo suma las dependencias de cobertura.
+4. `chore/dt46-rutas-admin` (sesión 5): DT-46.
+5. `refactor/organizacion` (sesión 4): DT-43, DT-38 parcial y DT-34 pasos 2 y 4.
+6. `fix/frontend-bugs-2`: F1, F8, F9, F28 (parcial), F29, F30, F31 y E6.
+7. `fix/api-backlog`: S8, E1, E2, E4, E5, DT-31 y los bugs de API.
+8. `mejoras/varios` (sesión 6): DT-45.
+9. `perf/mediciones` (sesión 7): DT-33 y benchmarks. Su bug «F38» (el contador del guardián se atrasa en segundo plano) chocaba con el F38 de la sesión 3: quedó renumerado como **F39**, también en `docs/PERFORMANCE.md`.
+
+Después de integrar se corrigió **F38** (finalizar y extender el guardián no revisaban el `PUT`).
+
+**Conflictos:** solo en `docs/` y `package.json`. El código se integró sin conflictos (los fixes del dashboard están en funciones que DT-34 no movió). En los docs se unieron las filas por ID, conservando el estado más avanzado; F10, E3 y E5 se corrigieron a mano para no nombrar rutas eliminadas.
+
+**Tests corridos (después de cada merge)**
+- `npx vitest run --maxWorkers=2`: al final, 773 tests en 53 archivos, todos OK.
+- `npm run build`: OK.
+- `npm run lint`: 3 errores y 5 warnings. Los 3 errores son lo que queda de DT-38; 2 de los warnings vienen de la regla nueva de `eslint-config-next` 16.3 (DT-51).
+
+**Riesgos pendientes**
+- `main` local todavía no apunta a esta rama: falta el fast-forward y decidir cómo unir la historia con `github.com/camilahdez99/bycar_colombia`, que no comparte historia con este repo.
+- Antes del deploy: configurar `ADMIN_EMAIL` y `ADMIN_PASSWORD` (sin ellas el admin queda deshabilitado) y ejecutar `docs/ROLLOUT_AUTH.md`.
+- Abiertos: F39 y DT-35 (contador del guardián), F28 del lado del servidor, DT-34 paso 3 (hooks), los 3 errores de lint de DT-38 y lo que requiere la BD.
+
 ## 2026-10-01 — Fixes de frontend F33, F35, F36, F37 y cobertura en el repo (DT-49)
 
 Rama `fix/frontend-bugs` (worktree `../bycar_colombia-frontend`, desde `f9085de`), en paralelo con otras sesiones: la API y `lib/` del servidor quedan a cargo de la rama `mejoras/backlog-pendiente`. Un commit por cambio.
