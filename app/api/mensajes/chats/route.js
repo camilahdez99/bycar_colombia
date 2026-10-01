@@ -50,7 +50,7 @@ export async function GET(req) {
       ORDER BY s.ID_SOL DESC
     `;
 
-    // Convertir a número para que Oracle compare correctamente con columnas NUMBER
+    // Convertir a número para comparar con las columnas BIGINT
     const result = await connection.execute(sql, { usuarioId: Number(usuarioId) });
     logInfo('chats_consultados', { route: 'GET /api/mensajes/chats', usuarioId, total: result.rows?.length ?? 0 });
     return NextResponse.json(result.rows || [], { status: 200 });

@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getConnection } from '@/lib/db';
 import { DELETE, GET, POST } from '@/app/api/admin/permisos/route';
-import { createFakeConnection, makeRequest, readResponse, silenceConsole } from '../../../helpers/api';
+import { createFakeConnection, makeRequest, oracleError, readResponse, silenceConsole } from '../../../helpers/api';
 
 vi.mock('@/lib/db', () => ({ getConnection: vi.fn() }));
 
@@ -77,8 +77,8 @@ describe('POST /api/admin/permisos (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('409 si el mensaje contiene ORA-00001', async () => {
-    const conn = createFakeConnection([new Error('ORA-00001: unique constraint violated')]);
+  test('409 si el permiso ya existe (errorNum 1, que lib/pg deriva del SQLSTATE 23505)', async () => {
+    const conn = createFakeConnection([oracleError(1, 'duplicate key value violates unique constraint "pk_permisos"')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post({ usuarioId: 1, menuId: 2 }))).toEqual({
       status: 409,

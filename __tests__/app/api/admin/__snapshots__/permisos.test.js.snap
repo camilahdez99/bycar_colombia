@@ -21,9 +21,7 @@ exports[`GET /api/admin/permisos (caracterización) > con usuarioId: menús del 
     "binds": {
       "usuarioId": 5,
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
         SELECT p.USUARIO_ID_USU as "usuarioId", p.MENU_ID_ENU as "menuId",
                m.CAMPO_ENU as "menuNombre", m.URL_ENU as "menuUrl"
@@ -40,9 +38,7 @@ exports[`GET /api/admin/permisos (caracterización) > sin usuarioId: todos los p
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT p.USUARIO_ID_USU as "usuarioId", u.NOMBRE_USU as "usuarioNombre",
              p.MENU_ID_ENU as "menuId", m.CAMPO_ENU as "menuNombre", m.URL_ENU as "menuUrl"

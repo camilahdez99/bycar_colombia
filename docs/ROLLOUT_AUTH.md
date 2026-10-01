@@ -12,7 +12,7 @@ Los pasos que tocan configuración o despliegue los ejecuta una persona del equi
 - [ ] Producción se sirve por **HTTPS**. En producción la cookie es `Secure`: por HTTP el navegador no la guarda y nadie podría autenticarse.
 - [ ] `ADMIN_EMAIL` y `ADMIN_PASSWORD` están configuradas en el entorno. **Aplica a cualquier deploy desde que el admin dejó de estar hardcodeado (S5), con o sin este rollout:** sin ellas el admin no puede entrar. Usar una contraseña nueva, no `admin`.
 - [ ] El commit a desplegar pasa `npm test` y `npm run build`.
-- [ ] Hay un entorno de prueba con Oracle y datos parecidos a los de producción (paso 1).
+- [ ] Hay un entorno de prueba con Postgres (Supabase) y datos parecidos a los de producción (paso 1).
 
 ## 1. Entorno de prueba
 
@@ -21,7 +21,7 @@ Los pasos que tocan configuración o despliegue los ejecuta una persona del equi
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
 2. Configurar `SESSION_SECRET` en el entorno de prueba.
-3. **Verificar las consultas nuevas contra Oracle.** Corren en modo solo lectura. Elegí IDs reales de prueba: un usuario, un viaje donde tenga una solicitud aceptada, esa solicitud y un guardián de ese viaje.
+3. **Verificar las consultas nuevas contra la base.** Corren en modo solo lectura. Elegí IDs reales de prueba: un usuario, un viaje donde tenga una solicitud aceptada, esa solicitud y un guardián de ese viaje.
    ```bash
    node --env-file=.env.local scripts/verificar-consultas-auth.mjs --usuario 7 --viaje 5 --solicitud 55 --guardian 77
    ```

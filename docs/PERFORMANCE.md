@@ -29,7 +29,7 @@ Los resultados quedan en `bench/resultados/*.json` (ignorado por git). Los datos
 | Mensajes, chat abierto (40 msjs) | 32 | 87,8 | `mensajes?chatId` 20/min (historial completo cada 3 s), `mis-rutas` 6/min, `chats` 6/min |
 | Mensajes, chat abierto, pestaña **oculta** | 32 | 87,8 | igual que visible |
 
-Cada request abre y cierra una conexión a Oracle (BD-06): con el chat abierto son 32 conexiones por minuto y por usuario, aunque nadie esté mirando la pestaña.
+Cada request abre y cierra una conexión a Oracle (BD-06): con el chat abierto son 32 conexiones por minuto y por usuario, aunque nadie esté mirando la pestaña. (Desde la migración a Postgres, 2026-10-01, `lib/db.js` reutiliza conexiones de un pool: BD-06 resuelto. Los requests siguen siendo los mismos.)
 
 ### DT-35 · Temporizador del guardián (3 corridas)
 
@@ -57,7 +57,7 @@ Cada segundo se vuelve a renderizar el dashboard entero (1 255 líneas); en Inic
 
 ## Fuera de alcance (`bd-pendiente`)
 
-- **Latencia de la API:** no se midió de punta a punta porque no hay BD local. El costo dominante es abrir una conexión por request (BD-06, sin pool). Ninguna optimización de este documento toca queries, conexiones ni el driver.
+- **Latencia de la API:** no se midió de punta a punta porque no hay BD local. El costo dominante es abrir una conexión por request (BD-06, sin pool; resuelto con la migración a Postgres). Ninguna optimización de este documento toca queries, conexiones ni el driver.
 - **Historial del chat incremental:** `GET /api/mensajes?chatId` devuelve el historial completo cada 3 s (20 req/min, ~62 KB/min con 40 mensajes). Pedir solo los mensajes nuevos requiere una query con filtro por ID o fecha: se registra como `bd-pendiente` (BD-19 en `docs/BACKLOG.md`).
 
 ## Optimizaciones propuestas (ganancia estimada / riesgo)

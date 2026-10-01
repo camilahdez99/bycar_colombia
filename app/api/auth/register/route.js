@@ -15,7 +15,7 @@ export async function POST(req) {
 
     connection = await getConnection();
 
-    // Generar un ID único simple para el usuario (en un entorno real se usaría secuencias de Oracle)
+    // Generar un ID único simple para el usuario (en un entorno real se usaría una secuencia o IDENTITY)
     const idUsu = Date.now();
 
     const sql = `

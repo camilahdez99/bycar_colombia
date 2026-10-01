@@ -6,9 +6,7 @@ exports[`GET /api/viajes/mis-rutas (caracterización) > 200 con publicadas y sol
     "binds": {
       "usuarioId": 42,
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT v.ID_VIA as "id", 
              mo.NOMBRE_MUN as "origen",
@@ -27,9 +25,7 @@ exports[`GET /api/viajes/mis-rutas (caracterización) > 200 con publicadas y sol
     "binds": {
       "usuarioId": 42,
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT s.ID_SOL as "id",
              v.ID_VIA as "viajeId",

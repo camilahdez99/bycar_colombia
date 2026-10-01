@@ -50,7 +50,7 @@ export async function GET(req) {
 
     // 2. Obtener mensajes asociados a este par
     const sqlMsgs = `
-      SELECT TO_CHAR(CONTENIDO_MEN) as "content", USUARIOS_EMISOR_ID as "senderId"
+      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId"
       FROM MENSAJES
       WHERE (USUARIO_RECEPTOR_ID = :passengerId AND USUARIOS_EMISOR_ID = :driverId)
          OR (USUARIO_RECEPTOR_ID = :driverId AND USUARIOS_EMISOR_ID = :passengerId)
@@ -123,7 +123,7 @@ export async function POST(req) {
 
     const sqlInsert = `
       INSERT INTO MENSAJES (ID_MEN, CONTENIDO_MEN, FECHA_ENVIO_MEN, USUARIO_RECEPTOR_ID, USUARIOS_EMISOR_ID)
-      VALUES (:idMen, :contenido, SYSTIMESTAMP, :receptorId, :emisorId)
+      VALUES (:idMen, :contenido, CURRENT_TIMESTAMP, :receptorId, :emisorId)
     `;
 
     await connection.execute(sqlInsert, { idMen, contenido: text, receptorId, emisorId }, { autoCommit: true });

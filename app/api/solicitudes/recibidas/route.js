@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -41,8 +40,8 @@ export async function GET(req) {
         AND v.USUARIOS_ID_USU = :usuarioId
     `;
     
-    // Convertir usuarioId a número para asegurar compatibilidad en Oracle
-    const result = await connection.execute(sql, { usuarioId: Number(usuarioId) }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    // Convertir usuarioId a número para comparar con la columna BIGINT
+    const result = await connection.execute(sql, { usuarioId: Number(usuarioId) });
     
     const solicitudes = result.rows || [];
     return NextResponse.json(solicitudes, { status: 200 });

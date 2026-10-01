@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -56,7 +55,7 @@ export async function GET(req) {
                  (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU 
                   FROM SOLICITUDES s 
                   JOIN USUARIOS u_pas ON s.USUARIOS_ID_USU = u_pas.ID_USU 
-                  WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 AND ROWNUM = 1),
+                  WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 LIMIT 1),
                  u.NOMBRE_USU || ' ' || u.APELLIDO_USU
                ) as "pasajero",
                vh.PLACA_VEH as "placa",
@@ -74,7 +73,7 @@ export async function GET(req) {
         WHERE UPPER(g.EMAIL_CONFIANZA_GUA) = UPPER(:email) AND g.ESTADO_ID_EST != 2
       `;
       // Estado 2 asume Inactivo/Finalizado según el seed script
-      const result = await connection.execute(sql, { email }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      const result = await connection.execute(sql, { email });
       return NextResponse.json(result.rows || [], { status: 200 });
     }
 
@@ -106,7 +105,7 @@ export async function GET(req) {
         JOIN SOLICITUDES s ON s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2
         WHERE s.USUARIOS_ID_USU = :usuarioId AND g.ESTADO_ID_EST != 2
       `;
-      const result = await connection.execute(sql, { usuarioId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      const result = await connection.execute(sql, { usuarioId });
       return NextResponse.json(result.rows?.[0] || null, { status: 200 });
     }
   } catch (error) {
@@ -142,7 +141,7 @@ export async function POST(req) {
 
     // Validar que el correo del contacto exista en la plataforma (insensible a mayúsculas)
     const checkUserSql = `SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)`;
-    const userRes = await connection.execute(checkUserSql, { email }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    const userRes = await connection.execute(checkUserSql, { email });
 
     if (!userRes.rows?.length) {
       return NextResponse.json({ error: 'El correo de contacto no corresponde a un usuario registrado en BYCAR' }, { status: 404 });
@@ -152,7 +151,7 @@ export async function POST(req) {
 
     const sql = `
       INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA)
-      VALUES (:idGua, :email, SYSTIMESTAMP, :viajeId, 1, :tiempo)
+      VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo)
     `;
     // Estado 1 asume Activo/Iniciado
 
@@ -215,7 +214,7 @@ export async function PUT(req) {
             SELECT ID_EST_GUA 
             FROM ESTADOS_GUA 
             WHERE UPPER(SUBSTR(ESTADO_EST_GUA, 1, 6)) = UPPER(SUBSTR(:estadoStr, 1, 6))
-            AND ROWNUM = 1
+            LIMIT 1
           )
           WHERE ID_GUA = :id
         `;

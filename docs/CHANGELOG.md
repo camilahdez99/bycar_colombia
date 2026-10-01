@@ -1,5 +1,62 @@
 # Changelog
 
+## 2026-10-01 — Base de Supabase conectada
+
+Misma rama `feat/migracion-postgres`. Sin cambios de código.
+
+**Qué se hizo**
+- Supabase (proyecto `lycoygclzvarcqaaneiq`, `us-west-2`) creado por la usuaria con `scripts/postgres/01–04` y la zona horaria `America/Bogota`.
+- `.env.local` local (no versionado) con `DATABASE_URL` al Session pooler (`aws-0-us-west-2`, puerto 5432; la conexión directa es solo IPv6 y no llega desde esta red), `SESSION_SECRET` aleatorio y `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+- Decisiones (proyecto académico): no se migran los datos de Oracle (la base arranca de cero); se mantienen el admin `admin@bycar.co`/`admin` y la contraseña actual de la base. Riesgo aceptado anotado en BUGS S5.
+- `AGENTS.md`: bloque regenerado por `next dev` (Next 16.3), se commitea tal cual.
+
+**Verificado contra Supabase**
+- Postgres 17.11, `TimeZone` = `America/Bogota` (hora de la base = hora local), 16 tablas, 18 índices, RLS en las 16, 1 120 municipios, 7 menús, 20 marcas.
+- TLS 1.3 entre la app y el pooler, sin verificación del certificado (`sslmode=require&uselibpqcompat=true`).
+- `scripts/verificar-consultas-auth.mjs --usuario 1`: OK. `next dev`: `menus`, `marcas`, `municipios` y `viajes` responden 200; login de admin OK (200 → `/admin`) y clave incorrecta → 401.
+
+**Riesgos pendientes**
+- Credenciales débiles y compartidas en el chat (admin y base): cambiarlas antes de cualquier uso real.
+- El certificado de Supabase no se verifica: para hacerlo, descargar el CA (Database Settings → SSL Configuration) y usar `sslmode=verify-full&sslrootcert=…`.
+- `.env.local` está solo en el worktree: al pasar a la carpeta principal hay que copiarlo.
+
+## 2026-10-01 — `.env.example` y `fix_guardian` para Postgres
+
+Misma rama `feat/migracion-postgres`. Pedido explícito de tocar `.env.example` (excepción a la regla 7).
+
+**Qué cambió**
+- `.env.example`: `DB_USER`, `DB_PASSWORD` y `DB_CONNECTION_STRING` pasan a `DATABASE_URL` (obligatoria), `DB_TIMEZONE` y `DB_POOL_MAX` (opcionales). Sin valores.
+- `scripts/fix_guardian.mjs` reemplaza al `fix_guardian.js` local de Oracle: lee `DATABASE_URL` en vez de credenciales hardcodeadas y usa `ADD COLUMN IF NOT EXISTS` (se puede correr varias veces). Ahora está versionado. BUGS S7 resuelto.
+
+**Tests corridos**
+- Sin `DATABASE_URL`, el script termina con código 2 y un mensaje claro. El `ALTER` corrido dos veces en Postgres 17 (PGlite) agrega la columna `numeric` una sola vez, sin error.
+- `npm test`, `npm run build` y lint: ver el commit.
+
+**Riesgos pendientes**
+- La copia vieja `scripts/fix_guardian.js` sigue en el checkout principal, con credenciales y excluida de git. Hay que borrarla a mano y rotar esa contraseña si se reutiliza en otro lado.
+
+## 2026-10-01 — Migración de Oracle a PostgreSQL (Supabase)
+
+Rama `feat/migracion-postgres`, desde `main` (`1e2e682`). Pedido explícito: levantar la regla de "BD fuera de alcance" y reemplazar `oracledb` por `pg` para esta tarea. Guía: `docs/MIGRACION_POSTGRES.md`.
+
+**Qué cambió**
+- `lib/db.js` usa un pool de `pg` con `DATABASE_URL`. El nuevo `lib/pg/` conserva el contrato de oracledb que usan las rutas: binds `:nombre`, columnas en MAYÚSCULAS salvo alias entre comillas, `rowsAffected`, `autoCommit`/`commit`/`rollback` con savepoint por sentencia (en Oracle un error solo deshace la sentencia), `''` como `NULL`, `NUMERIC`/`BIGINT` como número, `errorNum` de Oracle a partir del SQLSTATE y sesión en hora de Colombia.
+- Rutas: solo el SQL propio de Oracle (`ROWNUM`, `SYSDATE`, `SYSTIMESTAMP`, `TRUNC(SYSDATE)`, `NVL`, `TO_CHAR(clob)` y el diccionario `user_*` → `information_schema`). `admin/permisos` detecta el duplicado por `errorNum` en vez del texto `ORA-00001`. Dejan de pasar `outFormat`.
+- `scripts/postgres/01–04`: esquema (con RLS), índices, datos iniciales y el admin aparte. Los `.txt` de Oracle quedan como históricos.
+- `scripts/verificar-consultas-auth.mjs` usa `DATABASE_URL` y una conexión sin `autoCommit`.
+- Dependencias: `oracledb` desinstalado y `pg` 8.23 instalado.
+
+**Tests corridos**
+- `npm test`: 817 tests en 56 archivos, todos OK (antes 781 en 54). Nuevos: `__tests__/lib/pg/sql.test.js` y `conexion.test.js`. `db.test.js` se reescribió para `pg`. Los snapshots solo cambian en `outFormat` y en el SQL traducido; `permisos.test.js` simula el duplicado con `errorNum` 1.
+- Integración fuera del repo: los route handlers reales contra Postgres 17 (PGlite) con los 4 scripts cargados, 11 casos: catálogos, registro (transacción) y login, publicar viaje con municipio y marca nuevos, solicitudes, chat, guardián (hora de Colombia, extensión, estado por texto), CRUD de `admin/tablas` (incluido `MENUS` en transacción y los errores de FK y de largo), `admin/permisos` (409) y las consultas de pertenencia en READ ONLY. Ahí apareció que `SET TRANSACTION READ ONLY` se perdía dentro del savepoint; quedó corregido (`0fdbcd3`).
+- `npm run build`: OK. `npm run lint`: 3 errores y 5 warnings, los mismos de la línea base (DT-38, DT-51).
+
+**Riesgos pendientes**
+- No se probó contra Supabase real: SSL, pooler y zona horaria dependen de la configuración del proyecto (ver la guía).
+- Los datos de producción que hoy están en Oracle hay que exportarlos e importarlos aparte (guía, sección 3).
+- ~~`.env.example` con las variables de Oracle~~ y ~~`scripts/fix_guardian.js` con `oracledb`~~: resueltos en la entrada siguiente (pedido explícito).
+- Diferencias de orden de textos y de largo de `VARCHAR` (BD-20), IDs con `Date.now()`/`MAX+1` (BD-21), conexión con el usuario `postgres` (BD-22).
+
 ## 2026-10-01 — Correcciones pendientes dentro del alcance
 
 Rama `fix/correcciones-pendientes`, desde `main` (`402f064`).

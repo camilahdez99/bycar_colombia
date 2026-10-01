@@ -6,9 +6,7 @@ exports[`GET /api/solicitudes/recibidas (caracterización) > 200 con las solicit
     "binds": {
       "usuarioId": 42,
     },
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT s.ID_SOL as "id", 
              u.NOMBRE_USU || ' ' || u.APELLIDO_USU as "pasajero", 

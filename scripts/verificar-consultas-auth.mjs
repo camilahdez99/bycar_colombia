@@ -1,4 +1,4 @@
-// Verifica contra Oracle las consultas de pertenencia (lib/auth/ownershipQueries.js) antes de prender AUTH_ENFORCED.
+// Verifica contra la base (Postgres/Supabase) las consultas de pertenencia (lib/auth/ownershipQueries.js) antes de prender AUTH_ENFORCED.
 // Solo lectura: corre dentro de una transacción READ ONLY y termina con rollback.
 //
 // Uso (credenciales por variables de entorno, nunca por argumentos):
@@ -6,7 +6,6 @@
 // Todos los IDs son opcionales; se corren las consultas que tengan sus datos.
 
 import { parseArgs } from 'node:util';
-import oracledb from 'oracledb';
 import { getConnection } from '../lib/db.js';
 import {
   findSolicitudParticipants,
@@ -15,7 +14,7 @@ import {
   isViajeParticipant,
 } from '../lib/auth/ownershipQueries.js';
 
-const REQUIRED_ENV = ['DB_USER', 'DB_PASSWORD', 'DB_CONNECTION_STRING'];
+const REQUIRED_ENV = ['DATABASE_URL'];
 
 function readOptions() {
   const { values } = parseArgs({
@@ -53,9 +52,8 @@ async function run() {
     return 2;
   }
 
-  // lib/db activa autoCommit global; se apaga para que la transacción READ ONLY dure toda la corrida
-  oracledb.autoCommit = false;
-  const connection = await getConnection();
+  // Sin autoCommit en esta conexión, para que la transacción READ ONLY dure toda la corrida
+  const connection = await getConnection({ autoCommit: false });
   let failures = 0;
   try {
     await connection.execute('SET TRANSACTION READ ONLY');

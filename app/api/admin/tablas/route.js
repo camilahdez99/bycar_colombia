@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
@@ -18,19 +17,18 @@ const ERROR_PK_COMPUESTA = 'La tabla tiene clave primaria compuesta: no se puede
 
 const getPrimaryKeyColumns = async (connection, tabla) => {
   const pkSql = `
-    SELECT cols.column_name
-    FROM user_constraints cons
-    JOIN user_cons_columns cols
-      ON cons.constraint_name = cols.constraint_name
-    WHERE cons.constraint_type = 'P'
-      AND cons.table_name = :tabla
+    SELECT UPPER(kcu.column_name) AS column_name
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.key_column_usage kcu
+      ON tc.constraint_name = kcu.constraint_name
+     AND tc.table_schema = kcu.table_schema
+    WHERE tc.constraint_type = 'PRIMARY KEY'
+      AND tc.table_schema = current_schema()
+      AND tc.table_name = LOWER(:tabla)
+    ORDER BY kcu.ordinal_position
   `;
 
-  const res = await connection.execute(
-    pkSql,
-    { tabla },
-    { outFormat: oracledb.OUT_FORMAT_OBJECT }
-  );
+  const res = await connection.execute(pkSql, { tabla });
 
   return res.rows.map((row) => row.COLUMN_NAME);
 };
@@ -50,18 +48,26 @@ const noColumnsResponse = () =>
 // rowsAffected = 0: el registro no existe (BUGS F19)
 const notFoundResponse = () => NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 });
 
+// Tipos y NULLABLE ('Y'/'N') con los nombres de Oracle: DynamicForm y el POST/PUT de abajo dependen de ellos
 const getColumnsInfo = async (connection, tabla) => {
   const sql = `
-    SELECT column_name, data_type, nullable
-    FROM user_tab_columns
-    WHERE table_name = :tabla
+    SELECT UPPER(column_name) AS column_name,
+           CASE
+             WHEN data_type IN ('numeric', 'bigint', 'integer', 'smallint') THEN 'NUMBER'
+             WHEN data_type = 'character varying' THEN 'VARCHAR2'
+             WHEN data_type = 'text' THEN 'CLOB'
+             WHEN data_type = 'timestamp without time zone' THEN 'DATE'
+             WHEN data_type = 'timestamp with time zone' THEN 'TIMESTAMP(6) WITH LOCAL TIME ZONE'
+             ELSE UPPER(data_type)
+           END AS data_type,
+           CASE is_nullable WHEN 'YES' THEN 'Y' ELSE 'N' END AS nullable
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = LOWER(:tabla)
+    ORDER BY ordinal_position
   `;
 
-  const result = await connection.execute(
-    sql,
-    { tabla },
-    { outFormat: oracledb.OUT_FORMAT_OBJECT }
-  );
+  const result = await connection.execute(sql, { tabla });
 
   return result.rows;
 };
@@ -83,16 +89,14 @@ export async function GET(req) {
 
     if (list) {
       const sql = `
-        SELECT table_name
-        FROM user_tables
+        SELECT UPPER(table_name) AS table_name
+        FROM information_schema.tables
+        WHERE table_schema = current_schema()
+          AND table_type = 'BASE TABLE'
         ORDER BY table_name
       `;
 
-      const result = await connection.execute(
-        sql,
-        {},
-        { outFormat: oracledb.OUT_FORMAT_OBJECT }
-      );
+      const result = await connection.execute(sql, {});
 
       return NextResponse.json(
         result.rows.map((r) => r.TABLE_NAME)
@@ -124,12 +128,8 @@ export async function GET(req) {
       ? `SELECT * FROM ${t} WHERE ${pk} = :id`
       : `SELECT * FROM ${t}`;
 
-    // El id viaja como texto, igual que en PUT: Oracle lo convierte y las claves de texto (placa) funcionan (F14)
-    const result = await connection.execute(
-      sql,
-      id ? { id } : {},
-      { outFormat: oracledb.OUT_FORMAT_OBJECT }
-    );
+    // El id viaja como texto, igual que en PUT: Postgres lo convierte al tipo de la PK y las claves de texto (placa) funcionan (F14)
+    const result = await connection.execute(sql, id ? { id } : {});
 
     return NextResponse.json(result.rows);
 
@@ -286,7 +286,7 @@ export async function PUT(req) {
 
     const colsInfo = await getColumnsInfo(connection, t);
 
-    const bindData = { id }; // id string is fine, Oracle will cast
+    const bindData = { id }; // el id viaja como texto; Postgres lo convierte al tipo de la PK
     const cols = [];
     for (const k of Object.keys(data)) {
       const info = colsInfo.find(c => c.COLUMN_NAME === k.toUpperCase());

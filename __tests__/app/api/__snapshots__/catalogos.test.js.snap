@@ -4,9 +4,7 @@ exports[`GET /api/marcas (caracterización) > 200 con las filas tal cual vienen 
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT ID_MAR as "id", NOMBRE_MAR as "nombre"
       FROM MARCAS
@@ -20,9 +18,7 @@ exports[`GET /api/menus (caracterización) > 200 con las filas tal cual vienen d
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT 
         ID_ENU      as "id",
@@ -40,9 +36,7 @@ exports[`GET /api/municipios (caracterización) > 200 con las filas tal cual vie
 [
   {
     "binds": {},
-    "options": {
-      "outFormat": 4002,
-    },
+    "options": undefined,
     "sql": "
       SELECT m.ID_MUN as "id", m.NOMBRE_MUN as "nombre", d.NOMBRE_DEP as "departamento"
       FROM MUNICIPIOS m

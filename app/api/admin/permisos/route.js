@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
@@ -45,7 +44,7 @@ export async function GET(req) {
         WHERE p.USUARIO_ID_USU = :usuarioId
         ORDER BY m.ID_ENU
       `;
-      const result = await connection.execute(sql, { usuarioId: Number(usuarioId) }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+      const result = await connection.execute(sql, { usuarioId: Number(usuarioId) });
       return NextResponse.json(result.rows || [], { status: 200 });
     }
 
@@ -58,7 +57,7 @@ export async function GET(req) {
       JOIN MENUS m ON p.MENU_ID_ENU = m.ID_ENU
       ORDER BY p.USUARIO_ID_USU, m.ID_ENU
     `;
-    const result = await connection.execute(sql, {}, { outFormat: oracledb.OUT_FORMAT_OBJECT });
+    const result = await connection.execute(sql, {});
     return NextResponse.json(result.rows || [], { status: 200 });
   } catch (error) {
     logError('api_error', error, { route: 'GET /api/admin/permisos' });
@@ -90,7 +89,7 @@ export async function POST(req) {
     await connection.execute(sql, { usuarioId: Number(usuarioId), menuId: Number(menuId) }, { autoCommit: true });
     return NextResponse.json({ message: 'Permiso asignado' }, { status: 201 });
   } catch (error) {
-    if (error.message?.includes('ORA-00001')) {
+    if (error.errorNum === 1) {
       return NextResponse.json({ error: 'Este permiso ya existe' }, { status: 409 });
     }
     logError('api_error', error, { route: 'POST /api/admin/permisos' });
