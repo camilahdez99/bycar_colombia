@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { crearCuentaRegresiva } from '@/lib/client/cuentaRegresiva';
+import { crearCuentaRegresiva, segundosHasta } from '@/lib/client/cuentaRegresiva';
 
 describe('crearCuentaRegresiva', () => {
   test('arranca en 0 y devuelve el último valor fijado', () => {
@@ -38,5 +38,20 @@ describe('crearCuentaRegresiva', () => {
     const b = crearCuentaRegresiva();
     a.fijar(5);
     expect(b.leer()).toBe(0);
+  });
+});
+
+describe('segundosHasta', () => {
+  const FIN = 1_000_000;
+
+  test('segundos enteros que faltan, redondeando hacia arriba', () => {
+    expect(segundosHasta(FIN, FIN - 60_000)).toBe(60);
+    expect(segundosHasta(FIN, FIN - 59_001)).toBe(60);
+    expect(segundosHasta(FIN, FIN - 59_000)).toBe(59);
+  });
+
+  test('vencido devuelve 0, nunca negativo', () => {
+    expect(segundosHasta(FIN, FIN)).toBe(0);
+    expect(segundosHasta(FIN, FIN + 5_000)).toBe(0);
   });
 });

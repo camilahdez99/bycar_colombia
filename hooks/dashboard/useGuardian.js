@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { getUserId } from '@/lib/client/usuario';
-import { crearCuentaRegresiva } from '@/lib/client/cuentaRegresiva';
+import { crearCuentaRegresiva, segundosHasta } from '@/lib/client/cuentaRegresiva';
 import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
 
 export const PRE_ALERTA_SEG = 5 * 60;
@@ -25,6 +25,7 @@ function registrarAlerta(id) {
  *
  * Los segundos restantes viven en `cuenta` y no en el estado (DT-35): el tick no vuelve a
  * renderizar a quien usa el hook. Para mostrarlos, suscribirse con `ContadorGuardian`.
+ * Se calculan contra la hora de vencimiento (`finRef`), no descontando por tick (BUGS F39).
  */
 export function useGuardian(currentUser) {
   const [viaje, setViaje] = useState(null);
@@ -43,6 +44,7 @@ export function useGuardian(currentUser) {
   const preAlertaRef = useRef(false);
   const alertaEnviadaRef = useRef(false);
   const guardianIdRef = useRef(null);
+  const finRef = useRef(0); // vencimiento en ms; el intervalo calcula contra el reloj
 
   // Sincronizar refs con el estado
   useEffect(() => { preAlertaRef.current = preAlerta; }, [preAlerta]);
@@ -53,9 +55,10 @@ export function useGuardian(currentUser) {
   useEffect(() => {
     if (!activo) return;
 
-    // Descuenta 1 por tick, como antes (el desfase en segundo plano es BUGS F39, va aparte)
+    // Calcula contra el reloj: con la pestaña en segundo plano el navegador espacia los ticks
+    // y descontar 1 por tick atrasaba el contador y la alerta (BUGS F39)
     const timer = setInterval(() => {
-      const next = cuenta.leer() - 1;
+      const next = segundosHasta(finRef.current, Date.now());
 
       // PRE_ALERTA_SEG antes de terminar → pre-alerta. Con "<=" también sale si el viaje
       // arranca (o se retoma al recargar) con menos de ese tiempo (BUGS F35)
@@ -77,7 +80,7 @@ export function useGuardian(currentUser) {
         clearInterval(timer);
       }
 
-      cuenta.fijar(Math.max(next, 0));
+      cuenta.fijar(next);
     }, 1000);
 
     return () => clearInterval(timer);
@@ -92,6 +95,7 @@ export function useGuardian(currentUser) {
     const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
     const total = guardado.tiempoMin * 60;
     const remaining = Math.max(total - elapsed, 0);
+    finRef.current = startTime.getTime() + total * 1000;
 
     setGuardianId(guardado.id);
     setViaje({
@@ -151,6 +155,7 @@ export function useGuardian(currentUser) {
         setAlertaEnviada(false);
         setPreAlerta(false);
         setHoraInicio(new Date());
+        finRef.current = Date.now() + config.tiempoMin * 60 * 1000;
         cuenta.fijar(config.tiempoMin * 60);
         setConfigOpen(false);
         toast.success('🛡️ Guardián activado en base de datos. ¡Buen viaje!');
@@ -202,7 +207,8 @@ export function useGuardian(currentUser) {
         return;
       }
 
-      cuenta.fijar(cuenta.leer() + (EXTENSION_GUARDIAN_MIN * 60));
+      finRef.current += EXTENSION_GUARDIAN_MIN * 60 * 1000;
+      cuenta.fijar(segundosHasta(finRef.current, Date.now()));
       setPreAlerta(false);
       setShowReadjustModal(false);
       toast.success(`⏱️ Tiempo extendido ${EXTENSION_GUARDIAN_MIN} minutos`);
