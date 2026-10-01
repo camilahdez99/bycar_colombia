@@ -424,8 +424,15 @@ export default function DashboardPage() {
     setCurrentChatMsgs([...currentChatMsgs, newMsg]);
     setMsgInput('');
 
+    // Si el envío falla, el mensaje no queda como enviado: se saca y vuelve al input (BUGS F29)
+    const descartarMensaje = () => {
+      setCurrentChatMsgs(prev => prev.filter(m => m !== newMsg));
+      setMsgInput(newMsg.text);
+      toast.error('No se pudo enviar el mensaje');
+    };
+
     try {
-      await fetchConSesion('/api/mensajes', {
+      const res = await fetchConSesion('/api/mensajes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -434,8 +441,10 @@ export default function DashboardPage() {
           text: newMsg.text
         })
       });
+      if (!res.ok) descartarMensaje();
     } catch (e) {
       console.error('Error enviando mensaje', e);
+      descartarMensaje();
     }
   };
 
