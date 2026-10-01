@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
@@ -100,7 +101,7 @@ export async function GET(req) {
     logError('api_error', error, { route: 'GET /api/guardian', mensaje: 'Error en GET Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
   } finally {
-    if (connection) await connection.close();
+    await closeConnection(connection, 'GET /api/guardian');
   }
 }
 
@@ -149,7 +150,7 @@ export async function POST(req) {
     logError('api_error', error, { route: 'POST /api/guardian', mensaje: 'Error en POST Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
   } finally {
-    if (connection) await connection.close();
+    await closeConnection(connection, 'POST /api/guardian');
   }
 }
 
@@ -204,6 +205,6 @@ export async function PUT(req) {
     logError('api_error', error, { route: 'PUT /api/guardian', mensaje: 'Error en PUT Guardian' });
     return NextResponse.json({ error: mensajeDeError(error, 'Error interno del servidor') }, { status: 500 });
   } finally {
-    if (connection) await connection.close();
+    await closeConnection(connection, 'PUT /api/guardian');
   }
 }

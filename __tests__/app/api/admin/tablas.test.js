@@ -123,11 +123,11 @@ describe('GET /api/admin/tablas (caracterización)', () => {
     expect(await readResponse(await get({ tabla: 'MENUS' }))).toEqual({ status: 500, body: { error: 'Error interno del servidor' } });
   });
 
-  test('si close() falla, la promesa se rechaza (close sin try)', async () => {
+  test('si close() falla, responde igual y registra el error (E2)', async () => {
     const conn = createFakeConnection([{ rows: [] }]);
     conn.close.mockRejectedValue(new Error('close'));
     getConnection.mockResolvedValue(conn);
-    await expect(get({ tabla: 'MENUS' })).rejects.toThrow('close');
+    expect((await readResponse(await get({ tabla: 'MENUS' }))).status).toBe(200);
   });
 });
 
@@ -251,11 +251,11 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     expect(conn.rollback).not.toHaveBeenCalled();
   });
 
-  test('si close() falla, la promesa se rechaza (close sin try)', async () => {
+  test('si close() falla, responde igual y registra el error (E2)', async () => {
     const conn = createFakeConnection([COLS_VIAJES, { rowsAffected: 1 }]);
     conn.close.mockRejectedValue(new Error('close'));
     getConnection.mockResolvedValue(conn);
-    await expect(post({ tabla: 'VIAJES' }, { ID_VIA: 1 })).rejects.toThrow('close');
+    expect((await readResponse(await post({ tabla: 'VIAJES' }, { ID_VIA: 1 }))).status).toBe(201);
   });
 });
 
@@ -334,11 +334,11 @@ describe('PUT /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('si close() falla, la promesa se rechaza (close sin try)', async () => {
+  test('si close() falla, responde igual y registra el error (E2)', async () => {
     const conn = createFakeConnection([pk('ID_VIA'), COLS_VIAJES, { rowsAffected: 1 }]);
     conn.close.mockRejectedValue(new Error('close'));
     getConnection.mockResolvedValue(conn);
-    await expect(put({ tabla: 'VIAJES', id: '1' }, { NOTA_VIA: 'a' })).rejects.toThrow('close');
+    expect((await readResponse(await put({ tabla: 'VIAJES', id: '1' }, { NOTA_VIA: 'a' }))).status).toBe(200);
   });
 });
 
@@ -402,10 +402,10 @@ describe('DELETE /api/admin/tablas (caracterización)', () => {
     });
   });
 
-  test('si close() falla, la promesa se rechaza (close sin try)', async () => {
+  test('si close() falla, responde igual y registra el error (E2)', async () => {
     const conn = createFakeConnection([pk('ID_VIA'), { rowsAffected: 1 }]);
     conn.close.mockRejectedValue(new Error('close'));
     getConnection.mockResolvedValue(conn);
-    await expect(del({ tabla: 'VIAJES', id: '1' })).rejects.toThrow('close');
+    expect((await readResponse(await del({ tabla: 'VIAJES', id: '1' }))).status).toBe(200);
   });
 });

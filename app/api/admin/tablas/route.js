@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
+import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
@@ -139,9 +140,7 @@ export async function GET(req) {
     );
 
   } finally {
-    if (connection) {
-      await connection.close();
-    }
+    await closeConnection(connection, 'GET /api/admin/tablas');
   }
 }
 
@@ -245,9 +244,7 @@ export async function POST(req) {
     );
 
   } finally {
-    if (connection) {
-      await connection.close();
-    }
+    await closeConnection(connection, 'POST /api/admin/tablas');
   }
 }
 
@@ -326,9 +323,7 @@ export async function PUT(req) {
     );
 
   } finally {
-    if (connection) {
-      await connection.close();
-    }
+    await closeConnection(connection, 'PUT /api/admin/tablas');
   }
 }
 
@@ -382,9 +377,7 @@ export async function DELETE(req) {
     );
 
   } finally {
-    if (connection) {
-      await connection.close();
-    }
+    await closeConnection(connection, 'DELETE /api/admin/tablas');
   }
 }
 

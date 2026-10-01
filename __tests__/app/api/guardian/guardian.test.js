@@ -82,11 +82,11 @@ describe('GET /api/guardian (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('si close() falla el handler rechaza (comportamiento actual: close sin try)', async () => {
+  test('si close() falla, responde igual y registra el error (E2)', async () => {
     const conn = createFakeConnection([{ rows: [] }]);
     conn.close.mockRejectedValue(new Error('close'));
     getConnection.mockResolvedValue(conn);
-    await expect(get({ email: 'a@x.co' })).rejects.toThrow('close');
+    expect((await readResponse(await get({ email: 'a@x.co' }))).status).toBe(200);
   });
 });
 
