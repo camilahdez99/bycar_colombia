@@ -421,7 +421,13 @@ export default function DashboardPage() {
     setGuardianActivo(false);
     setGuardianTiempoRestante(0);
     setGuardianId(null);
-    toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
+    setShowReadjustModal(false);
+    // Sin id no hubo PUT: la llegada no quedó registrada (BUGS F36)
+    if (guardianId) {
+      toast.success('✅ ¡Llegaste bien! Guardián desactivado.');
+    } else {
+      toast.error('El guardián se desactivó en este dispositivo, pero no se pudo registrar tu llegada.');
+    }
   };
 
   const reajustarTiempo = async () => {

@@ -154,13 +154,15 @@ describe('Dashboard · guardián: activar y finalizar (caracterización)', () =>
     expect(screen.getByText('Activar')).toBeTruthy();
   });
 
-  test('comportamiento actual: si la API no devuelve id, finalizar no hace PUT pero igual avisa que se desactivó', async () => {
+  test('si la API no devolvió id, finalizar desactiva en pantalla pero avisa que no quedó registrado (F36)', async () => {
     await abrirConfiguracion({ 'POST /api/guardian': { message: 'ok' } });
     configurar({ email: 'mama@x.co' });
     iniciar();
     fireEvent.click(await screen.findByText('✅ He llegado a mi destino'));
 
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('✅ ¡Llegaste bien! Guardián desactivado.'));
+    await waitFor(() => expect(screen.queryByText('Viaje en Curso')).toBeNull());
+    expect(toast.error).toHaveBeenCalledWith('El guardián se desactivó en este dispositivo, pero no se pudo registrar tu llegada.');
+    expect(toast.success).not.toHaveBeenCalledWith('✅ ¡Llegaste bien! Guardián desactivado.');
     expect(llamadas('PUT', '/api/guardian')).toEqual([]);
   });
 });
@@ -254,13 +256,30 @@ describe('Dashboard · guardián: temporizador (caracterización)', () => {
     expect(llamadas('PUT', '/api/guardian').map((c) => c.body)).toEqual([{ id: 77, estado: 'Inactivo' }]);
   });
 
-  test('comportamiento actual: tras finalizar desde el modal de pre-alerta, el modal sigue abierto', async () => {
+  test('tras finalizar desde el modal de pre-alerta, el modal se cierra (F36)', async () => {
     await activarCon(6);
     pasarSegundos(60);
     fireEvent.click(screen.getByText('✅ Sí, he llegado'));
 
     await waitFor(() => expect(screen.queryByText('Viaje en Curso')).toBeNull());
+    expect(screen.queryByText('¿Has llegado a tu destino?')).toBeNull();
+  });
+
+  test('un guardián nuevo después de finalizar con pre-alerta vuelve a avisar a los 5 minutos', async () => {
+    await activarCon(6);
+    pasarSegundos(60);
+    fireEvent.click(screen.getByText('✅ Sí, he llegado'));
+    await waitFor(() => expect(screen.queryByText('Viaje en Curso')).toBeNull());
+
+    fireEvent.click(screen.getByText('Activar'));
+    configurar({ email: 'mama@x.co', minutos: '6' });
+    iniciar();
+    await screen.findByText('Viaje en Curso');
+    await act(async () => {});
+    pasarSegundos(60);
+
     expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
+    expect(toast).toHaveBeenCalledTimes(2);
   });
 
   test('al llegar a 0: PUT con estado Alerta una sola vez, aviso y "ALERTA ENVIADA" en pantalla', async () => {
