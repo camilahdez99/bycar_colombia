@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-10-01 — Organización y legibilidad: componentes, lint y primeros cortes del dashboard
+
+Rama `refactor/organizacion` (worktree `../bycar_colombia-organizacion`, desde `7e19e1b`). Un commit por lote.
+
+**Qué cambió**
+- `cf32433` DT-43: una sola carpeta de componentes. `app/components/admin/PermisosManager.jsx` → `components/admin/`, `components/admin/HydrationWrapper.jsx` → `components/`; el test de `PermisosManager` pasa a `__tests__/components/admin/`. `app/` queda solo con rutas.
+- `0b9b5b1` DT-38 (parcial): `DynamicForm` reinicia el formulario durante el render cuando cambian `columns` o `initialData` (antes, un efecto con un render extra vacío); `HydrationWrapper` usa `useSyncExternalStore`. Tests nuevos para ambos, que pasan con el código anterior y con el nuevo.
+- `f686ee7` DT-34 (paso 2 parcial): `Autocomplete` a `components/dashboard/`, tal cual y con el fix de F34.
+- `e5e2be5` DT-34 (paso 2 parcial): `DetallesViajeModal` a `components/dashboard/`, con el mismo markup.
+
+**Lo que no se hizo y por qué**
+- Formateo: el proyecto no tiene Prettier ni otro formateador, y agregarlo es una dependencia nueva (regla 6). Propuesta: `prettier` como devDependency con `singleQuote: true`, `printWidth: 100` y `eslint-config-prettier`, aplicado en un commit propio de solo formato. Requiere confirmación.
+- Valores mágicos: ya estaban centralizados (DT-08, DT-09). Las piezas extraídas no agregan nuevos.
+- Resto de DT-34 y de DT-38: tocan el guardián, las solicitudes y el polling, que están editando otras sesiones (`fix/frontend-bugs` con F35–F37; performance con DT-33/DT-35/DT-45). Se retoman cuando esas ramas estén integradas.
+- DT-42 (normalizar el usuario del login) cambia el contrato de la API: requiere confirmación.
+
+**Tests corridos (en cada lote)**
+- `npm test`: 743 tests, 49 archivos, todos OK: 738 de la base más 5 nuevos (3 de `DynamicForm`, 2 de `HydrationWrapper`).
+- `npm run build`: OK.
+- `npm run lint`: de 5 errores y 3 warnings a 3 errores y 3 warnings. Ninguno nuevo.
+
+**Riesgos pendientes**
+- `HydrationWrapper`: en una navegación del lado del cliente (sin hidratación) los hijos se renderizan en el primer render en lugar de después de montar. En el servidor y durante la hidratación sigue devolviendo vacío.
+- Con varias sesiones corriendo `vitest` en la misma máquina, una corrida informó 47 de 49 archivos sin marcar fallas; se repitió y dio 49/49. Conviene mirar el total de archivos y no solo "passed".
+- La rama sale de `7e19e1b`: hay que integrarla en `mejoras/backlog-pendiente` (sin conflictos esperados con `fix/api-backlog`; con `fix/frontend-bugs` solo comparte `app/dashboard/page.jsx`, en zonas distintas).
+
 ## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
 
 Rama `refactor/deuda-bloque-3`, en un commit propio (`fix`), separado de la caracterización.

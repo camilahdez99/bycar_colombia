@@ -26,6 +26,7 @@ components/             Componentes React reutilizables (única carpeta; app/ so
   HydrationWrapper.jsx  Renderiza los hijos recién después de montar (dashboard y admin)
   DynamicForm.jsx       Form a partir de metadata de columnas (admin)
   admin/                PermisosManager
+  dashboard/            Piezas extraídas de app/dashboard/page.jsx: Autocomplete, DetallesViajeModal
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers
