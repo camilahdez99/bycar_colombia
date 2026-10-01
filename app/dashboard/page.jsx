@@ -4,13 +4,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/HydrationWrapper';
-import Autocomplete from '@/components/dashboard/Autocomplete';
 import DetallesViajeModal from '@/components/dashboard/DetallesViajeModal';
 import PreAlertaGuardianModal from '@/components/dashboard/PreAlertaGuardianModal';
 import PublicarViajeModal from '@/components/dashboard/PublicarViajeModal';
 import MisRutasTab from '@/components/dashboard/MisRutasTab';
 import SolicitudesTab from '@/components/dashboard/SolicitudesTab';
 import MensajesTab from '@/components/dashboard/MensajesTab';
+import InicioTab from '@/components/dashboard/InicioTab';
+import BuscarTab from '@/components/dashboard/BuscarTab';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { logout } from '@/lib/client/logout';
 import { formatCurrency, formatTiempo } from '@/lib/client/formato';
@@ -666,84 +667,26 @@ export default function DashboardPage() {
 
       <main>
         {activePage === 'inicio' && (
-          <section>
-            <div className="page-header">
-              <div><h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>¡Hola, {currentUser?.NOMBRE_USU || currentUser?.nombre_usu || 'Pasajero'}! 👋</h1><p style={{ color: 'var(--muted)' }}>Tu movilidad en Colombia simplificada</p></div>
-            </div>
-
-            
-            <div className="grid-2" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '2rem', 
-              alignItems: 'stretch' 
-            }}>
-              {/* CREAR RUTA */}
-              <div style={{ background: 'var(--surface)', padding: '2.5rem', borderRadius: '32px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '1rem' }}>
-                <div style={{ width: '64px', height: '64px', background: 'rgba(229,34,34,0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', marginBottom: '0.5rem' }}>
-                  <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                </div>
-                <h3 style={{ fontFamily: 'Syne', fontSize: '1.4rem', fontWeight: 800 }}>¿Vas a conducir?</h3>
-                <p style={{ color: 'var(--muted)', fontSize: '0.95rem', lineHeight: '1.6', maxWidth: '280px' }}>
-                  Publica tu viaje, ahorra en combustible y ayuda a otros a llegar a su destino.
-                </p>
-                <button 
-                  className="btn-red" 
-                  style={{ width: '100%', maxWidth: '240px', justifyContent: 'center', padding: '1rem', marginTop: '0.5rem' }} 
-                  onClick={() => setIsModalOpen(true)}
-                  disabled={userPermisos !== null && !userPermisos.includes('/inicio/crear')}
-                >
-                  Crear nueva ruta
-                </button>
-              </div>
-
-              {/* BUSCAR RUTA */}
-              <div style={{ background: 'var(--surface)', padding: '2.5rem', borderRadius: '32px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.2rem' }}>
-                  <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)' }}>
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                  </div>
-                  <h3 style={{ fontFamily: 'Syne', fontSize: '1.4rem', fontWeight: 800 }}>¿Buscas un viaje?</h3>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <Autocomplete placeholder="Origen" value={searchParams.origen} opciones={municipiosDB} onChange={(val) => setSearchParams({...searchParams, origen: val.toUpperCase()})} />
-                  <Autocomplete placeholder="Destino" value={searchParams.destino} opciones={municipiosDB} onChange={(val) => setSearchParams({...searchParams, destino: val.toUpperCase()})} />
-                  <button 
-                    className="btn-red" 
-                    style={{ width: '100%', justifyContent: 'center', padding: '1rem', marginTop: '0.5rem' }} 
-                    onClick={() => { buscarViajes(); setActivePage('buscar'); }}
-                    disabled={userPermisos !== null && !userPermisos.includes('/inicio/buscar')}
-                  >
-                    Buscar rutas disponibles
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
+          <InicioTab
+            nombreUsuario={currentUser?.NOMBRE_USU || currentUser?.nombre_usu || 'Pasajero'}
+            puedeCrear={userPermisos === null || userPermisos.includes('/inicio/crear')}
+            puedeBuscar={userPermisos === null || userPermisos.includes('/inicio/buscar')}
+            searchParams={searchParams}
+            setSearchParams={setSearchParams}
+            municipios={municipiosDB}
+            onCrear={() => setIsModalOpen(true)}
+            onBuscar={() => { buscarViajes(); setActivePage('buscar'); }}
+          />
         )}
 
         {activePage === 'buscar' && (
-          <section>
-            <div className="page-header">
-              <div><h1>Resultados de búsqueda</h1><p style={{ color: 'var(--muted)' }}>Viajes disponibles para tu ruta</p></div>
-              <button className="btn-red" onClick={() => setActivePage('inicio')}>Volver</button>
-            </div>
-            <div className="resultados-lista">
-              {resultados.length > 0 ? resultados.map(viaje => (
-                <div className="route-card" key={viaje.id}>
-                  <div>
-                    <strong>{viaje.origen} → {viaje.destino}</strong>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Conductor: {viaje.conductor} • {viaje.hora}</p>
-                    <button style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: '0.8rem', padding: '5px 0', fontWeight: 'bold' }} onClick={() => {setViajeDetalle(viaje); setDetallesModalOpen(true)}}>Ver Detalles</button>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ color: 'var(--red)', fontWeight: '800' }}>${viaje.valor}</span><br/>
-                    <button className="btn-red" style={{ padding: '6px 15px', fontSize: '0.8rem', marginTop: '8px' }} onClick={() => solicitarViaje(viaje.id)} disabled={solicitados.includes(viaje.id)}>{solicitados.includes(viaje.id) ? 'Pendiente' : 'Solicitar'}</button>
-                  </div>
-                </div>
-              )) : <p style={{ color: 'var(--muted)' }}>No se encontraron viajes con esos criterios.</p>}
-            </div>
-          </section>
+          <BuscarTab
+            resultados={resultados}
+            solicitados={solicitados}
+            onVolver={() => setActivePage('inicio')}
+            onVerDetalles={(viaje) => { setViajeDetalle(viaje); setDetallesModalOpen(true); }}
+            onSolicitar={solicitarViaje}
+          />
         )}
 
         {activePage === 'mis-rutas' && (
