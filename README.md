@@ -13,12 +13,13 @@ Next.js 16 (App Router, JavaScript) · React 19 · Tailwind 4 · Oracle con `ora
 
 ## Variables de entorno
 
-Van en `.env.local` (no se versiona).
+Van en `.env.local` (no se versiona). La plantilla es `.env.example`: copiala a `.env.local` y completala.
 
 | Variable | Obligatoria | Uso |
 |---|---|---|
 | `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING` | sí | Conexión a Oracle (`lib/db.js`). |
 | `SESSION_SECRET` | para tener sesión | Firma de la cookie de sesión, 32 caracteres como mínimo. Sin ella, el login no emite cookie. |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | para el admin | Credenciales del login de admin (`/admin`). Si falta alguna, el login de admin queda deshabilitado. Reemplazan al admin hardcodeado (S5). |
 | `AUTH_ENFORCED` | no | `true` exige sesión y rol en la API. Apagado por defecto: ver `docs/ROLLOUT_AUTH.md` antes de prenderlo. |
 | `CATALOG_CACHE_SECONDS` | no | Segundos de caché HTTP de menús, marcas y municipios. Apagado por defecto. |
 

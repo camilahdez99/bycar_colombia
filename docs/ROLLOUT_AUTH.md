@@ -10,6 +10,7 @@ Los pasos que tocan configuración o despliegue los ejecuta una persona del equi
 ## 0. Precondiciones
 
 - [ ] Producción se sirve por **HTTPS**. En producción la cookie es `Secure`: por HTTP el navegador no la guarda y nadie podría autenticarse.
+- [ ] `ADMIN_EMAIL` y `ADMIN_PASSWORD` están configuradas en el entorno. **Aplica a cualquier deploy desde que el admin dejó de estar hardcodeado (S5), con o sin este rollout:** sin ellas el admin no puede entrar. Usar una contraseña nueva, no `admin`.
 - [ ] El commit a desplegar pasa `npm test` y `npm run build`.
 - [ ] Hay un entorno de prueba con Oracle y datos parecidos a los de producción (paso 1).
 
