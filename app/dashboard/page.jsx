@@ -13,6 +13,7 @@ import MensajesTab from '@/components/dashboard/MensajesTab';
 import InicioTab from '@/components/dashboard/InicioTab';
 import BuscarTab from '@/components/dashboard/BuscarTab';
 import GuardianEnCurso from '@/components/dashboard/GuardianEnCurso';
+import ContadorGuardian from '@/components/dashboard/ContadorGuardian';
 import GuardianInicio from '@/components/dashboard/GuardianInicio';
 import ConfigurarGuardianModal from '@/components/dashboard/ConfigurarGuardianModal';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
@@ -592,16 +593,20 @@ export default function DashboardPage() {
             </div>
 
             {guardian.activo && guardian.viaje && (
-              <GuardianEnCurso
-                viaje={guardian.viaje}
-                contactoEmail={guardian.config.email}
-                tiempoRestante={guardian.tiempoRestante}
-                segundosPreAlerta={PRE_ALERTA_SEG}
-                horaInicio={guardian.horaInicio}
-                alertaEnviada={guardian.alertaEnviada}
-                preAlerta={guardian.preAlerta}
-                onLlegue={guardian.finalizar}
-              />
+              <ContadorGuardian cuenta={guardian.cuenta}>
+                {(tiempoRestante) => (
+                  <GuardianEnCurso
+                    viaje={guardian.viaje}
+                    contactoEmail={guardian.config.email}
+                    tiempoRestante={tiempoRestante}
+                    segundosPreAlerta={PRE_ALERTA_SEG}
+                    horaInicio={guardian.horaInicio}
+                    alertaEnviada={guardian.alertaEnviada}
+                    preAlerta={guardian.preAlerta}
+                    onLlegue={guardian.finalizar}
+                  />
+                )}
+              </ContadorGuardian>
             )}
 
             {!guardian.activo && (

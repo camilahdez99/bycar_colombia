@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { getUserId } from '@/lib/client/usuario';
+import { crearCuentaRegresiva } from '@/lib/client/cuentaRegresiva';
 import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
 
 export const PRE_ALERTA_SEG = 5 * 60;
@@ -21,12 +22,15 @@ function registrarAlerta(id) {
 /**
  * Guardián de ruta del usuario: viaje elegido, configuración, temporizador con pre-alerta
  * y alerta, y las acciones contra `/api/guardian` (iniciar, finalizar, extender, retomar).
+ *
+ * Los segundos restantes viven en `cuenta` y no en el estado (DT-35): el tick no vuelve a
+ * renderizar a quien usa el hook. Para mostrarlos, suscribirse con `ContadorGuardian`.
  */
 export function useGuardian(currentUser) {
   const [viaje, setViaje] = useState(null);
   const [config, setConfig] = useState({ email: '', tiempoMin: TIEMPO_GUARDIAN_POR_DEFECTO_MIN });
   const [activo, setActivo] = useState(false);
-  const [tiempoRestante, setTiempoRestante] = useState(0);
+  const [cuenta] = useState(crearCuentaRegresiva);
   const [alertaEnviada, setAlertaEnviada] = useState(false);
   const [preAlerta, setPreAlerta] = useState(false);
   const [horaInicio, setHoraInicio] = useState(null);
@@ -49,34 +53,35 @@ export function useGuardian(currentUser) {
   useEffect(() => {
     if (!activo) return;
 
+    // Descuenta 1 por tick, como antes (el desfase en segundo plano es BUGS F39, va aparte)
     const timer = setInterval(() => {
-      setTiempoRestante(prev => {
-        const next = prev - 1;
+      const next = cuenta.leer() - 1;
 
-        // PRE_ALERTA_SEG antes de terminar → pre-alerta. Con "<=" también sale si el viaje
-        // arranca (o se retoma al recargar) con menos de ese tiempo (BUGS F35)
-        if (next > 0 && next <= PRE_ALERTA_SEG && !preAlertaRef.current) {
-          setPreAlerta(true);
-          setShowReadjustModal(true);
-          toast('⚠️ ¿Has llegado? Tu tiempo está por terminar.', { duration: 10000, icon: '🔔' });
-        }
+      // PRE_ALERTA_SEG antes de terminar → pre-alerta. Con "<=" también sale si el viaje
+      // arranca (o se retoma al recargar) con menos de ese tiempo (BUGS F35)
+      if (next > 0 && next <= PRE_ALERTA_SEG && !preAlertaRef.current) {
+        preAlertaRef.current = true;
+        setPreAlerta(true);
+        setShowReadjustModal(true);
+        toast('⚠️ ¿Has llegado? Tu tiempo está por terminar.', { duration: 10000, icon: '🔔' });
+      }
 
-        // Tiempo agotado → alerta real
-        if (next <= 0 && !alertaEnviadaRef.current) {
-          setAlertaEnviada(true);
-          toast.error('🚨 TIEMPO AGOTADO. Alerta activada para tu contacto.', { duration: 15000 });
-          // Sincronizar estado con la BD
-          const gId = guardianIdRef.current;
-          if (gId) registrarAlerta(gId);
-          clearInterval(timer);
-        }
+      // Tiempo agotado → alerta real
+      if (next <= 0 && !alertaEnviadaRef.current) {
+        alertaEnviadaRef.current = true;
+        setAlertaEnviada(true);
+        toast.error('🚨 TIEMPO AGOTADO. Alerta activada para tu contacto.', { duration: 15000 });
+        // Sincronizar estado con la BD
+        const gId = guardianIdRef.current;
+        if (gId) registrarAlerta(gId);
+        clearInterval(timer);
+      }
 
-        return Math.max(next, 0);
-      });
+      cuenta.fijar(Math.max(next, 0));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [activo]); // ← SOLO depende de si está activo
+  }, [activo, cuenta]); // ← `cuenta` es estable: solo se reinicia cuando cambia `activo`
 
   /**
    * Retoma el guardián activo que devolvió `GET /api/guardian?usuarioId` al cargar.
@@ -99,7 +104,7 @@ export function useGuardian(currentUser) {
     });
     setConfig({ email: guardado.email, tiempoMin: guardado.tiempoMin });
     setHoraInicio(startTime);
-    setTiempoRestante(remaining);
+    cuenta.fijar(remaining);
     setActivo(true);
     // Vencido mientras la pestaña estaba cerrada: si la alerta no quedó registrada, se registra
     // ahora (antes solo se mostraba en pantalla, BUGS F28). Si ya estaba en Alerta, no se repite.
@@ -110,7 +115,7 @@ export function useGuardian(currentUser) {
           .catch(error => console.error('Error registrando la alerta del guardián:', error));
       }
     }
-  }, []);
+  }, [cuenta]);
 
   const elegirViaje = (viajeElegido) => {
     setViaje(viajeElegido);
@@ -146,7 +151,7 @@ export function useGuardian(currentUser) {
         setAlertaEnviada(false);
         setPreAlerta(false);
         setHoraInicio(new Date());
-        setTiempoRestante(config.tiempoMin * 60);
+        cuenta.fijar(config.tiempoMin * 60);
         setConfigOpen(false);
         toast.success('🛡️ Guardián activado en base de datos. ¡Buen viaje!');
       } else {
@@ -179,7 +184,7 @@ export function useGuardian(currentUser) {
       return;
     }
     setActivo(false);
-    setTiempoRestante(0);
+    cuenta.fijar(0);
     setGuardianId(null);
     setShowReadjustModal(false);
     // Sin id no hubo PUT: la llegada no quedó registrada (BUGS F36)
@@ -197,7 +202,7 @@ export function useGuardian(currentUser) {
         return;
       }
 
-      setTiempoRestante(prev => prev + (EXTENSION_GUARDIAN_MIN * 60));
+      cuenta.fijar(cuenta.leer() + (EXTENSION_GUARDIAN_MIN * 60));
       setPreAlerta(false);
       setShowReadjustModal(false);
       toast.success(`⏱️ Tiempo extendido ${EXTENSION_GUARDIAN_MIN} minutos`);
@@ -205,7 +210,7 @@ export function useGuardian(currentUser) {
   };
 
   return {
-    viaje, config, setConfig, activo, tiempoRestante, alertaEnviada, preAlerta, horaInicio,
+    viaje, config, setConfig, activo, cuenta, alertaEnviada, preAlerta, horaInicio,
     configOpen, setConfigOpen, showReadjustModal,
     retomar, elegirViaje, iniciar, finalizar, reajustarTiempo,
   };
