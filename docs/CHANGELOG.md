@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-01 — Fix F34: municipio sin nombre en el autocompletado
+
+Rama `refactor/deuda-bloque-3`, en un commit propio (`fix`), separado de la caracterización.
+
+**Qué cambió**
+- `lib/client/formato.js`: nuevo `nombreDeOpcion(opcion)`, que devuelve el string tal cual, el `nombre` de un municipio, o `''` si no tiene.
+- `app/dashboard/page.jsx`: el `Autocomplete` usa `nombreDeOpcion` para filtrar, mostrar y seleccionar, en lugar de `m.nombre || m`.
+
+**Cambio de comportamiento a propósito**
+- Un municipio sin nombre ya no rompe el dashboard: no aparece en las sugerencias. Con nombres válidos el resultado es el mismo que antes.
+- El test de `dashboard-navegacion.test.jsx` que fijaba el error se reemplazó por el comportamiento esperado, y se verificó que falla con el código anterior.
+
+**Tests corridos**
+- `npm test`: 729 tests, 47 archivos, todos OK (7 nuevos de `nombreDeOpcion`).
+- `npm run build`: OK.
+- `npm run lint`: 5 errores y 3 warnings, igual que la línea base.
+
+**Riesgos pendientes**
+- Sigue sin saberse si en producción hay municipios sin nombre. El fix evita la caída pero no corrige el dato; si existen, conviene revisarlos cuando se habilite trabajar la BD.
+
 ## 2026-09-30 — Tests de caracterización de módulos críticos
 
 Rama `refactor/deuda-bloque-3`. Solo se agregaron tests: no se tocó código de producción. Un commit por módulo (`test(caracterizacion): …`). La BD se mockea siempre (`oracledb` o `fetch`); ningún test abre una conexión real.
