@@ -200,6 +200,16 @@ describe('Fase B: guardian', () => {
     expect(conn.calls[0].binds).toEqual({ viajeId: 5, userId: YO, aceptada: 2 });
   });
 
+  test('POST con el propio correo como contacto → 400 sin escribir; manda la sesión, no el usuarioId del body', async () => {
+    useConnection([participa(true), { rows: [{ ID_USU: YO }] }]);
+    const res = await call(guardian.POST, 'POST', '/api/guardian', {
+      body: { viajeId: 5, usuarioId: OTRO, email: 'yo@x.co' },
+    });
+    expect((await readResponse(res)).body.codigo).toBe('CONTACTO_PROPIO');
+    expect(res.status).toBe(400);
+    expect(writes()).toEqual([]);
+  });
+
   test('POST en un viaje ajeno → 403 sin escribir', async () => {
     useConnection([participa(false)]);
     await expect403(

@@ -3,7 +3,7 @@
 import React from 'react';
 
 /** Modal para configurar el guardián (contacto y tiempo) antes de iniciar el viaje. */
-export default function ConfigurarGuardianModal({ viaje, config, setConfig, onCerrar, onIniciar }) {
+export default function ConfigurarGuardianModal({ viaje, config, setConfig, errorContacto, onCerrar, onIniciar }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px' }}>
       <div style={{ 
@@ -57,10 +57,17 @@ export default function ConfigurarGuardianModal({ viaje, config, setConfig, onCe
               type="email" 
               placeholder="ejemplo@correo.com" 
               value={config.email} 
-              onChange={(e) => setConfig({...config, email: e.target.value})} 
-              style={{ padding: '12px 16px' }}
-              required 
+              onChange={(e) => setConfig({...config, email: e.target.value})}
+              style={{ padding: '12px 16px', ...(errorContacto && { borderColor: 'var(--red)' }) }}
+              aria-invalid={Boolean(errorContacto)}
+              aria-describedby="contacto-ayuda"
+              required
             />
+            {errorContacto ? (
+              <p id="contacto-ayuda" role="alert" style={{ color: '#f87171', fontSize: '0.75rem', marginTop: '6px', lineHeight: '1.4' }}>{errorContacto}</p>
+            ) : (
+              <p id="contacto-ayuda" style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '6px' }}>Debe ser el correo con el que tu contacto se registró en Bycar.</p>
+            )}
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '8px' }}>⏱️ Tiempo estimado del viaje (minutos)</label>

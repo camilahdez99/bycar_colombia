@@ -494,6 +494,7 @@ export default function DashboardPage() {
                 viaje={guardian.viaje}
                 config={guardian.config}
                 setConfig={guardian.setConfig}
+                errorContacto={guardian.errorContacto}
                 onCerrar={() => guardian.setConfigOpen(false)}
                 onIniciar={() => guardian.iniciar(guardian.viaje)}
               />
