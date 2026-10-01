@@ -90,7 +90,7 @@ describe('Dashboard · publicar viaje (caracterización)', () => {
     expect(toast.loading).not.toHaveBeenCalled();
   });
 
-  test('publicación correcta: cierra el modal, avisa y agrega la ruta al FINAL de Mis Rutas con los datos del formulario (F30)', async () => {
+  test('publicación correcta: cierra el modal, avisa y agrega la ruta PRIMERA en Mis Rutas, como el orden del servidor (F30)', async () => {
     iniciarSesion();
     let pedidosMisRutas = 0;
     stubApi({
@@ -114,7 +114,7 @@ describe('Dashboard · publicar viaje (caracterización)', () => {
 
     clickNav('Mis Rutas');
     const tarjetas = (await screen.findAllByText(/→/)).map((el) => el.textContent);
-    expect(tarjetas).toEqual(['CALI → PASTO', 'BOGOTA → MEDELLIN']);
+    expect(tarjetas).toEqual(['BOGOTA → MEDELLIN', 'CALI → PASTO']);
     expect(screen.getByText('Placa: ABC123 • 2026-10-05')).toBeTruthy();
   });
 

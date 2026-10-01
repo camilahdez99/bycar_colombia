@@ -520,9 +520,10 @@ export default function DashboardPage() {
           id: data.id,
           ...nuevaRuta
         };
-        setRutasPublicadas([...rutasPublicadas, nueva]);
+        // La lista va de la más nueva a la más vieja: la ruta publicada va primera (BUGS F30)
+        setRutasPublicadas([nueva, ...rutasPublicadas]);
         setIsModalOpen(false);
-        setNuevaRuta({ origen: '', destino: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: '' });
+        setNuevaRuta({ origen: '', destino: '', marca: '', carro: '', placa: '', fecha: '', puestos: '', valor: '', comentarios: '' });
         toast.success('Ruta publicada correctamente', { id: toastId });
       } else {
         toast.error(data.error || 'Error al publicar', { id: toastId });
