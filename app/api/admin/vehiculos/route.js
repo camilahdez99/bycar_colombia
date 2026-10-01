@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
+import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -77,7 +78,7 @@ export async function POST(req) {
     if (error.message && error.message.includes('PK_VEHICULOS')) {
       return NextResponse.json({ error: 'Ya existe un vehículo con esa placa' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Error al crear vehículo: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: mensajeDeError(error, 'Error al crear vehículo') }, { status: 500 });
   } finally {
     await closeConnection(connection, 'POST /api/admin/vehiculos');
   }
@@ -140,7 +141,7 @@ export async function DELETE(req) {
     return NextResponse.json({ message: 'Vehículo eliminado correctamente' }, { status: 200 });
   } catch (error) {
     logError('api_error', error, { route: 'DELETE /api/admin/vehiculos', mensaje: 'Error al eliminar vehículo' });
-    return NextResponse.json({ error: 'Error al eliminar vehículo: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: mensajeDeError(error, 'Error al eliminar vehículo') }, { status: 500 });
   } finally {
     await closeConnection(connection, 'DELETE /api/admin/vehiculos');
   }

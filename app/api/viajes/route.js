@@ -3,6 +3,7 @@ import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
+import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { requireSelf } from '@/lib/auth/ownership';
 import { limpiarDatosViaje } from '@/lib/domain/viajes';
@@ -193,7 +194,7 @@ export async function POST(req) {
     return NextResponse.json({ message: 'Viaje publicado correctamente', id: idViaje }, { status: 201 });
   } catch (error) {
     logError('api_error', error, { route: 'POST /api/viajes', mensaje: 'Error al publicar viaje' });
-    return NextResponse.json({ error: 'Error BD: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: mensajeDeError(error, 'Error al publicar viaje') }, { status: 500 });
   } finally {
     await closeConnection(connection, 'POST /api/viajes');
   }

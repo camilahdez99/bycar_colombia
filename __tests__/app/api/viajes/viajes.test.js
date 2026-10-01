@@ -257,7 +257,7 @@ describe('POST /api/viajes (caracterización)', () => {
     expect(conn.calls[4].binds.valorNum).toBeNaN();
   });
 
-  test('500 expone error.message; lo creado antes (municipio con autoCommit) no se revierte (comportamiento actual)', async () => {
+  test('500 sin exponer error.message (S8); lo creado antes (municipio con autoCommit) no se revierte (comportamiento actual)', async () => {
     const conn = createFakeConnection([
       { rows: [] },
       { rows: [{ nextId: 100 }] },
@@ -267,7 +267,7 @@ describe('POST /api/viajes (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post(validBody))).toEqual({
       status: 500,
-      body: { error: 'Error BD: ORA-02291: integrity constraint violated' },
+      body: { error: 'Error al publicar viaje' },
     });
     expect(conn.calls[2].options).toEqual({ autoCommit: true });
     expect(conn.rollback).not.toHaveBeenCalled();
@@ -276,7 +276,7 @@ describe('POST /api/viajes (caracterización)', () => {
 
   test('500 si no hay conexión', async () => {
     getConnection.mockRejectedValue(new Error('sin red'));
-    expect(await readResponse(await post(validBody))).toEqual({ status: 500, body: { error: 'Error BD: sin red' } });
+    expect(await readResponse(await post(validBody))).toEqual({ status: 500, body: { error: 'Error al publicar viaje' } });
   });
 
   test('500 si la placa no es string (placa.replace lanza)', async () => {

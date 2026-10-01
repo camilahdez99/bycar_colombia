@@ -60,7 +60,7 @@ describe('GET /api/admin/tablas (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ tabla: 'USUARIOS; DROP TABLE X' }))).toEqual({
       status: 500,
-      body: { error: 'Nombre de tabla inválido' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.execute).not.toHaveBeenCalled();
     expect(conn.close).toHaveBeenCalledOnce();
@@ -106,19 +106,19 @@ describe('GET /api/admin/tablas (caracterización)', () => {
     expect(conn.calls[1].binds).toEqual({ id: NaN });
   });
 
-  test('500 con el mensaje de Oracle si falla la consulta', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8) si falla la consulta', async () => {
     const conn = createFakeConnection([new Error('ORA-00942: table or view does not exist')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ tabla: 'NOEXISTE' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-00942: table or view does not exist' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
   test('500 si no hay conexión', async () => {
     getConnection.mockRejectedValue(new Error('sin red'));
-    expect(await readResponse(await get({ tabla: 'MENUS' }))).toEqual({ status: 500, body: { error: 'sin red' } });
+    expect(await readResponse(await get({ tabla: 'MENUS' }))).toEqual({ status: 500, body: { error: 'Error interno del servidor' } });
   });
 
   test('si close() falla, la promesa se rechaza (close sin try)', async () => {
@@ -227,7 +227,7 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post({ tabla: 'MENUS' }, { ID_ENU: 1 }))).toEqual({
       status: 500,
-      body: { error: 'ORA-01400' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.rollback).toHaveBeenCalledOnce();
     expect(conn.close).toHaveBeenCalledOnce();
@@ -238,7 +238,7 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post({ tabla: 'VIAJES' }, { ID_VIA: 1 }))).toEqual({
       status: 500,
-      body: { error: 'ORA-02291' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.rollback).not.toHaveBeenCalled();
   });
@@ -309,12 +309,12 @@ describe('PUT /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle si falla el UPDATE', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8) si falla el UPDATE', async () => {
     const conn = createFakeConnection([pk('ID_VIA'), COLS_VIAJES, new Error('ORA-01722')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await put({ tabla: 'VIAJES', id: '1' }, { NOTA_VIA: 'a' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-01722' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });
@@ -364,14 +364,23 @@ describe('DELETE /api/admin/tablas (caracterización)', () => {
     expect((await readResponse(await del({ tabla: 'VIAJES', id: '404' }))).status).toBe(200);
   });
 
-  test('500 con el mensaje de Oracle si falla el DELETE', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8) si falla el DELETE', async () => {
     const conn = createFakeConnection([pk('ID_VIA'), new Error('ORA-02292')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ tabla: 'VIAJES', id: '1' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-02292' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
+  });
+
+  test('500 con un mensaje conocido según el código de Oracle (FK con registros asociados)', async () => {
+    const error = Object.assign(new Error('ORA-02292: integrity constraint (US_BYCAR.FK_X) violated'), { errorNum: 2292 });
+    getConnection.mockResolvedValue(createFakeConnection([pk('ID_VIA'), error]));
+    expect(await readResponse(await del({ tabla: 'VIAJES', id: '1' }))).toEqual({
+      status: 500,
+      body: { error: 'El registro tiene otros asociados y no se puede borrar' },
+    });
   });
 
   test('si close() falla, la promesa se rechaza (close sin try)', async () => {

@@ -58,12 +58,12 @@ describe('DELETE /api/admin/viajes (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8)', async () => {
     const conn = createFakeConnection([new Error('ORA-02292')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ id: '5' }))).toEqual({
       status: 500,
-      body: { error: 'Error al eliminar viaje: ORA-02292' },
+      body: { error: 'Error al eliminar viaje' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });

@@ -82,11 +82,11 @@ describe('POST /api/admin/usuarios (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle ante otro error', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8) ante otro error', async () => {
     getConnection.mockResolvedValue(createFakeConnection([{ rows: [{ nextId: 1 }] }, new Error('ORA-00001: PK_USU')]));
     expect(await readResponse(await post(validPost))).toEqual({
       status: 500,
-      body: { error: 'Error al crear usuario: ORA-00001: PK_USU' },
+      body: { error: 'Error al crear usuario' },
     });
   });
 
@@ -160,12 +160,12 @@ describe('DELETE /api/admin/usuarios (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8)', async () => {
     const conn = createFakeConnection([new Error('ORA-02292')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ id: '7' }))).toEqual({
       status: 500,
-      body: { error: 'Error al eliminar usuario: ORA-02292' },
+      body: { error: 'Error al eliminar usuario' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });

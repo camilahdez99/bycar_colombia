@@ -69,15 +69,15 @@ describe('GET /api/guardian (caracterización)', () => {
     getConnection.mockResolvedValue(createFakeConnection([{}]));
     const res = await readResponse(await get({ usuarioId: '42' }));
     expect(res.status).toBe(500);
-    expect(res.body.error).toMatch(/Cannot read properties of undefined/);
+    expect(res.body.error).toBe('Error interno del servidor');
   });
 
-  test('500 expone error.message de Oracle', async () => {
+  test('500 sin exponer error.message (S8)', async () => {
     const conn = createFakeConnection([new Error('ORA-00942: table or view does not exist')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ email: 'a@x.co' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-00942: table or view does not exist' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });
@@ -136,12 +136,12 @@ describe('POST /api/guardian (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 expone error.message si falla el insert', async () => {
+  test('500 sin exponer error.message (S8) si falla el insert', async () => {
     const conn = createFakeConnection([usuarioExiste, new Error('ORA-02291: parent key not found')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post({ viajeId: 5, email: 'a@x.co' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-02291: parent key not found' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });
@@ -213,12 +213,12 @@ describe('PUT /api/guardian (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 expone error.message si falla el update', async () => {
+  test('500 sin exponer error.message (S8) si falla el update', async () => {
     const conn = createFakeConnection([new Error('ORA-01407: cannot update to NULL')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await put({ id: 11, estado: 'Xyzabc' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-01407: cannot update to NULL' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });

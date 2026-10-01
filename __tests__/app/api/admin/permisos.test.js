@@ -39,10 +39,10 @@ describe('GET /api/admin/permisos (caracterización)', () => {
     expect(await readResponse(await get({}))).toEqual({ status: 200, body: [] });
   });
 
-  test('500 con el mensaje de Oracle', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8)', async () => {
     const conn = createFakeConnection([new Error('ORA-00942')]);
     getConnection.mockResolvedValue(conn);
-    expect(await readResponse(await get({ usuarioId: '1' }))).toEqual({ status: 500, body: { error: 'ORA-00942' } });
+    expect(await readResponse(await get({ usuarioId: '1' }))).toEqual({ status: 500, body: { error: 'Error interno del servidor' } });
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
@@ -87,11 +87,11 @@ describe('POST /api/admin/permisos (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle ante otro error', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8) ante otro error', async () => {
     getConnection.mockResolvedValue(createFakeConnection([new Error('ORA-02291')]));
     expect(await readResponse(await post({ usuarioId: 1, menuId: 2 }))).toEqual({
       status: 500,
-      body: { error: 'ORA-02291' },
+      body: { error: 'Error interno del servidor' },
     });
   });
 
@@ -125,12 +125,12 @@ describe('DELETE /api/admin/permisos (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8)', async () => {
     const conn = createFakeConnection([new Error('ORA-01722')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ usuarioId: '1', menuId: '2' }))).toEqual({
       status: 500,
-      body: { error: 'ORA-01722' },
+      body: { error: 'Error interno del servidor' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });

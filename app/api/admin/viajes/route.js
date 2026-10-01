@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
+import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -58,7 +59,7 @@ export async function DELETE(req) {
     return NextResponse.json({ message: 'Viaje y sus dependencias eliminados' }, { status: 200 });
   } catch (error) {
     logError('api_error', error, { route: 'DELETE /api/admin/viajes', mensaje: 'Error al eliminar viaje' });
-    return NextResponse.json({ error: 'Error al eliminar viaje: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: mensajeDeError(error, 'Error al eliminar viaje') }, { status: 500 });
   } finally {
     await closeConnection(connection, 'DELETE /api/admin/viajes');
   }

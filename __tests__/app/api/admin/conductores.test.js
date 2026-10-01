@@ -81,7 +81,7 @@ describe('DELETE /api/admin/conductores (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ id: '4' }))).toEqual({
       status: 500,
-      body: { error: 'Error al eliminar conductor: ORA-02292' },
+      body: { error: 'Error al eliminar conductor' },
     });
     expect(conn.rollback).not.toHaveBeenCalled();
     expect(conn.close).toHaveBeenCalledOnce();

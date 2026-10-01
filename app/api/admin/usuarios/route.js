@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
+import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -64,7 +65,7 @@ export async function POST(req) {
     if (error.message && error.message.includes('UN_CORREO_USU')) {
       return NextResponse.json({ error: 'El correo ya está registrado' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'Error al crear usuario: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: mensajeDeError(error, 'Error al crear usuario') }, { status: 500 });
   } finally {
     await closeConnection(connection, 'POST /api/admin/usuarios');
   }
@@ -127,7 +128,7 @@ export async function DELETE(req) {
     return NextResponse.json({ message: 'Usuario eliminado correctamente' }, { status: 200 });
   } catch (error) {
     logError('api_error', error, { route: 'DELETE /api/admin/usuarios', mensaje: 'Error al eliminar usuario' });
-    return NextResponse.json({ error: 'Error al eliminar usuario: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: mensajeDeError(error, 'Error al eliminar usuario') }, { status: 500 });
   } finally {
     await closeConnection(connection, 'DELETE /api/admin/usuarios');
   }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import oracledb from 'oracledb';
 import { getConnection } from '@/lib/db';
 import { logError } from '@/lib/log';
+import { mensajeDeError } from '@/lib/api/errores';
 import { authorize } from '@/lib/auth/guard';
 import { ROLES } from '@/lib/auth/session';
 
@@ -120,7 +121,7 @@ export async function GET(req) {
     logError('api_error', e, { route: 'GET /api/admin/tablas', mensaje: 'Error API tablas' });
 
     return NextResponse.json(
-      { error: e.message },
+      { error: mensajeDeError(e, 'Error interno del servidor') },
       { status: 500 }
     );
 
@@ -224,7 +225,7 @@ export async function POST(req) {
     logError('api_error', e, { route: 'POST /api/admin/tablas', mensaje: 'POST tabla error' });
 
     return NextResponse.json(
-      { error: e.message },
+      { error: mensajeDeError(e, 'Error interno del servidor') },
       { status: 500 }
     );
 
@@ -303,7 +304,7 @@ export async function PUT(req) {
     logError('api_error', e, { route: 'PUT /api/admin/tablas', mensaje: 'PUT tabla error' });
 
     return NextResponse.json(
-      { error: e.message },
+      { error: mensajeDeError(e, 'Error interno del servidor') },
       { status: 500 }
     );
 
@@ -358,7 +359,7 @@ export async function DELETE(req) {
     logError('api_error', e, { route: 'DELETE /api/admin/tablas', mensaje: 'DELETE tabla error' });
 
     return NextResponse.json(
-      { error: e.message },
+      { error: mensajeDeError(e, 'Error interno del servidor') },
       { status: 500 }
     );
 

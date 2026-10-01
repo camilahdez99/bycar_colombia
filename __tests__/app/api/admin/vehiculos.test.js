@@ -91,12 +91,12 @@ describe('POST /api/admin/vehiculos (caracterización)', () => {
     });
   });
 
-  test('500 con el mensaje de Oracle ante otro error', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8) ante otro error', async () => {
     const conn = createFakeConnection([{ rows: [[7]] }, new Error('ORA-02291')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post(validPost))).toEqual({
       status: 500,
-      body: { error: 'Error al crear vehículo: ORA-02291' },
+      body: { error: 'Error al crear vehículo' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });
@@ -155,12 +155,12 @@ describe('DELETE /api/admin/vehiculos (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 con el mensaje de Oracle', async () => {
+  test('500 con un mensaje seguro, sin el texto de Oracle (S8)', async () => {
     const conn = createFakeConnection([new Error('ORA-02292')]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ placa: 'ABC123' }))).toEqual({
       status: 500,
-      body: { error: 'Error al eliminar vehículo: ORA-02292' },
+      body: { error: 'Error al eliminar vehículo' },
     });
     expect(conn.close).toHaveBeenCalledOnce();
   });
