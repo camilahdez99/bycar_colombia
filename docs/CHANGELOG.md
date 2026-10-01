@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-10-01 — Fix de F39 (contador del guardián)
+
+Rama `fix/f39-contador-guardian`, desde `main` (`9719ed4`).
+
+**Qué cambió**
+- El temporizador del guardián calcula los segundos que faltan contra la hora de vencimiento (`segundosHasta` en `lib/client/cuentaRegresiva.js`) en vez de descontar 1 por tick. Con la pestaña en segundo plano ya no se atrasan el contador, la pre-alerta ni la alerta: el desfase tras 5 min oculto pasó de 295 s a 0 s. Extender suma 15 min al vencimiento.
+- Nuevo bug registrado, sin corregir: **F40** (extender después de la alerta deja el contador congelado).
+
+**Tests corridos**
+- Primero se escribieron 4 tests (2 de `segundosHasta` y 2 del dashboard con la pestaña en segundo plano) y se verificó que fallaban con el código anterior.
+- `npx vitest run --maxWorkers=4`: 781 tests en 54 archivos, todos OK. Los tests del temporizador ahora falsean también `Date`; ningún valor esperado cambió.
+- `npm run build`: OK. `npm run lint`: 3 errores y 3 warnings, los mismos de antes (DT-38).
+- `npm run perf:dashboard`: desfase 0 s; commits/s y ms de render iguales.
+
+**Riesgos pendientes**
+- Si el reloj del dispositivo se cambia a mano durante el viaje, el contador lo sigue (antes lo ignoraba).
+- F40 y F28 (la alerta depende de que el dashboard esté abierto) siguen abiertos.
+
 ## 2026-10-01 — DT-34 paso 3 (hooks del dashboard) y DT-35 (temporizador del guardián)
 
 Rama `refactor/dashboard-hooks`, desde `main` (`0d7add3`). Era la única fase que había quedado esperando la integración (sesiones 4 y 7).

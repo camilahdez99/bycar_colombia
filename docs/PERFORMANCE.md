@@ -97,9 +97,13 @@ Medido con `npm run perf:dashboard`, antes y después en la misma máquina y ses
 |---|---|---|---|
 | Inicio, buscando un municipio | 1,1 → **0,1** (−91 %) | 1 125 → **102** (−91 %) | 8,1 → **0,6** |
 | Pestaña Guardián | 1,1 → 1,1 | 0 → 0 | 4,4 → **0,9–1,4** |
-| Desfase tras 5 min oculto | — | — | 295 s → 295 s (F39, sin tocar) |
+| Desfase tras 5 min oculto | — | — | 295 s → 295 s (F39, sin tocar; corregido después, ver abajo) |
 
 El 0,1 commits/s que queda en Inicio es el polling de 10 s (DT-33), y con él las 102 llamadas a `normalizar()`/s. En la pestaña Guardián el Profiler sigue contando un commit por segundo, pero ahora solo se renderiza el panel del contador.
+
+### F39 · contador del guardián contra el reloj — ✅ corregido
+
+No es una optimización sino un bug, pero se mide con el mismo benchmark: tras 5 min con la pestaña en segundo plano (1 tick por minuto) el contador mostraba `29:55` en vez de `25:00`. Ahora cada tick calcula contra el vencimiento: **desfase 295 s → 0 s**. Commits/s y ms de render no cambian.
 
 ### DT-45 · landing como server component — ⚠️ medida, no llega al umbral
 

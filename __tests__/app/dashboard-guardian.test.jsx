@@ -182,7 +182,8 @@ describe('Dashboard · guardián: activar y finalizar (caracterización)', () =>
 });
 
 describe('Dashboard · guardián: temporizador (caracterización)', () => {
-  beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] }));
+  // Date también es falso: el contador se calcula contra el reloj (F39) y avanza con advanceTimersByTime
+  beforeEach(() => vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] }));
 
   async function activarCon(minutos) {
     await abrirConfiguracion();
@@ -193,7 +194,7 @@ describe('Dashboard · guardián: temporizador (caracterización)', () => {
     await act(async () => {});
   }
 
-  test('descuenta un segundo por tick del intervalo', async () => {
+  test('cada segundo el contador baja un segundo', async () => {
     await activarCon(6);
     expect(screen.getByText('06:00')).toBeTruthy();
 
@@ -310,6 +311,28 @@ describe('Dashboard · guardián: temporizador (caracterización)', () => {
 
     expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
     expect(toast).toHaveBeenCalledTimes(2);
+  });
+
+  /** Pestaña en segundo plano: el navegador espacia los ticks y el reloj avanza sin ellos. */
+  const pasarSegundosOculta = (segundos) => act(() => {
+    vi.setSystemTime(Date.now() + (segundos - 1) * 1000);
+    vi.advanceTimersByTime(1000);
+  });
+
+  test('con la pestaña en segundo plano el contador no se atrasa: calcula contra el reloj (F39)', async () => {
+    await activarCon(30);
+    for (let min = 0; min < 5; min++) pasarSegundosOculta(60);
+
+    expect(screen.getByText('25:00')).toBeTruthy();
+  });
+
+  test('si el tiempo vence con la pestaña en segundo plano, la alerta sale en el siguiente tick (F39)', async () => {
+    await activarCon(6);
+    pasarSegundosOculta(7 * 60);
+
+    expect(screen.getByText('00:00')).toBeTruthy();
+    expect(screen.getByText('🚨 ALERTA ENVIADA')).toBeTruthy();
+    expect(llamadas('PUT', '/api/guardian').map((c) => c.body)).toEqual([{ id: 77, estado: 'Alerta' }]);
   });
 
   test('al llegar a 0: PUT con estado Alerta una sola vez, aviso y "ALERTA ENVIADA" en pantalla', async () => {
