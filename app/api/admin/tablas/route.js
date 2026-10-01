@@ -39,6 +39,17 @@ const getPrimaryKeyColumns = async (connection, tabla) => {
 const compositeKeyResponse = () =>
   NextResponse.json({ error: ERROR_PK_COMPUESTA }, { status: 400 });
 
+// Sin PK se armaba "WHERE undefined = :id" (BUGS F13)
+const noPrimaryKeyResponse = () =>
+  NextResponse.json({ error: 'La tabla no tiene clave primaria: no se puede operar por id' }, { status: 400 });
+
+// Sin columnas válidas se armaba "INSERT … () VALUES ()" o un SET vacío (BUGS F15)
+const noColumnsResponse = () =>
+  NextResponse.json({ error: 'Ninguna columna del cuerpo coincide con la tabla' }, { status: 400 });
+
+// rowsAffected = 0: el registro no existe (BUGS F19)
+const notFoundResponse = () => NextResponse.json({ error: 'Registro no encontrado' }, { status: 404 });
+
 const getColumnsInfo = async (connection, tabla) => {
   const sql = `
     SELECT column_name, data_type, nullable
@@ -106,13 +117,17 @@ export async function GET(req) {
     const id = searchParams.get('id');
 
     // Con PK compuesta, GET usa la primera columna (a diferencia de PUT/DELETE, que responden 400)
+    const [pk] = id ? await getPrimaryKeyColumns(connection, t) : [];
+    if (id && !pk) return noPrimaryKeyResponse();
+
     const sql = id
-      ? `SELECT * FROM ${t} WHERE ${(await getPrimaryKeyColumns(connection, t))[0]} = :id`
+      ? `SELECT * FROM ${t} WHERE ${pk} = :id`
       : `SELECT * FROM ${t}`;
 
+    // El id viaja como texto, igual que en PUT: Oracle lo convierte y las claves de texto (placa) funcionan (F14)
     const result = await connection.execute(
       sql,
-      id ? { id: Number(id) } : {},
+      id ? { id } : {},
       { outFormat: oracledb.OUT_FORMAT_OBJECT }
     );
 
@@ -175,6 +190,8 @@ export async function POST(req) {
       }
     }
 
+    if (!cols.length) return noColumnsResponse();
+
     const placeholders = cols.map((c) => `:${c}`);
 
     const sql = `
@@ -206,8 +223,9 @@ export async function POST(req) {
             logError('permiso_por_defecto_fallido', permError, { route: 'POST /api/admin/tablas' });
           }
         }
-        await connection.commit();
       }
+      // El INSERT en MENUS corre sin autoCommit: se confirma siempre, haya o no ID_ENU (BUGS F12)
+      await connection.commit();
     }
 
     return NextResponse.json(
@@ -264,6 +282,7 @@ export async function PUT(req) {
     const pkColumns = await getPrimaryKeyColumns(connection, t);
     if (pkColumns.length > 1) return compositeKeyResponse();
     const [pk] = pkColumns;
+    if (!pk) return noPrimaryKeyResponse();
 
     const colsInfo = await getColumnsInfo(connection, t);
 
@@ -283,6 +302,8 @@ export async function PUT(req) {
       }
     }
 
+    if (!cols.length) return noColumnsResponse();
+
     const setClause = cols
       .map((c) => `${c.toUpperCase()} = :${c}`)
       .join(', ');
@@ -293,11 +314,12 @@ export async function PUT(req) {
       WHERE ${pk} = :id
     `;
 
-    await connection.execute(
+    const result = await connection.execute(
       sql,
       bindData,
       { autoCommit: true }
     );
+    if (result.rowsAffected === 0) return notFoundResponse();
 
     return NextResponse.json({ ok: true });
 
@@ -341,17 +363,20 @@ export async function DELETE(req) {
     const pkColumns = await getPrimaryKeyColumns(connection, t);
     if (pkColumns.length > 1) return compositeKeyResponse();
     const [pk] = pkColumns;
+    if (!pk) return noPrimaryKeyResponse();
 
     const sql = `
       DELETE FROM ${t}
       WHERE ${pk} = :id
     `;
 
-    await connection.execute(
+    // El id viaja como texto, igual que en PUT (F14)
+    const result = await connection.execute(
       sql,
-      { id: Number(id) },
+      { id },
       { autoCommit: true }
     );
+    if (result.rowsAffected === 0) return notFoundResponse();
 
     return NextResponse.json({ ok: true });
 

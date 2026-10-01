@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con id numérico y autoCommit (comportamiento actual: sin autenticación) 1`] = `
+exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con el id como texto (F14) y autoCommit (comportamiento actual: sin autenticación) 1`] = `
 [
   {
     "binds": {
@@ -20,7 +20,7 @@ exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con id 
   },
   {
     "binds": {
-      "id": 7,
+      "id": "7",
     },
     "options": {
       "autoCommit": true,
@@ -33,7 +33,7 @@ exports[`DELETE /api/admin/tablas (caracterización) > 200: borra por PK con id 
 ]
 `;
 
-exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra por ella con id numérico 1`] = `
+exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra por ella con el id como texto (F14) 1`] = `
 [
   {
     "binds": {
@@ -53,7 +53,7 @@ exports[`GET /api/admin/tablas (caracterización) > con id: busca la PK y filtra
   },
   {
     "binds": {
-      "id": 3,
+      "id": "3",
     },
     "options": {
       "outFormat": 4002,

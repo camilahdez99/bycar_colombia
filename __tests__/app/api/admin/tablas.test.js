@@ -86,7 +86,7 @@ describe('GET /api/admin/tablas (caracterización)', () => {
     expect(conn.calls).toMatchSnapshot();
   });
 
-  test('con id: busca la PK y filtra por ella con id numérico', async () => {
+  test('con id: busca la PK y filtra por ella con el id como texto (F14)', async () => {
     const rows = [{ ID_ENU: 3, CAMPO_ENU: 'Viajes' }];
     const conn = createFakeConnection([pk('ID_ENU'), { rows }]);
     getConnection.mockResolvedValue(conn);
@@ -94,18 +94,21 @@ describe('GET /api/admin/tablas (caracterización)', () => {
     expect(conn.calls).toMatchSnapshot();
   });
 
-  test('con id en tabla sin PK: arma "WHERE undefined = :id" (comportamiento actual)', async () => {
-    const conn = createFakeConnection([pk(null), { rows: [] }]);
+  test('con id en tabla sin PK: 400 sin consultar la tabla (F13)', async () => {
+    const conn = createFakeConnection([pk(null)]);
     getConnection.mockResolvedValue(conn);
-    await get({ tabla: 'LOGS', id: '1' });
-    expect(conn.calls[1].sql).toBe('SELECT * FROM LOGS WHERE undefined = :id');
+    expect(await readResponse(await get({ tabla: 'LOGS', id: '1' }))).toEqual({
+      status: 400,
+      body: { error: 'La tabla no tiene clave primaria: no se puede operar por id' },
+    });
+    expect(conn.execute).toHaveBeenCalledOnce();
   });
 
-  test('con id no numérico: se bindea NaN (comportamiento actual: rompe PK de texto como PLACA_VEH)', async () => {
+  test('con id de texto: se bindea tal cual, así funcionan PK como PLACA_VEH (F14)', async () => {
     const conn = createFakeConnection([pk('PLACA_VEH'), { rows: [] }]);
     getConnection.mockResolvedValue(conn);
     await get({ tabla: 'VEHICULOS', id: 'ABC123' });
-    expect(conn.calls[1].binds).toEqual({ id: NaN });
+    expect(conn.calls[1].binds).toEqual({ id: 'ABC123' });
   });
 
   test('500 con un mensaje seguro, sin el texto de Oracle (S8) si falla la consulta', async () => {
@@ -178,11 +181,14 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('sin columnas válidas: arma "INSERT ... () VALUES ()" y lo ejecuta igual (comportamiento actual)', async () => {
-    const conn = createFakeConnection([COLS_VIAJES, { rowsAffected: 0 }]);
+  test('sin columnas válidas: 400 sin ejecutar el INSERT (F15)', async () => {
+    const conn = createFakeConnection([COLS_VIAJES]);
     getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await post({ tabla: 'VIAJES' }, { OTRA: 1 }))).status).toBe(201);
-    expect(conn.calls[1].sql).toMatch(/INSERT INTO VIAJES\s+\(\)\s+VALUES \(\)/);
+    expect(await readResponse(await post({ tabla: 'VIAJES' }, { OTRA: 1 }))).toEqual({
+      status: 400,
+      body: { error: 'Ninguna columna del cuerpo coincide con la tabla' },
+    });
+    expect(conn.execute).toHaveBeenCalledOnce();
   });
 
   test('MENUS con ID_ENU: inserta sin autoCommit, da permiso a todos los usuarios y hace commit', async () => {
@@ -217,7 +223,7 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     expect(conn.commit).toHaveBeenCalledOnce();
   });
 
-  test('MENUS sin ID_ENU: no hace commit ni asigna permisos (comportamiento actual: el INSERT queda sin confirmar)', async () => {
+  test('MENUS sin ID_ENU: confirma el INSERT y no asigna permisos (F12)', async () => {
     const conn = createFakeConnection([COLS_MENUS, { rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post({ tabla: 'MENUS' }, { ID_ENU: '', CAMPO_ENU: 'X' }))).toEqual({
@@ -226,7 +232,7 @@ describe('POST /api/admin/tablas (caracterización)', () => {
     });
     expect(conn.execute).toHaveBeenCalledTimes(2);
     expect(conn.calls[1].options).toEqual({ autoCommit: false });
-    expect(conn.commit).not.toHaveBeenCalled();
+    expect(conn.commit).toHaveBeenCalledOnce();
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
@@ -306,11 +312,29 @@ describe('PUT /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('sin columnas válidas: arma "SET  WHERE" y lo ejecuta igual (comportamiento actual)', async () => {
-    const conn = createFakeConnection([pk('ID_VIA'), COLS_VIAJES, { rowsAffected: 0 }]);
+  test('sin columnas válidas (solo la PK): 400 sin ejecutar el UPDATE (F15)', async () => {
+    const conn = createFakeConnection([pk('ID_VIA'), COLS_VIAJES]);
     getConnection.mockResolvedValue(conn);
-    await put({ tabla: 'VIAJES', id: '1' }, { ID_VIA: 2 });
-    expect(conn.calls[2].sql).toMatch(/UPDATE VIAJES\s+SET \s+WHERE ID_VIA = :id/);
+    expect(await readResponse(await put({ tabla: 'VIAJES', id: '1' }, { ID_VIA: 2 }))).toEqual({
+      status: 400,
+      body: { error: 'Ninguna columna del cuerpo coincide con la tabla' },
+    });
+    expect(conn.execute).toHaveBeenCalledTimes(2);
+  });
+
+  test('tabla sin PK: 400 sin ejecutar el UPDATE (F13)', async () => {
+    const conn = createFakeConnection([pk(null)]);
+    getConnection.mockResolvedValue(conn);
+    expect((await readResponse(await put({ tabla: 'LOGS', id: '1' }, { NOTA: 'a' }))).status).toBe(400);
+    expect(conn.execute).toHaveBeenCalledOnce();
+  });
+
+  test('404 si el registro no existe: rowsAffected = 0 (F19)', async () => {
+    getConnection.mockResolvedValue(createFakeConnection([pk('ID_VIA'), COLS_VIAJES, { rowsAffected: 0 }]));
+    expect(await readResponse(await put({ tabla: 'VIAJES', id: '404' }, { NOTA_VIA: 'a' }))).toEqual({
+      status: 404,
+      body: { error: 'Registro no encontrado' },
+    });
   });
 
   test('PK compuesta: 400 sin ejecutar el UPDATE (F11)', async () => {
@@ -359,7 +383,7 @@ describe('DELETE /api/admin/tablas (caracterización)', () => {
     expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('200: borra por PK con id numérico y autoCommit (comportamiento actual: sin autenticación)', async () => {
+  test('200: borra por PK con el id como texto (F14) y autoCommit (comportamiento actual: sin autenticación)', async () => {
     const conn = createFakeConnection([pk('ID_USU'), { rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await del({ tabla: 'usuarios', id: '7' }))).toEqual({ status: 200, body: { ok: true } });
@@ -378,9 +402,19 @@ describe('DELETE /api/admin/tablas (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('200 aunque no se borre ninguna fila', async () => {
+  test('404 si no se borra ninguna fila (F19)', async () => {
     getConnection.mockResolvedValue(createFakeConnection([pk('ID_VIA'), { rowsAffected: 0 }]));
-    expect((await readResponse(await del({ tabla: 'VIAJES', id: '404' }))).status).toBe(200);
+    expect(await readResponse(await del({ tabla: 'VIAJES', id: '404' }))).toEqual({
+      status: 404,
+      body: { error: 'Registro no encontrado' },
+    });
+  });
+
+  test('tabla sin PK: 400 sin ejecutar el DELETE (F13)', async () => {
+    const conn = createFakeConnection([pk(null)]);
+    getConnection.mockResolvedValue(conn);
+    expect((await readResponse(await del({ tabla: 'LOGS', id: '1' }))).status).toBe(400);
+    expect(conn.execute).toHaveBeenCalledOnce();
   });
 
   test('500 con un mensaje seguro, sin el texto de Oracle (S8) si falla el DELETE', async () => {
