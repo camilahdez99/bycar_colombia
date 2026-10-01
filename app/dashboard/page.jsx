@@ -592,7 +592,7 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         setSolicitudesRecibidas(solicitudesRecibidas.filter(s => s.id !== id));
-        toast.success(`Solicitud ${estado.toLowerCase()}`, { id: toastId });
+        toast.success(estado === 'Aceptado' ? 'Solicitud aceptada' : 'Solicitud rechazada', { id: toastId });
         
         // Refresh chat list immediately if accepted
         if (estado === 'Aceptado') {
