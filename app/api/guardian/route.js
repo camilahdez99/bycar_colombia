@@ -3,10 +3,10 @@ import { getConnection } from '@/lib/db';
 import { closeConnection } from '@/lib/api/connection';
 import { logError } from '@/lib/log';
 import { mensajeDeError } from '@/lib/api/errores';
-import { authorize } from '@/lib/auth/guard';
-import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
+import { authorize, getSession } from '@/lib/auth/guard';
+import { checkOwnership, requireSelf, sameUser } from '@/lib/auth/ownership';
 import { findUserEmail, isGuardianParticipant, isViajeParticipant } from '@/lib/auth/ownershipQueries';
-import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { CONTACTO_NO_REGISTRADO, CONTACTO_PROPIO, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
 import { JSON_INVALIDO, badRequest, invalidJsonResponse, readJson } from '@/lib/api/validacion';
 import { enteroPositivo, textoNoVacio } from '@/lib/domain/validadores';
 
@@ -124,7 +124,7 @@ export async function POST(req) {
   try {
     const body = await readJson(req);
     if (body === JSON_INVALIDO) return invalidJsonResponse();
-    const { viajeId, email, tiempo } = body ?? {};
+    const { viajeId, usuarioId, email, tiempo } = body ?? {};
 
     if (!viajeId || !email) {
       return NextResponse.json({ error: 'Faltan campos' }, { status: 400 });
@@ -144,7 +144,16 @@ export async function POST(req) {
     const userRes = await connection.execute(checkUserSql, { email });
 
     if (!userRes.rows?.length) {
-      return NextResponse.json({ error: 'El correo de contacto no corresponde a un usuario registrado en BYCAR' }, { status: 404 });
+      return NextResponse.json(
+        { error: CONTACTO_NO_REGISTRADO.mensaje, codigo: CONTACTO_NO_REGISTRADO.codigo },
+        { status: 404 }
+      );
+    }
+
+    // Uno no puede ser su propio contacto. Con sesión manda la sesión; sin auth, el usuarioId del body
+    const solicitanteId = (await getSession(req))?.userId ?? usuarioId;
+    if (sameUser(userRes.rows[0].ID_USU, solicitanteId)) {
+      return NextResponse.json({ error: CONTACTO_PROPIO.mensaje, codigo: CONTACTO_PROPIO.codigo }, { status: 400 });
     }
 
     const idGua = Date.now();

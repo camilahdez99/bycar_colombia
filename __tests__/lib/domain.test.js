@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { canChangeSolicitud, resolverEstadoSolicitud } from '@/lib/domain/solicitudes';
 import { idDeCatalogo, limpiarDatosViaje, validarDatosViaje } from '@/lib/domain/viajes';
 import { calcularParticipantesMensaje } from '@/lib/domain/mensajes';
+import { esContactoPropio } from '@/lib/domain/guardian';
 
 describe('resolverEstadoSolicitud', () => {
   test.each([
@@ -118,5 +119,18 @@ describe('calcularParticipantesMensaje', () => {
 
   test('cualquier otro emisor le escribe al pasajero', () => {
     expect(calcularParticipantesMensaje(99, 10, 20)).toEqual({ emisorId: 99, receptorId: 10 });
+  });
+});
+
+describe('esContactoPropio', () => {
+  test.each([
+    ['ana@x.co', 'ana@x.co', true],
+    ['  ANA@x.co ', 'ana@X.CO', true],
+    ['otra@x.co', 'ana@x.co', false],
+    ['', '', false],
+    ['ana@x.co', undefined, false],
+    [undefined, 'ana@x.co', false],
+  ])('%j vs %j → %s', (contacto, usuario, esperado) => {
+    expect(esContactoPropio(contacto, usuario)).toBe(esperado);
   });
 });

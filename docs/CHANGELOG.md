@@ -1,5 +1,49 @@
 # Changelog
 
+## 2026-10-01 — Guardián: no se puede ser el propio contacto de confianza
+
+Pedido explícito de cambiar el comportamiento (era un riesgo pendiente de la entrada siguiente).
+
+**Qué se hizo**
+- `lib/domain/guardian.js`: `esContactoPropio(correoContacto, correoUsuario)`, que compara sin importar mayúsculas ni espacios. Tests en `__tests__/lib/domain.test.js`.
+- `lib/domain/constantes.js`: `CONTACTO_PROPIO` (código y mensaje: "No puedes ser tu propio contacto de confianza. Usa el correo de otra persona registrada en Bycar.").
+- `app/api/guardian/route.js` (POST): después de buscar el usuario del correo, si su `ID_USU` es el del solicitante responde 400 con `codigo: 'CONTACTO_PROPIO'` y no inserta. El solicitante es el de la sesión si hay cookie; sin sesión (`AUTH_ENFORCED` apagado), el `usuarioId` del body, que el frontend ya mandaba. Reusa la consulta existente; no hay SQL nuevo.
+- `useGuardian`: antes de llamar a la API compara el correo con el del usuario guardado y, si es el mismo, avisa sin hacer la request. Si la API igual responde `CONTACTO_PROPIO` (por ejemplo, otro formato del mismo correo), lo muestra en el toast y debajo del campo, igual que `CONTACTO_NO_REGISTRADO`.
+
+**Tests**: 11 nuevos (6 de dominio, 2 de la API, 1 de IDOR con sesión, 2 del dashboard). `npm test` (836 en verde), `npm run lint` y `npm run build` sin errores.
+
+**Riesgos pendientes**
+- Con `AUTH_ENFORCED` apagado, el control del servidor depende del `usuarioId` que manda el cliente: alguien que llame a la API a mano sin ese campo lo saltea. Con el flag prendido usa la sesión y no se puede saltear.
+
+## 2026-10-01 — Guardián: el contacto de confianza tiene que ser usuario de Bycar
+
+Pedido explícito de cambiar el comportamiento. La regla ya existía en el servidor desde el commit inicial (`POST /api/guardian` devuelve 404 si el correo no está en `USUARIOS`); lo nuevo es cómo se le comunica al usuario.
+
+**Qué se hizo**
+- `lib/domain/constantes.js`: `CONTACTO_NO_REGISTRADO` (código y mensaje), compartido por la API y el cliente.
+- `app/api/guardian/route.js`: el 404 ahora trae `codigo: 'CONTACTO_NO_REGISTRADO'` y el mensaje "El contacto de confianza debe ser un usuario registrado en Bycar. Pídele que cree su cuenta o usa el correo con el que se registró." Mismo status; cambia el texto de `error` y se agrega `codigo`. Sin cambios en el SQL.
+- `ConfigurarGuardianModal`: debajo del correo se avisa "Debe ser el correo con el que tu contacto se registró en Bycar." Si la API lo rechaza, el aviso pasa a ser el error en rojo (`role="alert"`) y el campo se marca como inválido; se borra al editar el correo o al elegir otro viaje.
+- `useGuardian`: con ese código, toast con el mensaje claro (sin el "Error (ID: …)") y `errorContacto` para el modal. Los demás errores siguen como antes.
+- Sin feature flag: la restricción ya estaba activa en producción; solo cambian los textos.
+
+**Tests**: 3 nuevos en `dashboard-guardian.test.jsx` y el de la API actualizado. `npm test` (825 en verde), `npm run lint` y `npm run build` sin errores.
+
+**Riesgos pendientes**
+- ~~Nada impide usar el propio correo como contacto de confianza.~~ Resuelto en la entrada anterior.
+- La respuesta distingue "correo registrado / no registrado", así que permite averiguar si un correo tiene cuenta (ya pasaba antes). Con `AUTH_ENFORCED` exige sesión, pero no tiene límite de intentos.
+
+## 2026-10-01 — Estilos de la landing acotados (sidebar del dashboard y admin)
+
+**Qué se hizo**
+- `app/page.jsx`: la landing va envuelta en `<div className="landing">` y todos sus selectores quedan bajo `.landing` (reset `*`, variables CSS, `nav`, `section`, `footer`, `.btn-red`, `.btn-ghost`, etc.). Solo `html` y `body` siguen globales; `body` ahora tiene `margin: 0` y colores literales, porque ya no lo cubren ni el reset ni las variables.
+- Por qué: el `<style>` de la landing queda inyectado al navegar a otra página. Su `nav { position: fixed; top: 0 … }` convertía el menú del sidebar del dashboard (y el del admin) en una barra superior que tapaba el logo, y `.btn-red`, `section` y las variables `:root` pisaban estilos del dashboard.
+- Snapshot de `page-animaciones` actualizado: cambian solo el wrapper y los selectores; el HTML es el mismo.
+
+**Tests**: `npm test` (822 en verde), `npm run lint` y `npm run build` sin errores. En el navegador, la landing se ve igual y un `nav` o `.btn-red` fuera de `.landing` ya no toma sus estilos.
+
+**Riesgos pendientes**
+- `app/login/page.jsx` y `app/register/page.jsx` tienen el mismo problema con selectores globales (`*`, `h1`, `input`, `:root`), y del login se pasa directo al dashboard. Conviene acotarlos igual en tarea aparte.
+
 ## 2026-10-01 — Base de Supabase conectada
 
 Misma rama `feat/migracion-postgres`. Sin cambios de código.

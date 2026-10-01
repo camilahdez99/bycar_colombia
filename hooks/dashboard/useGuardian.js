@@ -5,7 +5,17 @@ import { toast } from 'react-hot-toast';
 import { fetchConSesion } from '@/lib/client/sessionFetch';
 import { getUserId } from '@/lib/client/usuario';
 import { crearCuentaRegresiva, segundosHasta } from '@/lib/client/cuentaRegresiva';
-import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { CONTACTO_NO_REGISTRADO, CONTACTO_PROPIO, TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
+import { esContactoPropio } from '@/lib/domain/guardian';
+
+// Errores de la API que se muestran debajo del campo del correo
+const CODIGOS_ERROR_CONTACTO = [CONTACTO_NO_REGISTRADO.codigo, CONTACTO_PROPIO.codigo];
+
+/** Muestra el error del contacto en el toast y debajo del campo del correo. */
+function avisarErrorContacto(setErrorContacto, mensaje) {
+  setErrorContacto(mensaje);
+  toast.error(mensaje);
+}
 
 export const PRE_ALERTA_SEG = 5 * 60;
 export const EXTENSION_GUARDIAN_MIN = 15;
@@ -38,6 +48,7 @@ export function useGuardian(currentUser) {
   const [configOpen, setConfigOpen] = useState(false);
   const [showReadjustModal, setShowReadjustModal] = useState(false);
   const [guardianId, setGuardianId] = useState(null);
+  const [errorContacto, setErrorContacto] = useState(null); // el correo no es de un usuario de Bycar
 
   // Refs para que el temporizador siempre lea los valores más recientes
   // sin reiniciarse en cada cambio de estado
@@ -123,14 +134,25 @@ export function useGuardian(currentUser) {
     }
   }, [cuenta]);
 
+  // Al editar el correo deja de valer el aviso de "no registrado"
+  const cambiarConfig = (nueva) => {
+    if (nueva.email !== config.email) setErrorContacto(null);
+    setConfig(nueva);
+  };
+
   const elegirViaje = (viajeElegido) => {
     setViaje(viajeElegido);
+    setErrorContacto(null);
     setConfigOpen(true);
   };
 
   const iniciar = async (viajeElegido) => {
     if (!config.email || !config.tiempoMin) {
       toast.error('Configura el correo y tiempo estimado');
+      return;
+    }
+    if (esContactoPropio(config.email, currentUser?.CORREO_USU || currentUser?.correo_usu)) {
+      avisarErrorContacto(setErrorContacto, CONTACTO_PROPIO.mensaje);
       return;
     }
 
@@ -161,6 +183,8 @@ export function useGuardian(currentUser) {
         cuenta.fijar(config.tiempoMin * 60);
         setConfigOpen(false);
         toast.success('🛡️ Guardián activado en base de datos. ¡Buen viaje!');
+      } else if (CODIGOS_ERROR_CONTACTO.includes(data.codigo)) {
+        avisarErrorContacto(setErrorContacto, data.error);
       } else {
         toast.error(`Error (ID: ${vId}): ` + data.error);
       }
@@ -220,7 +244,7 @@ export function useGuardian(currentUser) {
   };
 
   return {
-    viaje, config, setConfig, activo, cuenta, alertaEnviada, preAlerta, horaInicio,
+    viaje, config, setConfig: cambiarConfig, errorContacto, activo, cuenta, alertaEnviada, preAlerta, horaInicio,
     configOpen, setConfigOpen, showReadjustModal,
     retomar, elegirViaje, iniciar, finalizar, reajustarTiempo,
   };

@@ -150,15 +150,37 @@ describe('POST /api/guardian (caracterización)', () => {
     expect(conn.execute).toHaveBeenCalledOnce();
   });
 
-  test('404 si el correo no es de un usuario registrado', async () => {
+  test('404 con código CONTACTO_NO_REGISTRADO si el correo no es de un usuario registrado', async () => {
     const conn = createFakeConnection([{ rows: [] }]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post({ viajeId: 5, email: 'nadie@x.co' }))).toEqual({
       status: 404,
-      body: { error: 'El correo de contacto no corresponde a un usuario registrado en BYCAR' },
+      body: {
+        error: 'El contacto de confianza debe ser un usuario registrado en Bycar. Pídele que cree su cuenta o usa el correo con el que se registró.',
+        codigo: 'CONTACTO_NO_REGISTRADO',
+      },
     });
     expect(conn.execute).toHaveBeenCalledOnce();
     expect(conn.close).toHaveBeenCalledOnce();
+  });
+
+  test('400 con código CONTACTO_PROPIO si el correo es del mismo usuario (usuarioId del body), sin insertar', async () => {
+    const conn = createFakeConnection([usuarioExiste]);
+    getConnection.mockResolvedValue(conn);
+    expect(await readResponse(await post({ viajeId: 5, usuarioId: '3', email: 'yo@x.co' }))).toEqual({
+      status: 400,
+      body: {
+        error: 'No puedes ser tu propio contacto de confianza. Usa el correo de otra persona registrada en Bycar.',
+        codigo: 'CONTACTO_PROPIO',
+      },
+    });
+    expect(conn.execute).toHaveBeenCalledOnce();
+    expect(conn.close).toHaveBeenCalledOnce();
+  });
+
+  test('201 si el correo es de otro usuario', async () => {
+    getConnection.mockResolvedValue(createFakeConnection([usuarioExiste, { rowsAffected: 1 }]));
+    expect((await readResponse(await post({ viajeId: 5, usuarioId: 4, email: 'otro@x.co' }))).status).toBe(201);
   });
 
   test('500 sin exponer error.message (S8) si falla el insert', async () => {

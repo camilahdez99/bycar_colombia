@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { toast } from 'react-hot-toast';
 import DashboardPage from '@/app/dashboard/page';
 import { clickNav, hoy, iniciarSesion, llamadas, stubApi } from '../helpers/dashboard';
+import { CONTACTO_NO_REGISTRADO, CONTACTO_PROPIO } from '@/lib/domain/constantes';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock('react-hot-toast', () => ({
@@ -178,6 +179,61 @@ describe('Dashboard · guardián: activar y finalizar (caracterización)', () =>
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se pudo registrar tu llegada. Intenta de nuevo.'));
     expect(toast.success).not.toHaveBeenCalledWith('✅ ¡Llegaste bien! Guardián desactivado.');
     expect(screen.getByText('Viaje en Curso')).toBeTruthy();
+  });
+});
+
+describe('Dashboard · guardián: el contacto de confianza debe ser usuario de Bycar', () => {
+  const noRegistrado = () => new Response(
+    JSON.stringify({ error: CONTACTO_NO_REGISTRADO.mensaje, codigo: CONTACTO_NO_REGISTRADO.codigo }),
+    { status: 404 },
+  );
+
+  test('el modal avisa que el correo debe ser de un usuario registrado', async () => {
+    await abrirConfiguracion();
+    expect(screen.getByText('Debe ser el correo con el que tu contacto se registró en Bycar.')).toBeTruthy();
+  });
+
+  test('si el correo no es de un usuario, lo dice en un toast y debajo del campo, sin el ID del viaje', async () => {
+    await abrirConfiguracion({ 'POST /api/guardian': noRegistrado });
+    configurar({ email: 'nadie@x.co' });
+    iniciar();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(CONTACTO_NO_REGISTRADO.mensaje));
+    expect(screen.getByRole('alert').textContent).toBe(CONTACTO_NO_REGISTRADO.mensaje);
+    expect(screen.getByText('🛡️ Configurar Guardián')).toBeTruthy();
+  });
+
+  test('con el propio correo (sin importar mayúsculas ni espacios) avisa y no llama a la API', async () => {
+    await abrirConfiguracion();
+    configurar({ email: '  ANA@x.co ' });
+    iniciar();
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(CONTACTO_PROPIO.mensaje));
+    expect(screen.getByRole('alert').textContent).toBe(CONTACTO_PROPIO.mensaje);
+    expect(llamadas('POST', '/api/guardian')).toEqual([]);
+  });
+
+  test('si la API responde CONTACTO_PROPIO, lo muestra debajo del campo', async () => {
+    await abrirConfiguracion({
+      'POST /api/guardian': () => new Response(
+        JSON.stringify({ error: CONTACTO_PROPIO.mensaje, codigo: CONTACTO_PROPIO.codigo }),
+        { status: 400 },
+      ),
+    });
+    configurar({ email: 'alias@x.co' });
+    iniciar();
+
+    expect((await screen.findByRole('alert')).textContent).toBe(CONTACTO_PROPIO.mensaje);
+  });
+
+  test('el aviso debajo del campo se borra al cambiar el correo', async () => {
+    await abrirConfiguracion({ 'POST /api/guardian': noRegistrado });
+    configurar({ email: 'nadie@x.co' });
+    iniciar();
+    await screen.findByRole('alert');
+
+    configurar({ email: 'mama@x.co' });
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });
 
