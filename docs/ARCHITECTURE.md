@@ -17,13 +17,14 @@ Variables de entorno: `DB_USER`, `DB_PASSWORD`, `DB_CONNECTION_STRING`.
 
 ```
 app/
-  page.jsx              Landing estática (→ /login, /register)
+  page.jsx              Landing (server component; → /login, /register)
   login/ register/      Formularios de auth
   dashboard/page.jsx    App principal del usuario (monolito ~grande, client component)
   admin/page.jsx        CRUD genérico sobre tablas + gestor de permisos
   components/admin/     PermisosManager
   api/**/route.js       Route handlers (ver abajo)
-components/             DynamicForm (form a partir de metadata de columnas), admin/HydrationWrapper
+components/             DynamicForm (form a partir de metadata de columnas), admin/HydrationWrapper,
+                        landing/ (islas de cliente de la landing: nav, hero, secciones animadas)
 lib/db.js               getConnection()
 lib/log.js              logError / logInfo: logs en una línea JSON
 lib/api/connection.js   closeConnection(): cierre de conexión común de los handlers
