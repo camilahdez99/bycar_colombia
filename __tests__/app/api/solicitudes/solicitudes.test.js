@@ -59,8 +59,24 @@ describe('POST /api/solicitudes (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('500 si el body no es JSON válido', async () => {
-    expect((await readResponse(await post('no-json'))).status).toBe(500);
+  test('400 si el body no es JSON válido (antes 500)', async () => {
+    expect(await readResponse(await post('no-json'))).toEqual({
+      status: 400,
+      body: { error: 'El cuerpo no es un JSON válido' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    { viajeId: 'abc', usuarioId: 42 },
+    { viajeId: 5, usuarioId: '42; DROP' },
+    { viajeId: -5, usuarioId: 42 },
+  ])('400 con IDs inválidos %j, sin abrir conexión (DT-31)', async (body) => {
+    expect(await readResponse(await post(body))).toEqual({
+      status: 400,
+      body: { error: 'ID de viaje o usuario inválido' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 });
 
@@ -105,15 +121,20 @@ describe('PUT /api/solicitudes (caracterización)', () => {
     expect(conn.calls[0].binds).toEqual({ estadoId, solicitudId: 9 });
   });
 
-  test('400 con estado de texto desconocido (tras abrir conexión, que se cierra)', async () => {
-    const conn = createFakeConnection();
-    getConnection.mockResolvedValue(conn);
+  test('400 con estado de texto desconocido, sin abrir conexión (E5)', async () => {
     expect(await readResponse(await put({ solicitudId: 9, estado: 'aceptada' }))).toEqual({
       status: 400,
       body: { error: 'Estado desconocido: aceptada' },
     });
-    expect(conn.execute).not.toHaveBeenCalled();
-    expect(conn.close).toHaveBeenCalledOnce();
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test('400 con solicitudId inválido, sin abrir conexión (DT-31)', async () => {
+    expect(await readResponse(await put({ solicitudId: '9x', estado: 'Aceptada' }))).toEqual({
+      status: 400,
+      body: { error: 'ID de solicitud inválido' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('400 con estado "0"', async () => {
@@ -124,18 +145,19 @@ describe('PUT /api/solicitudes (caracterización)', () => {
     });
   });
 
-  test('estado numérico fuera de catálogo se acepta (comportamiento actual: no valida el rango)', async () => {
-    const conn = createFakeConnection([{ rowsAffected: 1 }]);
-    getConnection.mockResolvedValue(conn);
-    expect((await readResponse(await put({ solicitudId: 9, estado: 99 }))).status).toBe(200);
-    expect(conn.calls[0].binds.estadoId).toBe(99);
+  test('400 con estado numérico fuera de catálogo, sin escribir (F20)', async () => {
+    expect(await readResponse(await put({ solicitudId: 9, estado: 99 }))).toEqual({
+      status: 400,
+      body: { error: 'Estado desconocido: 99' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
-  test('200 aunque no exista la solicitud (comportamiento actual: ignora rowsAffected = 0)', async () => {
+  test('404 si la solicitud no existe: rowsAffected = 0 (F19)', async () => {
     getConnection.mockResolvedValue(createFakeConnection([{ rowsAffected: 0 }]));
     expect(await readResponse(await put({ solicitudId: 9, estado: 'Rechazada' }))).toEqual({
-      status: 200,
-      body: { message: 'Solicitud actualizada' },
+      status: 404,
+      body: { error: 'Solicitud no encontrada' },
     });
   });
 

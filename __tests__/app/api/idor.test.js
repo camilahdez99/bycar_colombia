@@ -163,10 +163,15 @@ describe('Fase B: PUT /api/solicitudes (conductor acepta/rechaza, pasajero cance
     ['conductor cancela por el pasajero', 'Cancelado', OTRO, YO],
     ['tercero acepta', 'Aceptado', OTRO, CONDUCTOR],
     ['conductor vuelve a Pendiente', 'Pendiente', OTRO, YO],
-    ['estado fuera de catálogo', 99, OTRO, YO],
   ])('%s → 403 sin escribir', async (_caso, estado, passengerId, driverId) => {
     useConnection([participantes(passengerId, driverId)]);
     await expect403(await put(55, estado));
+    expect(writes()).toEqual([]);
+  });
+
+  test('estado fuera de catálogo → 400 antes de la pertenencia, sin escribir (F20)', async () => {
+    useConnection([participantes(OTRO, YO)]);
+    expect((await put(55, 99)).status).toBe(400);
     expect(writes()).toEqual([]);
   });
 

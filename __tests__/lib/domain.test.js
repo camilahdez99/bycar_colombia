@@ -16,10 +16,13 @@ describe('resolverEstadoSolicitud', () => {
     expect(resolverEstadoSolicitud('Otro')).toBeNull();
   });
 
-  test('los números pasan sin validar rango (comportamiento actual, BUGS F20)', () => {
+  test('los números del catálogo pasan; los de fuera del catálogo dan null (BUGS F20)', () => {
     expect(resolverEstadoSolicitud('2')).toBe(2);
     expect(resolverEstadoSolicitud(3)).toBe(3);
-    expect(resolverEstadoSolicitud('99')).toBe(99);
+    expect(resolverEstadoSolicitud('99')).toBeNull();
+    expect(resolverEstadoSolicitud(0)).toBeNull();
+    expect(resolverEstadoSolicitud('2.5')).toBeNull();
+    expect(resolverEstadoSolicitud(-1)).toBeNull();
   });
 });
 
