@@ -28,8 +28,10 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        if (typeof window !== 'undefined' && data.user) {
-          localStorage.setItem('user', JSON.stringify(data.user));
+        if (typeof window !== 'undefined') {
+          // El login del admin no trae user: se borra el de una sesión anterior (BUGS F33)
+          if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+          else localStorage.removeItem('user');
         }
         toast.success('¡Bienvenido!');
         router.push(data.redirect);

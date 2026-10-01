@@ -67,7 +67,7 @@ describe('LoginPage (caracterización)', () => {
     expect(toast.success).toHaveBeenCalledWith('¡Bienvenido!');
   });
 
-  test('comportamiento actual: el login del admin no trae user y deja en localStorage el usuario anterior (F33)', async () => {
+  test('el login del admin no trae user y borra el usuario anterior de localStorage (F33)', async () => {
     localStorage.setItem('user', JSON.stringify(USUARIO));
     fetch.mockResolvedValue(jsonResponse({ message: 'Login exitoso', redirect: '/admin' }));
     render(<LoginPage />);
@@ -75,6 +75,28 @@ describe('LoginPage (caracterización)', () => {
     fireEvent.click(botonIngresar());
 
     await waitFor(() => expect(push).toHaveBeenCalledWith('/admin'));
+    expect(localStorage.getItem('user')).toBeNull();
+  });
+
+  test('un login de usuario reemplaza el usuario anterior', async () => {
+    localStorage.setItem('user', JSON.stringify({ ID_USU: 1, NOMBRE_USU: 'OTRO' }));
+    fetch.mockResolvedValue(jsonResponse({ message: 'Login exitoso', user: USUARIO, redirect: '/dashboard' }));
+    render(<LoginPage />);
+    completar('ana@x.co', 'secreta');
+    fireEvent.click(botonIngresar());
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard'));
+    expect(JSON.parse(localStorage.getItem('user'))).toEqual(USUARIO);
+  });
+
+  test('credenciales inválidas no tocan el usuario guardado', async () => {
+    localStorage.setItem('user', JSON.stringify(USUARIO));
+    fetch.mockResolvedValue(jsonResponse({ error: 'Credenciales incorrectas' }, 401));
+    render(<LoginPage />);
+    completar('ana@x.co', 'mala');
+    fireEvent.click(botonIngresar());
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
     expect(JSON.parse(localStorage.getItem('user'))).toEqual(USUARIO);
   });
 
