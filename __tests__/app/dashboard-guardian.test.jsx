@@ -198,13 +198,39 @@ describe('Dashboard · guardián: temporizador (caracterización)', () => {
     expect(llamadas('PUT', '/api/guardian')).toEqual([]);
   });
 
-  test('comportamiento actual: con un tiempo de 5 minutos o menos nunca hay pre-alerta (solo se dispara al pasar justo por 300 s)', async () => {
+  test('con un tiempo de 5 minutos o menos la pre-alerta sale en el primer tick, una sola vez (F35)', async () => {
     await activarCon(5);
     pasarSegundos(1);
 
     expect(screen.getByText('04:59')).toBeTruthy();
-    expect(screen.queryByText('¿Has llegado a tu destino?')).toBeNull();
-    expect(toast).not.toHaveBeenCalled();
+    expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
+    pasarSegundos(30);
+    expect(toast).toHaveBeenCalledTimes(1);
+    expect(llamadas('PUT', '/api/guardian')).toEqual([]);
+  });
+
+  test('al recargar con menos de 5 minutos restantes, la pre-alerta sale en el primer tick (F35)', async () => {
+    stubApi({ '/api/guardian?usuarioId': guardianGuardado({ inicio: haceSegundos(26 * 60) }) });
+    render(<DashboardPage />);
+    clickNav('Guardian');
+    await screen.findByText('Viaje en Curso');
+    await act(async () => {});
+
+    pasarSegundos(1);
+    expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
+    expect(toast).toHaveBeenCalledTimes(1);
+  });
+
+  test('tras extender el tiempo, la pre-alerta vuelve a salir al bajar de nuevo a 5 minutos', async () => {
+    await activarCon(6);
+    pasarSegundos(60);
+    fireEvent.click(screen.getByText('🕒 No, hay retraso (+15 min)'));
+    await waitFor(() => expect(screen.getByText('20:00')).toBeTruthy());
+
+    pasarSegundos(15 * 60);
+    expect(screen.getByText('05:00')).toBeTruthy();
+    expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
+    expect(toast).toHaveBeenCalledTimes(2);
   });
 
   test('"No, hay retraso": PUT con extraTiempo 15 y suma 15 minutos al contador', async () => {
