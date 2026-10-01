@@ -162,8 +162,17 @@ export default function DashboardPage() {
             setGuardianHoraInicio(startTime);
             setGuardianTiempoRestante(remaining);
             setGuardianActivo(true);
-            if (remaining <= 0 && dataGuardian.estado?.toUpperCase() !== 'ALERTA') {
+            // Vencido mientras la pestaña estaba cerrada: si la alerta no quedó registrada, se registra
+            // ahora (antes solo se mostraba en pantalla, BUGS F28). Si ya estaba en Alerta, no se repite.
+            if (remaining <= 0) {
               setGuardianAlertaEnviada(true);
+              if (dataGuardian.estado?.toUpperCase() !== 'ALERTA') {
+                fetchConSesion('/api/guardian', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: dataGuardian.id, estado: 'Alerta' })
+                }).catch(error => console.error('Error registrando la alerta del guardián:', error));
+              }
             }
           }
         }

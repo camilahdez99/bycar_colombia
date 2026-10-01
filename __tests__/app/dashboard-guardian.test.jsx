@@ -265,7 +265,7 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
     expect(screen.getByText('BOGOTA → TUNJA')).toBeTruthy();
   });
 
-  test('comportamiento actual: vencido y sin estado Alerta, muestra "ALERTA ENVIADA" sin hacer el PUT (F28)', async () => {
+  test('vencido y sin estado Alerta: registra la alerta con un PUT al recargar, una sola vez (F28)', async () => {
     stubApi({ '/api/guardian?usuarioId': guardianGuardado({ inicio: haceSegundos(60 * 60) }) });
     render(<DashboardPage />);
     clickNav('Guardian');
@@ -273,16 +273,17 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
     expect(await screen.findByText('🚨 ALERTA ENVIADA')).toBeTruthy();
     expect(screen.getByText('00:00')).toBeTruthy();
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    expect(llamadas('PUT', '/api/guardian')).toEqual([]);
+    expect(llamadas('PUT', '/api/guardian').map((c) => c.body)).toEqual([{ id: 77, estado: 'Alerta' }]);
   });
 
-  test('comportamiento actual: vencido con estado Alerta en la BD, no muestra "ALERTA ENVIADA"', async () => {
+  test('vencido con estado Alerta en la BD: muestra "ALERTA ENVIADA" sin repetir el PUT (F28)', async () => {
     stubApi({ '/api/guardian?usuarioId': guardianGuardado({ inicio: haceSegundos(60 * 60), estado: 'Alerta' }) });
     render(<DashboardPage />);
     clickNav('Guardian');
 
-    expect(await screen.findByText('⚠️ TIEMPO AGOTADO')).toBeTruthy();
-    expect(screen.queryByText('🚨 ALERTA ENVIADA')).toBeNull();
+    expect(await screen.findByText('🚨 ALERTA ENVIADA')).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(llamadas('PUT', '/api/guardian')).toEqual([]);
   });
 
   test('una respuesta sin id se ignora', async () => {
