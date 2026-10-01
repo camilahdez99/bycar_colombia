@@ -64,15 +64,42 @@ Cada segundo se vuelve a renderizar el dashboard entero (1 255 líneas); en Inic
 
 | # | Ítem | Cambio | Ganancia estimada | Riesgo | Estado |
 |---|---|---|---|---|---|
-| 1 | DT-33a | Pausar el polling (10 s y chat de 3 s) mientras `document.hidden`; al volver, refrescar enseguida. | −100 % de requests con la pestaña oculta (12→0 y 32→0 por min) | bajo | espera DT-34 (sesión 4, mismo archivo) |
+| 1 | DT-33a | Pausar el polling (10 s y chat de 3 s) mientras `document.hidden`; al volver, refrescar enseguida. | −100 % de requests con la pestaña oculta (12→0 y 32→0 por min) | bajo | ✅ aplicada |
 | 2 | DT-26 (acotado) | Sacar el `@import` de Google Fonts de `globals.css` y cargarlo con `<link>` + `preconnect` en el layout. No toca las 42 referencias literales a `'Syne'`/`'DM Sans'`. | Descubrimiento en paralelo con el CSS de la app: menos ruta crítica en primera visita | bajo | ❌ revertida (no llega al 10 %) |
 | 3 | DT-35 | Mover el contador a un componente propio para que el tick no vuelva a renderizar el dashboard ni refiltre municipios. Sin tocar la forma de descontar (F38 va aparte). | −90 % o más de commits del dashboard por segundo; `normalizar()`/s de 1 125 a 0 | medio | espera DT-34 |
 | 4 | DT-41 | Quitar `HydrationWrapper` del dashboard y del admin (leer `localStorage` en efectos) para que el servidor mande HTML. | Texto SSR > 0; pinta antes que el JS | medio | espera DT-38 (sesión 4 mueve el archivo) |
-| 5 | DT-45 | Landing como server component; el cliente solo para contador, nav y animaciones. | Menos JS en `/` | medio | lo hace la sesión 6; acá solo se mide |
+| 5 | DT-45 | Landing como server component; el cliente solo para contador, nav y animaciones. | Menos JS en `/` | medio | ⚠️ medida: −1,6 % de JS, no llega al 10 % (rama `mejoras/varios`, decide la usuaria) |
 
 ## Resultados (antes / después)
 
 _Se completa a medida que se aplica cada optimización._
+
+### DT-33a · polling pausado con la pestaña oculta — ✅ aplicada
+
+Cambio: `lib/client/intervaloVisible.js` (`iniciarIntervaloVisible`) reemplaza los dos `setInterval` del dashboard (refresco cada 10 s y chat cada 3 s). Con `document.hidden` no consulta; al volver ejecuta enseguida (el usuario no ve datos viejos) y retoma el intervalo. No cambia nada con la pestaña visible ni toca la API. Tests: `__tests__/lib/client/intervaloVisible.test.js` (5) y `__tests__/app/dashboard-polling.test.jsx` (2, fallan sin el cambio).
+
+| Escenario | requests/min antes → después | KB/min antes → después |
+|---|---|---|
+| Inicio, pestaña visible | 12 → 12 | 26,3 → 26,3 |
+| Inicio, pestaña **oculta** | 12 → **0** (−100 %) | 26,3 → **0** |
+| Mensajes, chat abierto | 32 → 32 | 87,8 → 87,8 |
+| Mensajes, chat abierto, pestaña **oculta** | 32 → **0** (−100 %) | 87,8 → **0** |
+
+Con la pestaña visible el costo sigue igual. Bajarlo ahí requiere pedir solo los mensajes nuevos (BD-19, `bd-pendiente`) o unificar los endpoints en uno de resumen (cambio de contrato de API: hay que consultarlo).
+
+### DT-45 · landing como server component — ⚠️ medida, no llega al umbral
+
+Lo implementó otra sesión en la rama `mejoras/varios` (`89e4ec9`), todavía sin integrar. Medido con el mismo `bench/front-load.mjs` sobre un build de esa rama (3 corridas):
+
+| Métrica `/` | Antes | Después | Δ |
+|---|---|---|---|
+| JS KB gzip (crudo) | 191,3 (644) | 188,2 (630) | −1,6 % |
+| HTML KB gzip | 6,7 | 8,5 | +27 % |
+| Texto SSR (chars) | 1 331 | 1 331 | = (ya se renderizaba en el servidor) |
+| TTFB ms | 13–14 | 12–14 | = |
+| CSS KB gzip | 8,1 | 8,1 | = |
+
+Casi todo el JS de `/` es el runtime compartido de Next y React (`/login` también pesa 191 KB), así que sacar la página del cliente ahorra poco. **Según la regla del 10 %, no se justificaría por performance.** Puede tener sentido por legibilidad, pero eso lo decidís vos al integrar la rama. No se revirtió nada acá porque el cambio no está en esta rama.
 
 ### DT-26 (acotado) · fuentes con `<link>` en lugar de `@import` — ❌ revertida
 
