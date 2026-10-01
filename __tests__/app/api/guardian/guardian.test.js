@@ -65,11 +65,9 @@ describe('GET /api/guardian (caracterización)', () => {
     expect(await readResponse(await get({ usuarioId: '42' }))).toEqual({ status: 200, body: null });
   });
 
-  test('500 por usuarioId si rows viene undefined (comportamiento actual: rows[0] sin guarda)', async () => {
+  test('por usuarioId, si rows viene undefined responde 200 con null (E4)', async () => {
     getConnection.mockResolvedValue(createFakeConnection([{}]));
-    const res = await readResponse(await get({ usuarioId: '42' }));
-    expect(res.status).toBe(500);
-    expect(res.body.error).toBe('Error interno del servidor');
+    expect(await readResponse(await get({ usuarioId: '42' }))).toEqual({ status: 200, body: null });
   });
 
   test('500 sin exponer error.message (S8)', async () => {
@@ -123,6 +121,13 @@ describe('POST /api/guardian (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect((await readResponse(await post({ viajeId: 5, email: 'a@x.co', tiempo: 'mucho' }))).status).toBe(201);
     expect(conn.calls[1].binds.tiempo).toBeNaN();
+  });
+
+  test('404 si la consulta del correo viene sin rows, sin insertar (E4)', async () => {
+    const conn = createFakeConnection([{}]);
+    getConnection.mockResolvedValue(conn);
+    expect((await readResponse(await post({ viajeId: 5, email: 'nadie@x.co' }))).status).toBe(404);
+    expect(conn.execute).toHaveBeenCalledOnce();
   });
 
   test('404 si el correo no es de un usuario registrado', async () => {

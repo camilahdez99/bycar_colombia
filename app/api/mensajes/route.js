@@ -34,7 +34,7 @@ export async function GET(req) {
     `;
     const resSol = await connection.execute(sqlSol, { chatId });
     
-    if (resSol.rows.length === 0) {
+    if (!resSol.rows?.length) {
       return NextResponse.json([], { status: 200 });
     }
 
@@ -97,7 +97,7 @@ export async function POST(req) {
     `;
     const resSol = await connection.execute(sqlSol, { chatId });
     
-    if (resSol.rows.length === 0) {
+    if (!resSol.rows?.length) {
       return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
     }
 

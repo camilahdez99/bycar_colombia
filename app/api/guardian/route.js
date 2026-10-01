@@ -93,7 +93,7 @@ export async function GET(req) {
         WHERE s.USUARIOS_ID_USU = :usuarioId AND g.ESTADO_ID_EST != 2
       `;
       const result = await connection.execute(sql, { usuarioId }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
-      return NextResponse.json(result.rows[0] || null, { status: 200 });
+      return NextResponse.json(result.rows?.[0] || null, { status: 200 });
     }
 
     return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 });
@@ -126,7 +126,7 @@ export async function POST(req) {
     const checkUserSql = `SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)`;
     const userRes = await connection.execute(checkUserSql, { email }, { outFormat: oracledb.OUT_FORMAT_OBJECT });
 
-    if (userRes.rows.length === 0) {
+    if (!userRes.rows?.length) {
       return NextResponse.json({ error: 'El correo de contacto no corresponde a un usuario registrado en BYCAR' }, { status: 404 });
     }
 
