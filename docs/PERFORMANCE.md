@@ -65,7 +65,7 @@ Cada segundo se vuelve a renderizar el dashboard entero (1 255 líneas); en Inic
 | # | Ítem | Cambio | Ganancia estimada | Riesgo | Estado |
 |---|---|---|---|---|---|
 | 1 | DT-33a | Pausar el polling (10 s y chat de 3 s) mientras `document.hidden`; al volver, refrescar enseguida. | −100 % de requests con la pestaña oculta (12→0 y 32→0 por min) | bajo | espera DT-34 (sesión 4, mismo archivo) |
-| 2 | DT-26 (acotado) | Sacar el `@import` de Google Fonts de `globals.css` y cargarlo con `<link>` + `preconnect` en el layout. No toca las 42 referencias literales a `'Syne'`/`'DM Sans'`. | Descubrimiento en paralelo con el CSS de la app: menos ruta crítica en primera visita | bajo | en curso |
+| 2 | DT-26 (acotado) | Sacar el `@import` de Google Fonts de `globals.css` y cargarlo con `<link>` + `preconnect` en el layout. No toca las 42 referencias literales a `'Syne'`/`'DM Sans'`. | Descubrimiento en paralelo con el CSS de la app: menos ruta crítica en primera visita | bajo | ❌ revertida (no llega al 10 %) |
 | 3 | DT-35 | Mover el contador a un componente propio para que el tick no vuelva a renderizar el dashboard ni refiltre municipios. Sin tocar la forma de descontar (F38 va aparte). | −90 % o más de commits del dashboard por segundo; `normalizar()`/s de 1 125 a 0 | medio | espera DT-34 |
 | 4 | DT-41 | Quitar `HydrationWrapper` del dashboard y del admin (leer `localStorage` en efectos) para que el servidor mande HTML. | Texto SSR > 0; pinta antes que el JS | medio | espera DT-38 (sesión 4 mueve el archivo) |
 | 5 | DT-45 | Landing como server component; el cliente solo para contador, nav y animaciones. | Menos JS en `/` | medio | lo hace la sesión 6; acá solo se mide |
@@ -73,3 +73,19 @@ Cada segundo se vuelve a renderizar el dashboard entero (1 255 líneas); en Inic
 ## Resultados (antes / después)
 
 _Se completa a medida que se aplica cada optimización._
+
+### DT-26 (acotado) · fuentes con `<link>` en lugar de `@import` — ❌ revertida
+
+Cambio probado: quitar la línea 1 de `globals.css` y cargar la misma URL con `<link rel="stylesheet" precedence>` más `preconnect` a `fonts.googleapis.com` y `fonts.gstatic.com` desde `app/layout.js`. Antes se agregó el test de caracterización `__tests__/app/layout.test.jsx`, que exige que las fuentes se pidan una sola vez con las mismas familias y pesos. Ese test se queda.
+
+| Métrica (3 corridas, mediana de 15) | Antes | Después |
+|---|---|---|
+| `@import` externos en el CSS | 1 | 0 |
+| Ruta crítica CSS `/` (ms) | 113–122 | 101–165 |
+| Ruta crítica CSS `/login` (ms) | 110–124 | 102–110 |
+| Ruta crítica CSS `/dashboard` (ms) | 112–118 | 101–135 |
+| TTFB `/` (ms), control de ruido | 13–14 | 23–28 |
+
+**Por qué no alcanza el 10 %:** lo único que el cambio saca de la cadena serial es la descarga del CSS de la app, y con el servidor en `localhost` eso tarda 2 a 5 ms de un total de ~110 ms (el resto es Google Fonts, igual en las dos variantes). Encima, la máquina estaba más cargada en la segunda tanda (el TTFB de control casi se duplicó), así que la diferencia queda dentro del ruido. En producción, con el servidor lejos, la ganancia sería un RTT al servidor: en la primera visita medida en Chromium, el CSS de Google Fonts empezó 65 ms después de terminar el CSS de la app (631 → 696 ms), alrededor del 6 % del bloqueo total de 1 064 ms. Tampoco llega al umbral.
+
+**Si se retoma:** la ganancia real está en no depender de Google Fonts para pintar (`next/font` autoaloja y precarga), lo que exige reemplazar las 42 referencias literales (DT-26 completo, riesgo medio).
