@@ -23,11 +23,11 @@ import { getUserId } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
 import { MENU_INICIO_ID } from '@/lib/domain/constantes';
+import { useChat } from '@/hooks/dashboard/useChat';
 import { useGuardian, PRE_ALERTA_SEG, EXTENSION_GUARDIAN_MIN } from '@/hooks/dashboard/useGuardian';
 
 // Refresco en segundo plano
 const REFRESCO_MS = 10000;
-const REFRESCO_CHAT_MS = 3000;
 const MENSAJE_SIN_SESION = 'Inicia sesión para continuar';
 
 // Iconos para los menús según la URL
@@ -46,12 +46,8 @@ export default function DashboardPage() {
   const [detallesModalOpen, setDetallesModalOpen] = useState(false);
   const [viajeDetalle, setViajeDetalle] = useState(null);
   
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatData, setChatData] = useState({ name: '', avatar: '', chatId: null });
-  const [currentChatMsgs, setCurrentChatMsgs] = useState([]);
-  const [msgInput, setMsgInput] = useState('');
-
   const [currentUser, setCurrentUser] = useState(null);
+  const chat = useChat(currentUser);
   const [mensajes, setMensajes] = useState([]);
   const [mensajesLeidos, setMensajesLeidos] = useState(0); // cuántos chats vio el usuario la última vez
   const [userPermisos, setUserPermisos] = useState(null); // null = cargando, [] = sin permisos
@@ -223,63 +219,6 @@ export default function DashboardPage() {
       setNuevaRuta({ ...nuevaRuta, [name]: formatCurrency(value) });
     } else {
       setNuevaRuta({ ...nuevaRuta, [name]: value.toUpperCase() });
-    }
-  };
-
-  const fetchChatMsgs = async (chatId) => {
-    if (!chatId) return;
-    try {
-      const res = await fetchConSesion(`/api/mensajes?chatId=${chatId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const myId = getUserId(currentUser);
-        const formatted = data.map(m => ({
-          sender: m.senderId == myId ? 'me' : 'other',
-          text: m.text
-        }));
-        setCurrentChatMsgs(formatted);
-      }
-    } catch (error) {
-      console.error('Error fetching chat', error);
-    }
-  };
-
-  useEffect(() => {
-    if (!chatOpen || !chatData.chatId) return;
-    fetchChatMsgs(chatData.chatId);
-    return iniciarIntervaloVisible(() => fetchChatMsgs(chatData.chatId), REFRESCO_CHAT_MS);
-  }, [chatOpen, chatData.chatId]);
-
-  const enviarMensajeChat = async () => {
-    if (!msgInput.trim() || !chatData.chatId) return;
-    const myId = getUserId(currentUser);
-    
-    // Add locally immediately for fast UI
-    const newMsg = { sender: 'me', text: msgInput.trim() };
-    setCurrentChatMsgs([...currentChatMsgs, newMsg]);
-    setMsgInput('');
-
-    // Si el envío falla, el mensaje no queda como enviado: se saca y vuelve al input (BUGS F29)
-    const descartarMensaje = () => {
-      setCurrentChatMsgs(prev => prev.filter(m => m !== newMsg));
-      setMsgInput(newMsg.text);
-      toast.error('No se pudo enviar el mensaje');
-    };
-
-    try {
-      const res = await fetchConSesion('/api/mensajes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chatId: chatData.chatId,
-          senderId: myId,
-          text: newMsg.text
-        })
-      });
-      if (!res.ok) descartarMensaje();
-    } catch (e) {
-      console.error('Error enviando mensaje', e);
-      descartarMensaje();
     }
   };
 
@@ -572,14 +511,14 @@ export default function DashboardPage() {
         {activePage === 'mensajes' && (
           <MensajesTab
             mensajes={mensajes}
-            chatOpen={chatOpen}
-            chatData={chatData}
-            currentChatMsgs={currentChatMsgs}
-            msgInput={msgInput}
-            onAbrirChat={(chat) => { setChatData({ name: chat.nombre, avatar: chat.nombre.charAt(0), chatId: chat.chatId }); setCurrentChatMsgs([]); setChatOpen(true); }}
-            onCerrarChat={() => setChatOpen(false)}
-            onMsgInputChange={setMsgInput}
-            onEnviar={enviarMensajeChat}
+            chatOpen={chat.chatOpen}
+            chatData={chat.chatData}
+            currentChatMsgs={chat.currentChatMsgs}
+            msgInput={chat.msgInput}
+            onAbrirChat={chat.abrirChat}
+            onCerrarChat={chat.cerrarChat}
+            onMsgInputChange={chat.setMsgInput}
+            onEnviar={chat.enviarMensaje}
           />
         )}
 
