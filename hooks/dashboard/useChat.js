@@ -77,12 +77,13 @@ export function useChat(currentUser) {
   };
 
   const abrirChat = (chat) => {
-    // Si ya estaba abierto, la conversación se vacía y espera al siguiente refresco (BUGS F41)
-    const yaAbierto = chatOpen && chatData.chatId === chat.chatId;
+    // Tocar el chat que ya está abierto no hace nada: antes vaciaba la conversación hasta el
+    // siguiente refresco (BUGS F41)
+    if (chatOpen && chatData.chatId === chat.chatId) return;
     setChatData({ name: chat.nombre, avatar: chat.nombre.charAt(0), chatId: chat.chatId });
     setCurrentChatMsgs([]);
     setChatOpen(true);
-    if (!yaAbierto) fetchChatMsgs(chat.chatId);
+    fetchChatMsgs(chat.chatId);
   };
 
   const cerrarChat = () => setChatOpen(false);

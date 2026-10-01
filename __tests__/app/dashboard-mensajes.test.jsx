@@ -183,7 +183,7 @@ describe('Dashboard · mensajes (caracterización)', () => {
     await waitFor(() => expect(burbujas()).toEqual([{ texto: 'Hola Ana', mio: false }]));
   });
 
-  test('tocar el chat que ya está abierto vacía la conversación hasta el siguiente refresco (comportamiento actual, F41)', async () => {
+  test('tocar el chat que ya está abierto no vacía la conversación ni repite el pedido (F41)', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     stubApi({ '/api/mensajes/chats': CHATS, '/api/mensajes?chatId=31': HISTORIAL });
     await abrirChat();
@@ -191,11 +191,12 @@ describe('Dashboard · mensajes (caracterización)', () => {
 
     fireEvent.click(screen.getAllByText('LUIS ROJAS')[0]);
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(screen.getByText('Inicia la conversación para acordar el punto de encuentro.')).toBeTruthy();
+    expect(burbujas()).toHaveLength(3);
     expect(llamadas('GET', '/api/mensajes?')).toHaveLength(1);
 
+    // El refresco cada 3 s sigue igual
     vi.advanceTimersByTime(3000);
-    await waitFor(() => expect(burbujas()).toHaveLength(3));
-    expect(llamadas('GET', '/api/mensajes?')).toHaveLength(2);
+    await waitFor(() => expect(llamadas('GET', '/api/mensajes?')).toHaveLength(2));
   });
+
 });
