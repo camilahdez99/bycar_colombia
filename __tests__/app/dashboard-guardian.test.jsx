@@ -165,6 +165,20 @@ describe('Dashboard · guardián: activar y finalizar (caracterización)', () =>
     expect(toast.success).not.toHaveBeenCalledWith('✅ ¡Llegaste bien! Guardián desactivado.');
     expect(llamadas('PUT', '/api/guardian')).toEqual([]);
   });
+
+  test.each([
+    ['la API responde error', () => new Response('{"error":"Error interno del servidor"}', { status: 500 })],
+    ['falla la red', () => { throw new TypeError('Failed to fetch'); }],
+  ])('si al finalizar %s, el guardián sigue activo y se pide reintentar (F38)', async (_caso, respuestaPut) => {
+    await abrirConfiguracion({ 'PUT /api/guardian': respuestaPut });
+    configurar({ email: 'mama@x.co' });
+    iniciar();
+    fireEvent.click(await screen.findByText('✅ He llegado a mi destino'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se pudo registrar tu llegada. Intenta de nuevo.'));
+    expect(toast.success).not.toHaveBeenCalledWith('✅ ¡Llegaste bien! Guardián desactivado.');
+    expect(screen.getByText('Viaje en Curso')).toBeTruthy();
+  });
 });
 
 describe('Dashboard · guardián: temporizador (caracterización)', () => {
@@ -245,6 +259,22 @@ describe('Dashboard · guardián: temporizador (caracterización)', () => {
     expect(toast.success).toHaveBeenCalledWith('⏱️ Tiempo extendido 15 minutos');
     expect(screen.queryByText('¿Has llegado a tu destino?')).toBeNull();
     expect(screen.getByText('✅ EN CAMINO')).toBeTruthy();
+  });
+
+  test('si el PUT de "No, hay retraso" falla, no suma tiempo, el modal sigue abierto y se pide reintentar (F38)', async () => {
+    await abrirConfiguracion({ 'PUT /api/guardian': () => new Response('{"error":"x"}', { status: 500 }) });
+    configurar({ email: 'mama@x.co', minutos: '6' });
+    iniciar();
+    await screen.findByText('Viaje en Curso');
+    await act(async () => {});
+    pasarSegundos(60);
+    fireEvent.click(screen.getByText('🕒 No, hay retraso (+15 min)'));
+
+    // Con setInterval falso, el waitFor de Testing Library solo reintenta si cambia el DOM, y acá no cambia
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se pudo extender el tiempo. Intenta de nuevo.'));
+    expect(toast.success).not.toHaveBeenCalledWith('⏱️ Tiempo extendido 15 minutos');
+    expect(screen.getByText('05:00')).toBeTruthy();
+    expect(screen.getByText('¿Has llegado a tu destino?')).toBeTruthy();
   });
 
   test('"Sí, he llegado" desde el modal finaliza el guardián', async () => {

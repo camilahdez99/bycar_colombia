@@ -348,13 +348,26 @@ export default function DashboardPage() {
   };
 
 
-  const finalizarGuardian = async () => {
-    if (guardianId) {
-      await fetchConSesion('/api/guardian', {
+  // PUT al guardián; true si la API lo registró. Antes no se revisaba la respuesta (BUGS F38)
+  const actualizarGuardian = async (cambios) => {
+    try {
+      const res = await fetchConSesion('/api/guardian', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: guardianId, estado: 'Inactivo' })
+        body: JSON.stringify({ id: guardianId, ...cambios })
       });
+      return res.ok;
+    } catch (error) {
+      console.error('Error actualizando el guardián:', error);
+      return false;
+    }
+  };
+
+  const finalizarGuardian = async () => {
+    // Si la llegada no se registra, el guardián sigue activo para no dejar al contacto sin aviso
+    if (guardianId && !(await actualizarGuardian({ estado: 'Inactivo' }))) {
+      toast.error('No se pudo registrar tu llegada. Intenta de nuevo.');
+      return;
     }
     setGuardianActivo(false);
     setGuardianTiempoRestante(0);
@@ -370,12 +383,11 @@ export default function DashboardPage() {
 
   const reajustarTiempo = async () => {
     if (guardianId) {
-      await fetchConSesion('/api/guardian', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: guardianId, extraTiempo: EXTENSION_GUARDIAN_MIN })
-      });
-      
+      if (!(await actualizarGuardian({ extraTiempo: EXTENSION_GUARDIAN_MIN }))) {
+        toast.error('No se pudo extender el tiempo. Intenta de nuevo.');
+        return;
+      }
+
       setGuardianTiempoRestante(prev => prev + (EXTENSION_GUARDIAN_MIN * 60));
       setGuardianPreAlerta(false);
       setShowReadjustModal(false);
