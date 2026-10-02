@@ -40,6 +40,9 @@ beforeEach(() => {
   vi.stubEnv('SESSION_SECRET', 'v'.repeat(32));
   vi.stubEnv('BREVO_API_KEY', 'clave-de-prueba');
   vi.stubEnv('EMAIL_REMITENTE', 'bycar@x.co');
+  // Estas pruebas usan Brevo (fetch simulado): sin Gmail configurado
+  vi.stubEnv('GMAIL_USER', '');
+  vi.stubEnv('GMAIL_APP_PASSWORD', '');
   brevo = vi.fn(async () => new Response('{"messageId":"m1"}', { status: 201 }));
   vi.stubGlobal('fetch', brevo);
 });

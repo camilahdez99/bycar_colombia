@@ -1,16 +1,29 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { createTransport } from 'nodemailer';
 import {
   enviarCodigoVerificacion,
   envioDeCorreoConfigurado,
   mensajeDeVerificacion,
+  proveedorDeCorreo,
   verificacionDeCorreoActiva,
 } from '@/lib/email';
 import { generarCodigo, hashCodigo, mismoHash } from '@/lib/auth/codigoVerificacion';
 import { silenceConsole } from '../helpers/api';
 
+// SMTP simulado: ningún test envía un correo real
+const sendMail = vi.fn();
+const close = vi.fn();
+vi.mock('nodemailer', () => ({ createTransport: vi.fn(() => ({ sendMail, close })) }));
+
 beforeEach(() => {
   silenceConsole();
+  sendMail.mockReset().mockResolvedValue({ messageId: 'm1' });
+  close.mockReset();
+  createTransport.mockClear();
+  // Que las variables de la máquina no cambien el proveedor elegido
+  vi.stubEnv('GMAIL_USER', '');
+  vi.stubEnv('GMAIL_APP_PASSWORD', '');
 });
 
 afterEach(() => {
@@ -34,6 +47,74 @@ describe('flag y configuración', () => {
     expect(envioDeCorreoConfigurado()).toBe(false);
     vi.stubEnv('BREVO_API_KEY', 'clave-de-prueba');
     expect(envioDeCorreoConfigurado()).toBe(true);
+  });
+});
+
+describe('proveedorDeCorreo', () => {
+  test('null sin variables; Brevo con las suyas; Gmail tiene prioridad si están las dos', () => {
+    vi.stubEnv('BREVO_API_KEY', '');
+    vi.stubEnv('EMAIL_REMITENTE', '');
+    expect(proveedorDeCorreo()).toBeNull();
+
+    vi.stubEnv('BREVO_API_KEY', 'clave-de-prueba');
+    vi.stubEnv('EMAIL_REMITENTE', 'bycar@x.co');
+    expect(proveedorDeCorreo()).toBe('brevo');
+
+    vi.stubEnv('GMAIL_USER', 'bycar.app@gmail.com');
+    vi.stubEnv('GMAIL_APP_PASSWORD', 'abcd efgh ijkl mnop');
+    expect(proveedorDeCorreo()).toBe('gmail');
+  });
+
+  test('Gmail necesita usuario y contraseña de aplicación', () => {
+    vi.stubEnv('BREVO_API_KEY', '');
+    vi.stubEnv('GMAIL_USER', 'bycar.app@gmail.com');
+    expect(proveedorDeCorreo()).toBeNull();
+  });
+});
+
+describe('enviarCodigoVerificacion por Gmail', () => {
+  const datos = { correo: 'ana@x.co', nombre: 'ANA', codigo: '123456' };
+
+  beforeEach(() => {
+    vi.stubEnv('GMAIL_USER', 'bycar.app@gmail.com');
+    vi.stubEnv('GMAIL_APP_PASSWORD', 'abcd efgh ijkl mnop');
+  });
+
+  test('SMTP de Gmail (465, TLS) con la contraseña sin espacios; el remitente es la propia cuenta', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await enviarCodigoVerificacion(datos)).toBe(true);
+    expect(createTransport).toHaveBeenCalledWith({
+      host: 'smtp.gmail.com', port: 465, secure: true,
+      auth: { user: 'bycar.app@gmail.com', pass: 'abcdefghijklmnop' },
+    });
+    const correo = sendMail.mock.calls[0][0];
+    expect(correo.from).toEqual({ name: 'Bycar', address: 'bycar.app@gmail.com' });
+    expect(correo.to).toBe('ana@x.co');
+    expect(correo.subject).toBe('123456 es tu código de verificación de Bycar');
+    expect(correo.text).toContain('123456');
+    expect(correo.html).toContain('123456');
+    expect(close).toHaveBeenCalledOnce();
+    // Con Gmail configurado no se usa Brevo
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test('EMAIL_REMITENTE_NOMBRE cambia el nombre que se ve', async () => {
+    vi.stubEnv('EMAIL_REMITENTE_NOMBRE', 'Bycar Colombia');
+    await enviarCodigoVerificacion(datos);
+    expect(sendMail.mock.calls[0][0].from).toEqual({ name: 'Bycar Colombia', address: 'bycar.app@gmail.com' });
+  });
+
+  test('false si Gmail rechaza (por ejemplo, contraseña inválida); el log no incluye el destinatario', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => {});
+    sendMail.mockRejectedValue(Object.assign(new Error('Invalid login: ana@x.co'), { code: 'EAUTH', responseCode: 535 }));
+
+    expect(await enviarCodigoVerificacion(datos)).toBe(false);
+    const registrado = consola.mock.calls.flat().map(String).join(' ');
+    expect(registrado).toContain('EAUTH');
+    expect(registrado).not.toContain('ana@x.co');
+    expect(close).toHaveBeenCalledOnce();
   });
 });
 
