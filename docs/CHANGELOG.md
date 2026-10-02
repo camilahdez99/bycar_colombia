@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-10-01 — Guardián: detalle y contador para el contacto, y chat usuario-guardián
+
+Pedido explícito: cambia el comportamiento y el esquema. Sin feature flag, por decisión de la usuaria (activo directo).
+
+**Base de datos** (`scripts/postgres/05_guardian_y_chats.sql`, idempotente, sin borrar datos; `01_esquema.sql` y `02_indices.sql` actualizados para bases nuevas)
+- `GUARDIANES.USUARIO_ID_USU` (quién lo activó) y `CONTACTO_ID_USU` (el usuario contacto), con FK e índices. Los guardianes existentes completan el contacto por correo; quién lo activó queda en NULL.
+- `MENSAJES.SOLICITUD_ID_SOL` y `GUARDIAN_ID_GUA`, con FK `ON DELETE CASCADE`, un CHECK de un solo chat por mensaje e índices. Resuelve BUGS F4.
+
+**API**
+- `POST /api/guardian` guarda `USUARIO_ID_USU` (sesión, o el `usuarioId` del body) y `CONTACTO_ID_USU`.
+- `GET /api/guardian?email` suma `protegidoId` y `salida`. "pasajero" pasa a ser quien activó el guardián; para los viejos se sigue deduciendo como antes.
+- `GET/POST /api/mensajes` aceptan `guardianId` además de `chatId` (no los dos a la vez). Los mensajes se filtran e insertan por chat.
+- `GET /api/mensajes/chats` suma los chats de guardián del día, primero, y cada chat trae `tipo` y `clave`.
+- Vigencia (decisión de la usuaria: ocultar, no borrar): el chat de viaje se ve hasta que termina el día del viaje y el de guardián, el día en que se activó. Después la consulta no lo encuentra: el GET devuelve `[]` y el POST, 404.
+
+**Pantallas**
+- Contacto (Guardián → "Soy Guardián"): tarjeta `DetalleGuardianContacto` con la persona protegida, la ruta, el conductor, la placa, el vehículo y la salida, el **mismo contador** (inicio + minutos estimados, con las extensiones que lleguen en el refresco de 10 s) y el botón "Enviar mensaje a …", que abre el chat en Mensajes. Si el tiempo venció, se ve como alerta aunque la persona protegida no haya registrado el estado.
+- Persona protegida ("Viaje en Curso"): aviso "Puedes chatear con tu contacto de confianza durante el viaje" y botón "Chatear con mi guardián".
+- Mensajes: los chats de guardián se listan como "Guardián: ruta (fecha)". `useChat` maneja los dos tipos (`lib/client/chats.js`).
+
+**Tests**: 23 nuevos (API, IDOR, dominio, helpers de cliente y dashboard) y snapshots de SQL actualizados. `npm test` (859 en verde), `npm run lint` y `npm run build` sin errores. El script SQL lo corrió la usuaria en Supabase (2026-10-01); los tests no lo ejecutan (no hay Postgres local).
+
+**Riesgos pendientes**
+- **Orden de despliegue:** `05_guardian_y_chats.sql` ya está aplicado en Supabase. Cualquier otra base (por ejemplo, una de pruebas) tiene que correrlo **antes** de recibir este código: sin las columnas nuevas fallan el chat, la lista de chats y la activación del guardián.
+- Los mensajes anteriores al script quedan sin chat y no se muestran (se conservan en la base).
+- Con `AUTH_ENFORCED` apagado, quién activó el guardián sale del `usuarioId` que manda el cliente.
+- Si la persona protegida tiene su propio guardián activo, no ve las tarjetas de los guardianes que cuida (`GuardianInicio` solo se muestra sin guardián activo; ya pasaba antes).
+- Los guardianes no se finalizan solos: si la persona no marca "He llegado", la tarjeta del contacto sigue visible (en alerta) después de ese día.
+
 ## 2026-10-01 — Guardián: no se puede ser el propio contacto de confianza
 
 Pedido explícito de cambiar el comportamiento (era un riesgo pendiente de la entrada siguiente).

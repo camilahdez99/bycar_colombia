@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { canChangeSolicitud, resolverEstadoSolicitud } from '@/lib/domain/solicitudes';
 import { idDeCatalogo, limpiarDatosViaje, validarDatosViaje } from '@/lib/domain/viajes';
-import { calcularParticipantesMensaje } from '@/lib/domain/mensajes';
+import { calcularParticipantesMensaje, unirChats } from '@/lib/domain/mensajes';
 import { esContactoPropio } from '@/lib/domain/guardian';
 
 describe('resolverEstadoSolicitud', () => {
@@ -132,5 +132,18 @@ describe('esContactoPropio', () => {
     [undefined, 'ana@x.co', false],
   ])('%j vs %j → %s', (contacto, usuario, esperado) => {
     expect(esContactoPropio(contacto, usuario)).toBe(esperado);
+  });
+});
+
+describe('unirChats', () => {
+  test('guardianes primero, después viajes, con tipo y clave única', () => {
+    expect(unirChats([{ chatId: 9 }], [{ guardianId: 77 }])).toEqual([
+      { guardianId: 77, tipo: 'guardian', clave: 'guardian-77' },
+      { chatId: 9, tipo: 'viaje', clave: 'viaje-9' },
+    ]);
+  });
+
+  test('sin chats devuelve []', () => {
+    expect(unirChats([], [])).toEqual([]);
   });
 });

@@ -3,9 +3,9 @@
 import React from 'react';
 import { formatTiempo } from '@/lib/client/formato';
 
-/** Guardián activo: datos del viaje, cuenta regresiva, avisos y botón de llegada. */
+/** Guardián activo: datos del viaje, cuenta regresiva, avisos, chat con el contacto y botón de llegada. */
 export default function GuardianEnCurso({
-  viaje, contactoEmail, tiempoRestante, segundosPreAlerta, horaInicio, alertaEnviada, preAlerta, onLlegue,
+  viaje, contactoEmail, tiempoRestante, segundosPreAlerta, horaInicio, alertaEnviada, preAlerta, onLlegue, onChatear,
 }) {
   return (
     <div style={{ background: 'linear-gradient(135deg, rgba(229,34,34,0.08), rgba(229,34,34,0.02))', border: '2px solid rgba(229,34,34,0.3)', borderRadius: '24px', padding: '2rem', marginBottom: '2rem' }}>
@@ -50,6 +50,14 @@ export default function GuardianEnCurso({
         <div style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.3)', borderRadius: '14px', padding: '1rem', marginBottom: '1rem', textAlign: 'center' }}>
           <p style={{ color: '#facc15', fontWeight: 'bold' }}>⚠️ Tu viaje está por finalizar</p>
           <p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Confirma tu llegada para evitar alertar a tu contacto de confianza.</p>
+        </div>
+      )}
+      {onChatear && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: '14px', padding: '1rem', marginBottom: '1rem' }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: 0 }}>💬 Puedes chatear con tu contacto de confianza durante el viaje.</p>
+          <button onClick={onChatear} style={{ background: 'transparent', border: '1px solid var(--red)', color: '#fff', borderRadius: '10px', padding: '0.6rem 1rem', cursor: 'pointer', fontWeight: 700 }}>
+            Chatear con mi guardián
+          </button>
         </div>
       )}
       <button className="btn-red" onClick={onLlegue} style={{ width: '100%', justifyContent: 'center', padding: '1.2rem', fontSize: '1.1rem', borderRadius: '16px' }}>

@@ -12,19 +12,18 @@ exports[`GET /api/mensajes (caracterización) > 200: busca el par pasajero/condu
       FROM SOLICITUDES s
       JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
       WHERE s.ID_SOL = :chatId
+        AND CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE
     ",
   },
   {
     "binds": {
-      "driverId": 7,
-      "passengerId": 42,
+      "chatId": "9",
     },
     "options": undefined,
     "sql": "
       SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId"
       FROM MENSAJES
-      WHERE (USUARIO_RECEPTOR_ID = :passengerId AND USUARIOS_EMISOR_ID = :driverId)
-         OR (USUARIO_RECEPTOR_ID = :driverId AND USUARIOS_EMISOR_ID = :passengerId)
+      WHERE SOLICITUD_ID_SOL = :chatId
       ORDER BY FECHA_ENVIO_MEN ASC
     ",
   },
@@ -43,21 +42,24 @@ exports[`POST /api/mensajes (caracterización) > 201: el pasajero escribe → re
       FROM SOLICITUDES s
       JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
       WHERE s.ID_SOL = :chatId
+        AND CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE
     ",
   },
   {
     "binds": {
       "contenido": "hola",
       "emisorId": 42,
+      "guardianId": null,
       "idMen": 1760000000000,
       "receptorId": 7,
+      "solicitudId": 9,
     },
     "options": {
       "autoCommit": true,
     },
     "sql": "
-      INSERT INTO MENSAJES (ID_MEN, CONTENIDO_MEN, FECHA_ENVIO_MEN, USUARIO_RECEPTOR_ID, USUARIOS_EMISOR_ID)
-      VALUES (:idMen, :contenido, CURRENT_TIMESTAMP, :receptorId, :emisorId)
+      INSERT INTO MENSAJES (ID_MEN, CONTENIDO_MEN, FECHA_ENVIO_MEN, USUARIO_RECEPTOR_ID, USUARIOS_EMISOR_ID, SOLICITUD_ID_SOL, GUARDIAN_ID_GUA)
+      VALUES (:idMen, :contenido, CURRENT_TIMESTAMP, :receptorId, :emisorId, :solicitudId, :guardianId)
     ",
   },
 ]

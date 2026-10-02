@@ -117,6 +117,15 @@ ON MENSAJES (USUARIO_RECEPTOR_ID);
 CREATE INDEX IDX_MENSAJES_EMISOR
 ON MENSAJES (USUARIOS_EMISOR_ID);
 
+-- Estos índices mejoran la carga del historial de un chat:
+-- el de una solicitud o el de un guardián.
+
+CREATE INDEX IDX_MENSAJES_SOLICITUD
+ON MENSAJES (SOLICITUD_ID_SOL);
+
+CREATE INDEX IDX_MENSAJES_GUARDIAN
+ON MENSAJES (GUARDIAN_ID_GUA);
+
 -- ==========================================================
 -- INDICES TABLA: SOLICITUDES
 -- ==========================================================
@@ -154,5 +163,14 @@ ON GUARDIANES (VIAJES_ID_VIA);
 
 CREATE INDEX IDX_GUARDIANES_ESTADO
 ON GUARDIANES (ESTADO_ID_EST);
+
+-- Estos índices ayudan a consultar los guardianes que activó un usuario
+-- y los que cuida como contacto de confianza.
+
+CREATE INDEX IDX_GUARDIANES_USUARIO
+ON GUARDIANES (USUARIO_ID_USU);
+
+CREATE INDEX IDX_GUARDIANES_CONTACTO
+ON GUARDIANES (CONTACTO_ID_USU);
 
 COMMIT;

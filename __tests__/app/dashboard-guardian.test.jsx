@@ -126,6 +126,22 @@ describe('Dashboard · guardián: activar y finalizar (caracterización)', () =>
     expect(screen.getByText('mama@x.co')).toBeTruthy();
   });
 
+  test('al iniciar avisa que puede chatear con su guardián y el botón abre ese chat', async () => {
+    await abrirConfiguracion({
+      '/api/mensajes/chats': [{ guardianId: 77, nombre: 'MAMÁ PÉREZ', ruta: 'BOGOTA - TUNJA', fecha: hoy(), tipo: 'guardian', clave: 'guardian-77' }],
+    });
+    configurar({ email: 'mama@x.co' });
+    iniciar();
+
+    expect(await screen.findByText('💬 Puedes chatear con tu contacto de confianza durante el viaje.')).toBeTruthy();
+    // Espera a que la lista de chats ya tenga el del guardián, para usar su nombre
+    await waitFor(() => expect(llamadas('GET', '/api/mensajes/chats').length).toBeGreaterThan(0));
+    fireEvent.click(screen.getByText('Chatear con mi guardián'));
+
+    expect(await screen.findByText('Chat con MAMÁ PÉREZ')).toBeTruthy();
+    await waitFor(() => expect(llamadas('GET', '/api/mensajes?').map((c) => c.url)).toContain('/api/mensajes?guardianId=77'));
+  });
+
   test('error de la API: muestra el ID del viaje y el error, y el modal sigue abierto', async () => {
     await abrirConfiguracion({ 'POST /api/guardian': () => new Response('{"error":"Viaje no encontrado"}', { status: 404 }) });
     configurar({ email: 'mama@x.co' });
@@ -464,21 +480,65 @@ describe('Dashboard · guardián guardado al recargar (caracterización)', () =>
 });
 
 describe('Dashboard · guardián: alertas recibidas (caracterización)', () => {
+  const alerta = (extra) => ({
+    id: 2, estado: 'Activo', pasajero: 'SOFIA', inicio: haceSegundos(5 * 60), origen: 'C', destino: 'D',
+    carro: 'KIA', placa: 'BBB222', conductor: 'EVA', tiempo: 45, salida: '2026-10-01 08:00', protegidoId: 12, ...extra,
+  });
+
   test('pide las alertas con el correo del usuario codificado (F9) y distingue ALERTA de EN RUTA', async () => {
     iniciarSesion({ ID_USU: 7, NOMBRE_USU: 'ANA', CORREO_USU: 'ana+viajes@x.co' });
     stubApi({
-      '/api/guardian?email': [
-        { id: 1, estado: 'Alerta', pasajero: 'PEDRO', inicio: '2026-09-30 08:00', origen: 'A', destino: 'B', carro: 'MAZDA', placa: 'AAA111', conductor: 'LUIS', tiempo: 30 },
-        { id: 2, estado: 'Activo', pasajero: 'SOFIA', inicio: '2026-09-30 09:00', origen: 'C', destino: 'D', carro: 'KIA', placa: 'BBB222', conductor: 'EVA', tiempo: 45 },
-      ],
+      '/api/guardian?email': [alerta({ id: 1, estado: 'Alerta', pasajero: 'PEDRO', tiempo: 30 }), alerta()],
     });
     render(<DashboardPage />);
     clickNav('Guardian');
 
     expect(await screen.findByText('⚠️ ALERTA: PEDRO')).toBeTruthy();
     expect(screen.getByText('✅ EN RUTA: SOFIA')).toBeTruthy();
-    expect(screen.getByText('⏱️ Tiempo: 45 min')).toBeTruthy();
     expect(llamadas('GET', '/api/guardian?email').map((c) => c.url)).toEqual(['/api/guardian?email=ana%2Bviajes%40x.co']);
+  });
+
+  test('el contacto ve el mismo contador que la persona protegida: inicio + tiempo estimado', async () => {
+    stubApi({ '/api/guardian?email': [alerta({ inicio: haceSegundos(5 * 60), tiempo: 45 })] });
+    render(<DashboardPage />);
+    clickNav('Guardian');
+
+    // 45 min estimados, empezó hace 5 → quedan 40:00 (o 39:59 si ya pasó el segundo)
+    const contador = await screen.findByText(/^(40:00|39:5\d)$/);
+    expect(contador).toBeTruthy();
+    expect(screen.getByText('EN CAMINO')).toBeTruthy();
+    expect(screen.getByText('BBB222')).toBeTruthy();
+    expect(screen.getByText('2026-10-01 08:00')).toBeTruthy();
+  });
+
+  test('si el tiempo venció aunque el estado siga Activo, el contacto lo ve como alerta', async () => {
+    stubApi({ '/api/guardian?email': [alerta({ inicio: haceSegundos(50 * 60), tiempo: 45 })] });
+    render(<DashboardPage />);
+    clickNav('Guardian');
+
+    expect(await screen.findByText('⚠️ ALERTA: SOFIA')).toBeTruthy();
+    expect(screen.getByText('00:00')).toBeTruthy();
+    expect(screen.getByText('NO CONFIRMÓ SU LLEGADA')).toBeTruthy();
+  });
+
+  test('"Enviar mensaje" abre el chat del guardián en Mensajes', async () => {
+    stubApi({ '/api/guardian?email': [alerta()], '/api/mensajes?guardianId': [{ senderId: 12, text: 'Ya salí' }] });
+    render(<DashboardPage />);
+    clickNav('Guardian');
+    fireEvent.click(await screen.findByText('💬 Enviar mensaje a SOFIA'));
+
+    expect(await screen.findByText('Chat con SOFIA')).toBeTruthy();
+    expect(await screen.findByText('Ya salí')).toBeTruthy();
+    expect(llamadas('GET', '/api/mensajes?').map((c) => c.url)).toContain('/api/mensajes?guardianId=2');
+  });
+
+  test('un guardián anterior al chat (sin protegidoId) no ofrece enviar mensaje', async () => {
+    stubApi({ '/api/guardian?email': [alerta({ protegidoId: null })] });
+    render(<DashboardPage />);
+    clickNav('Guardian');
+
+    expect(await screen.findByText('Este guardián se activó antes de que existiera el chat.')).toBeTruthy();
+    expect(screen.queryByText(/Enviar mensaje/)).toBeNull();
   });
 
   test('sin alertas muestra el aviso; sin correo en el usuario no las pide', async () => {

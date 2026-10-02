@@ -8,14 +8,17 @@ exports[`GET /api/guardian (caracterización) > 200 por email: lista de alertas 
     },
     "options": undefined,
     "sql": "
-        SELECT g.ID_GUA as "id", 
+        SELECT g.ID_GUA as "id",
                g.EMAIL_CONFIANZA_GUA as "email",
                es.ESTADO_EST_GUA as "estado",
                TO_CHAR(g.FECHA_INICIO_GUA, 'YYYY-MM-DD HH24:MI:SS') as "inicio",
                mo.NOMBRE_MUN as "origen",
                md.NOMBRE_MUN as "destino",
+               g.USUARIO_ID_USU as "protegidoId",
+               TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') as "salida",
                COALESCE(
-                 (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU 
+                 u_pro.NOMBRE_USU || ' ' || u_pro.APELLIDO_USU,
+                 (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU
                   FROM SOLICITUDES s 
                   JOIN USUARIOS u_pas ON s.USUARIOS_ID_USU = u_pas.ID_USU 
                   WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 LIMIT 1),
@@ -29,6 +32,7 @@ exports[`GET /api/guardian (caracterización) > 200 por email: lista de alertas 
         JOIN VIAJES v ON g.VIAJES_ID_VIA = v.ID_VIA
         JOIN ESTADOS_GUA es ON g.ESTADO_ID_EST = es.ID_EST_GUA
         JOIN USUARIOS u ON v.USUARIOS_ID_USU = u.ID_USU
+        LEFT JOIN USUARIOS u_pro ON g.USUARIO_ID_USU = u_pro.ID_USU
         JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
         JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
         JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
@@ -84,17 +88,19 @@ exports[`POST /api/guardian (caracterización) > 201: valida que el correo exist
   },
   {
     "binds": {
+      "contactoId": 3,
       "email": "a@x.co",
       "idGua": 1760000000000,
       "tiempo": 45,
+      "usuarioId": null,
       "viajeId": 5,
     },
     "options": {
       "autoCommit": true,
     },
     "sql": "
-      INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA)
-      VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo)
+      INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA, USUARIO_ID_USU, CONTACTO_ID_USU)
+      VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo, :usuarioId, :contactoId)
     ",
   },
 ]

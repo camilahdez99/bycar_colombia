@@ -48,6 +48,27 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+describe('Dashboard · mensajes: chat del guardián', () => {
+  const GUARDIAN = { guardianId: 77, nombre: 'MAMÁ PÉREZ', ruta: 'BOGOTA - TUNJA', fecha: '2026-10-01', tipo: 'guardian', clave: 'guardian-77' };
+
+  test('se lista como "Guardián" y envía con guardianId, no con chatId', async () => {
+    stubApi({ '/api/mensajes/chats': [GUARDIAN, ...CHATS], 'POST /api/mensajes': { success: true } });
+    render(<DashboardPage />);
+    clickNav('Mensajes');
+
+    expect(await screen.findByText('Guardián: BOGOTA - TUNJA (2026-10-01)')).toBeTruthy();
+    fireEvent.click(screen.getByText('MAMÁ PÉREZ'));
+    await screen.findByText('Chat con MAMÁ PÉREZ');
+    fireEvent.change(screen.getByPlaceholderText('Escribe...'), { target: { value: 'Voy bien' } });
+    fireEvent.click(screen.getByText('Enviar'));
+
+    await waitFor(() => expect(llamadas('POST', '/api/mensajes').map((c) => c.body)).toEqual([
+      { guardianId: 77, senderId: 7, text: 'Voy bien' },
+    ]));
+    expect(llamadas('GET', '/api/mensajes?').map((c) => c.url)).toContain('/api/mensajes?guardianId=77');
+  });
+});
+
 describe('Dashboard · mensajes (caracterización)', () => {
   test('sin chats muestra el aviso; con chats lista nombre, inicial, ruta y fecha', async () => {
     stubApi({ '/api/mensajes/chats': CHATS });

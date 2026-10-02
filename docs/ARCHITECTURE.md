@@ -77,7 +77,7 @@ Con `AUTH_ENFORCED`, además de la sesión, cada ruta de usuario verifica que el
 |---|---|
 | `GET mis-rutas`, `recibidas`, `chats`, `guardian?usuarioId` | `usuarioId` = sesión |
 | `POST viajes`, `POST solicitudes` | `usuarioId` del body = sesión |
-| `GET/POST mensajes` | ser pasajero o conductor del chat; en POST, además, `senderId` = sesión |
+| `GET/POST mensajes` | ser pasajero o conductor del chat (`chatId`), o la persona protegida o su contacto (`guardianId`); en POST, además, `senderId` = sesión |
 | `PUT solicitudes` | el conductor acepta o rechaza (2, 3), el pasajero cancela (4); cualquier otro estado, solo el admin |
 | `POST guardian` | participar del viaje: ser el conductor o un pasajero con solicitud aceptada |
 | `PUT guardian` | participar del viaje del guardián; sin `id` (o con uno que no es entero) responde 400 antes de chequear la pertenencia |
@@ -104,8 +104,8 @@ L = lectura, E = escritura.
 | `admin/permisos` | GET POST DELETE | Asignar / revocar menús por usuario | PERMISOS (L/E) |
 | `guardian` | GET POST PUT | Alertas del "guardián de ruta"; activar, cambiar estado o tiempo | GUARDIANES (L/E) |
 | `marcas`, `municipios`, `menus` | GET | Catálogos | L |
-| `mensajes` | GET POST | Chat por solicitud (`ID_SOL`) | MENSAJES (L/E) |
-| `mensajes/chats` | GET | Chats de solicitudes aceptadas del usuario | L |
+| `mensajes` | GET POST | Chat por solicitud (`chatId` = `ID_SOL`) o por guardián (`guardianId` = `ID_GUA`). Cada mensaje guarda su chat (`SOLICITUD_ID_SOL` / `GUARDIAN_ID_GUA`). El de viaje se ve hasta el día del viaje; el de guardián, el día en que se activó; después queda oculto (no se borra) | MENSAJES (L/E) |
+| `mensajes/chats` | GET | Chats vigentes del usuario: guardianes de hoy (como protegido o como contacto) y solicitudes aceptadas, cada uno con `tipo` y `clave` | L |
 | `solicitudes` | POST PUT | Crear solicitud de viaje; aceptar/rechazar | SOLICITUDES (E) |
 | `solicitudes/recibidas` | GET | Solicitudes pendientes para el conductor | L |
 | `viajes` | GET POST | Buscar viajes; publicar (crea municipio/marca/vehículo al vuelo) | VIAJES, VEHICULOS, MUNICIPIOS, MARCAS |

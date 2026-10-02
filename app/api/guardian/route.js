@@ -43,16 +43,20 @@ export async function GET(req) {
       );
       if (notOwner) return notOwner;
 
-      // Buscar alertas para este guardián
+      // Buscar alertas para este guardián. La persona protegida es quien lo activó; los guardianes
+      // anteriores al script 05 no lo guardan y se sigue deduciendo como antes
       const sql = `
-        SELECT g.ID_GUA as "id", 
+        SELECT g.ID_GUA as "id",
                g.EMAIL_CONFIANZA_GUA as "email",
                es.ESTADO_EST_GUA as "estado",
                TO_CHAR(g.FECHA_INICIO_GUA, 'YYYY-MM-DD HH24:MI:SS') as "inicio",
                mo.NOMBRE_MUN as "origen",
                md.NOMBRE_MUN as "destino",
+               g.USUARIO_ID_USU as "protegidoId",
+               TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') as "salida",
                COALESCE(
-                 (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU 
+                 u_pro.NOMBRE_USU || ' ' || u_pro.APELLIDO_USU,
+                 (SELECT u_pas.NOMBRE_USU || ' ' || u_pas.APELLIDO_USU
                   FROM SOLICITUDES s 
                   JOIN USUARIOS u_pas ON s.USUARIOS_ID_USU = u_pas.ID_USU 
                   WHERE s.VIAJES_ID_VIA = v.ID_VIA AND s.ESTADO_ID_EST = 2 LIMIT 1),
@@ -66,6 +70,7 @@ export async function GET(req) {
         JOIN VIAJES v ON g.VIAJES_ID_VIA = v.ID_VIA
         JOIN ESTADOS_GUA es ON g.ESTADO_ID_EST = es.ID_EST_GUA
         JOIN USUARIOS u ON v.USUARIOS_ID_USU = u.ID_USU
+        LEFT JOIN USUARIOS u_pro ON g.USUARIO_ID_USU = u_pro.ID_USU
         JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
         JOIN MARCAS m ON vh.MARCA_ID_MAR = m.ID_MAR
         JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
@@ -158,9 +163,10 @@ export async function POST(req) {
 
     const idGua = Date.now();
 
+    // Se guarda quién lo activó (para el chat con su contacto) y el usuario contacto
     const sql = `
-      INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA)
-      VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo)
+      INSERT INTO GUARDIANES (ID_GUA, EMAIL_CONFIANZA_GUA, FECHA_INICIO_GUA, VIAJES_ID_VIA, ESTADO_ID_EST, TIEMPO_ESTIMADO_GUA, USUARIO_ID_USU, CONTACTO_ID_USU)
+      VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo, :usuarioId, :contactoId)
     `;
     // Estado 1 asume Activo/Iniciado
 
@@ -168,7 +174,9 @@ export async function POST(req) {
       idGua: Number(idGua),
       viajeId: Number(viajeId),
       email,
-      tiempo: Number(tiempo || TIEMPO_GUARDIAN_POR_DEFECTO_MIN)
+      tiempo: Number(tiempo || TIEMPO_GUARDIAN_POR_DEFECTO_MIN),
+      usuarioId: enteroPositivo(solicitanteId),
+      contactoId: Number(userRes.rows[0].ID_USU),
     }, { autoCommit: true });
 
     return NextResponse.json({ message: 'Guardián activado', id: idGua }, { status: 201 });

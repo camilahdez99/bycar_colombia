@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { claveDeChat } from '@/lib/client/chats';
 
 /**
  * Pestaña "Mensajes": lista de chats y la conversación abierta. El estado del chat y su
@@ -19,10 +20,13 @@ export default function MensajesTab({
         </div>
       </div>
       {mensajes.length > 0 ? mensajes.map((chat) => (
-        <div key={chat.chatId} className="route-card" onClick={() => onAbrirChat(chat)} style={{ cursor: 'pointer' }}>
+        <div key={claveDeChat(chat)} className="route-card" onClick={() => onAbrirChat(chat)} style={{ cursor: 'pointer' }}>
           <div style={{ display: 'flex', gap: '1rem' }}>
-            <div style={{ width: 45, height: 45, background: '#333', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--red)' }}>{chat.nombre.charAt(0)}</div>
-            <div><strong>{chat.nombre}</strong><p style={{ fontSize: '0.8rem', color: 'var(--red)' }}>Viaje: {chat.ruta} ({chat.fecha})</p></div>
+            <div style={{ width: 45, height: 45, background: '#333', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--red)' }}>{chat.guardianId ? '🛡️' : chat.nombre.charAt(0)}</div>
+            <div>
+              <strong>{chat.nombre}</strong>
+              <p style={{ fontSize: '0.8rem', color: 'var(--red)' }}>{chat.guardianId ? 'Guardián' : 'Viaje'}: {chat.ruta} ({chat.fecha})</p>
+            </div>
           </div>
         </div>
       )) : <p style={{ color: 'var(--muted)' }}>No tienes chats activos de próximos viajes.</p>}

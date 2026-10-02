@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import DetalleGuardianContacto from './DetalleGuardianContacto';
 
-/** Guardián sin activar: viajes aceptados de hoy para protegerlos y alertas de los contactos. */
-export default function GuardianInicio({ rutasSolicitadas, alertasRecibidas, onElegirViaje }) {
+/** Guardián sin activar: viajes aceptados de hoy para protegerlos y los guardianes que cuido como contacto. */
+export default function GuardianInicio({ rutasSolicitadas, alertasRecibidas, onElegirViaje, onEnviarMensaje }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
       <div>
@@ -40,21 +41,7 @@ export default function GuardianInicio({ rutasSolicitadas, alertasRecibidas, onE
           </div>
         ) : (
           alertasRecibidas.map(alerta => (
-            <div key={alerta.id} className="route-card" style={{ border: alerta.estado?.toUpperCase() === 'ALERTA' ? '1px solid var(--red)' : '1px solid var(--border)', background: alerta.estado?.toUpperCase() === 'ALERTA' ? 'rgba(229,34,34,0.05)' : 'var(--card)' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                   <strong style={{ color: alerta.estado?.toUpperCase() === 'ALERTA' ? 'var(--red)' : '#fff' }}>{alerta.estado?.toUpperCase() === 'ALERTA' ? '⚠️ ALERTA: ' : '✅ EN RUTA: '}{alerta.pasajero}</strong>
-                   <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>{alerta.inicio}</span>
-                </div>
-                <p style={{ fontSize: '0.85rem', margin: '4px 0' }}>{alerta.origen} → {alerta.destino}</p>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px' }}>
-                  <span>🚗 {alerta.carro}</span>
-                  <span>🔢 {alerta.placa}</span>
-                  <span>👤 Cond: {alerta.conductor}</span>
-                  <span>⏱️ Tiempo: {alerta.tiempo} min</span>
-                </div>
-              </div>
-            </div>
+            <DetalleGuardianContacto key={alerta.id} alerta={alerta} onEnviarMensaje={onEnviarMensaje} />
           ))
         )}
       </div>
