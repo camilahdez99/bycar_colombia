@@ -245,7 +245,7 @@ export function useGuardian(currentUser) {
 
   return {
     viaje, config, setConfig: cambiarConfig, errorContacto, activo, cuenta, alertaEnviada, preAlerta, horaInicio,
-    configOpen, setConfigOpen, showReadjustModal,
+    configOpen, setConfigOpen, showReadjustModal, guardianId,
     retomar, elegirViaje, iniciar, finalizar, reajustarTiempo,
   };
 }

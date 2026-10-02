@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
-import { crearCuentaRegresiva, segundosHasta } from '@/lib/client/cuentaRegresiva';
+import { crearCuentaRegresiva, finDelGuardian, segundosHasta } from '@/lib/client/cuentaRegresiva';
 
 describe('crearCuentaRegresiva', () => {
   test('arranca en 0 y devuelve el último valor fijado', () => {
@@ -53,5 +53,16 @@ describe('segundosHasta', () => {
   test('vencido devuelve 0, nunca negativo', () => {
     expect(segundosHasta(FIN, FIN)).toBe(0);
     expect(segundosHasta(FIN, FIN + 5_000)).toBe(0);
+  });
+});
+
+describe('finDelGuardian', () => {
+  test('inicio en hora local más los minutos estimados', () => {
+    const inicio = new Date(2026, 9, 1, 8, 0, 0).getTime();
+    expect(finDelGuardian('2026-10-01 08:00:00', 45)).toBe(inicio + 45 * 60 * 1000);
+  });
+
+  test('acepta los minutos como texto (NUMERIC de la BD)', () => {
+    expect(finDelGuardian('2026-10-01 08:00:00', '30')).toBe(finDelGuardian('2026-10-01 08:00:00', 30));
   });
 });

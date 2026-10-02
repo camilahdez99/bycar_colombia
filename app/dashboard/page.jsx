@@ -189,6 +189,14 @@ export default function DashboardPage() {
     if (pagina === 'mis-rutas') rutas.marcarSolicitadasLeidas();
   };
 
+  // Abre el chat de un guardián en la pestaña Mensajes. Si la lista todavía no lo trae (recién
+  // activado), se abre igual con el nombre que se conoce
+  const abrirChatGuardian = (guardianId, nombre) => {
+    const enLista = mensajes.find((c) => c.guardianId === guardianId);
+    navegar('mensajes');
+    chat.abrirChat(enLista ?? { guardianId, nombre });
+  };
+
 
 
   const buscarViajes = async () => {
@@ -475,6 +483,9 @@ export default function DashboardPage() {
                     alertaEnviada={guardian.alertaEnviada}
                     preAlerta={guardian.preAlerta}
                     onLlegue={guardian.finalizar}
+                    onChatear={guardian.guardianId
+                      ? () => abrirChatGuardian(guardian.guardianId, guardian.config.email)
+                      : undefined}
                   />
                 )}
               </ContadorGuardian>
@@ -485,6 +496,7 @@ export default function DashboardPage() {
                 rutasSolicitadas={rutasSolicitadas}
                 alertasRecibidas={alertasRecibidas}
                 onElegirViaje={guardian.elegirViaje}
+                onEnviarMensaje={(alerta) => abrirChatGuardian(alerta.id, alerta.pasajero)}
               />
             )}
 
