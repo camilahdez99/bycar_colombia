@@ -99,7 +99,9 @@ L = lectura, E = escritura.
 | Ruta | Métodos | Propósito | Tablas |
 |---|---|---|---|
 | `auth/login` | POST | Valida credenciales, devuelve user + redirect | USUARIOS (L) |
-| `auth/register` | POST | Crea usuario y le da permiso a todos los menús (transacción) | USUARIOS, PERMISOS (E), MENUS (L) |
+| `auth/register` | POST | Crea usuario y le da permiso a todos los menús (transacción). Con `EMAIL_VERIFICATION`: valida el correo, guarda un registro pendiente con el hash de un código de 6 dígitos, lo envía por Brevo y responde 202 | USUARIOS, PERMISOS (E), MENUS (L); con el flag, REGISTROS_PENDIENTES (L/E) |
+| `auth/register/verificar` | POST | Con `EMAIL_VERIFICATION`: código correcto → crea el usuario (como `register`); vencido (5 min) o segundo error → borra el pendiente (registro descartado). Sin el flag, 404 | REGISTROS_PENDIENTES (L/E), USUARIOS, PERMISOS (E) |
+| `auth/register/reenviar` | POST | Con `EMAIL_VERIFICATION`: código nuevo, reinicia los 5 min y los intentos; máximo 3 reenvíos y 60 s entre envíos. Sin el flag, 404 | REGISTROS_PENDIENTES (L/E) |
 | `admin/tablas` | GET POST PUT DELETE | CRUD genérico sobre cualquier tabla (`user_tables`) | todas |
 | `admin/permisos` | GET POST DELETE | Asignar / revocar menús por usuario | PERMISOS (L/E) |
 | `guardian` | GET POST PUT | Alertas del "guardián de ruta"; activar, cambiar estado o tiempo | GUARDIANES (L/E) |
