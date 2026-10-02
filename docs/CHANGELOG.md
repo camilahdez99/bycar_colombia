@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-02 — Ícono del carrito en la pestaña del navegador
+
+Pedido explícito: reemplazar el ícono de la plantilla de Next/Vercel.
+
+**Qué se hizo**
+- `app/icon.svg`: el carrito rojo del logo de la app sobre un fondo oscuro redondeado.
+- `app/favicon.ico`: reemplaza el de la plantilla (25 931 bytes) por el carrito en 16, 32 y 48 px (2 119 bytes).
+- `app/apple-icon.png`: 180 px, para cuando se agrega la web a la pantalla de inicio en iPhone.
+- El `.ico` y el `.png` se generaron desde el SVG con `sharp`, que ya venía con Next: no hay dependencias nuevas. Next los detecta solos por convención de archivos, sin tocar `layout.js`.
+
+**Verificación**: `npm test` (944 en verde), `npm run lint` y `npm run build` sin errores. Con `next start`, el `<head>` trae los tres `<link>` y los tres archivos responden 200.
+
+**Riesgos pendientes**: los navegadores guardan el favicon en caché durante mucho tiempo; puede hacer falta recargar con Ctrl+F5 o abrir la web en una ventana de incógnito para ver el nuevo.
+
 ## 2026-10-02 — Envío del código por Gmail (SMTP)
 
 Los correos de Brevo llegaban a spam: el remitente era `@elpoli.edu.co`, cuyo SPF (`include:_spf.google.com -all`) no autoriza a Brevo, y sin acceso a ese DNS no hay DKIM. Gmail firma y autoriza sus propios correos, así que llegan a la bandeja de entrada. Es gratis (unos 500 correos por día).
