@@ -40,12 +40,36 @@ describe('GET /api/mensajes (caracterización)', () => {
         { senderId: 7, text: '' },
       ],
     });
-    // chatId se envía como string; los mensajes se filtran por par de usuarios, no por chat
+    // chatId se envía como string; los mensajes se filtran por su solicitud (BUGS F4)
     expect(conn.calls).toMatchSnapshot();
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
-  test('200 con [] si la solicitud no existe (sin consultar mensajes)', async () => {
+  test('200 con guardianId: participantes del guardián y mensajes de ese guardián', async () => {
+    const conn = createFakeConnection([participantes, { rows: [{ content: 'llegué', senderId: 42 }] }]);
+    getConnection.mockResolvedValue(conn);
+    expect(await readResponse(await get({ guardianId: '77' }))).toEqual({
+      status: 200,
+      body: [{ senderId: 42, text: 'llegué' }],
+    });
+    expect(conn.calls[0].sql).toContain('FROM GUARDIANES');
+    expect(conn.calls[1].sql).toContain('GUARDIAN_ID_GUA = :chatId');
+    expect(conn.calls[1].binds).toEqual({ chatId: '77' });
+  });
+
+  test('400 con chatId y guardianId a la vez, sin abrir conexión', async () => {
+    expect(await readResponse(await get({ chatId: '9', guardianId: '77' }))).toEqual({
+      status: 400,
+      body: { error: 'Indica chatId o guardianId, no ambos' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test('400 con guardianId inválido', async () => {
+    expect((await readResponse(await get({ guardianId: 'abc' }))).body).toEqual({ error: 'guardianId inválido' });
+  });
+
+  test('200 con [] si la solicitud no existe o su día ya pasó (sin consultar mensajes)', async () => {
     const conn = createFakeConnection([{ rows: [] }]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ chatId: '9' }))).toEqual({ status: 200, body: [] });
@@ -97,7 +121,9 @@ describe('POST /api/mensajes (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await post(validBody))).toEqual({ status: 201, body: { success: true } });
     expect(conn.calls).toMatchSnapshot();
-    expect(conn.calls[1].binds).toEqual({ idMen: NOW, contenido: 'hola', receptorId: 7, emisorId: 42 });
+    expect(conn.calls[1].binds).toEqual({
+      idMen: NOW, contenido: 'hola', receptorId: 7, emisorId: 42, solicitudId: 9, guardianId: null,
+    });
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
@@ -113,6 +139,23 @@ describe('POST /api/mensajes (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect((await readResponse(await post({ ...validBody, senderId: 999 }))).status).toBe(201);
     expect(conn.calls[1].binds).toMatchObject({ receptorId: 42, emisorId: 999 });
+  });
+
+  test('201 con guardianId: el mensaje queda en el chat del guardián', async () => {
+    const conn = createFakeConnection([participantes, { rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    const res = await post({ guardianId: '77', senderId: 7, text: 'voy en camino' });
+    expect(res.status).toBe(201);
+    expect(conn.calls[0].sql).toContain('FROM GUARDIANES');
+    expect(conn.calls[1].binds).toMatchObject({ receptorId: 42, emisorId: 7, solicitudId: null, guardianId: 77 });
+  });
+
+  test('400 con chatId y guardianId a la vez, sin abrir conexión', async () => {
+    expect(await readResponse(await post({ ...validBody, guardianId: 77 }))).toEqual({
+      status: 400,
+      body: { error: 'Indica chatId o guardianId, no ambos' },
+    });
+    expect(getConnection).not.toHaveBeenCalled();
   });
 
   test('404 si el chat no existe', async () => {

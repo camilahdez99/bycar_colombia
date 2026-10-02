@@ -109,6 +109,20 @@ describe('POST /api/guardian (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
+  test('201 guarda quién lo activó (usuarioId del body) y el usuario contacto', async () => {
+    const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    await post({ viajeId: 5, usuarioId: '42', email: 'a@x.co' });
+    expect(conn.calls[1].binds).toMatchObject({ usuarioId: 42, contactoId: 3 });
+  });
+
+  test('201 sin usuarioId: quién lo activó queda en null', async () => {
+    const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    await post({ viajeId: 5, email: 'a@x.co' });
+    expect(conn.calls[1].binds).toMatchObject({ usuarioId: null, contactoId: 3 });
+  });
+
   test('sin tiempo usa 30 minutos', async () => {
     const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);

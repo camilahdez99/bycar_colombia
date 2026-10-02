@@ -57,8 +57,8 @@ const COBERTURA = {
   'POST /api/solicitudes': 'usuarioId del body = sesión',
   'PUT /api/solicitudes': 'conductor acepta/rechaza, pasajero cancela',
   'GET /api/solicitudes/recibidas': 'usuarioId de la query = sesión',
-  'GET /api/mensajes': 'participante del chat',
-  'POST /api/mensajes': 'senderId = sesión y participante del chat',
+  'GET /api/mensajes': 'participante del chat (solicitud o guardián)',
+  'POST /api/mensajes': 'senderId = sesión y participante del chat (solicitud o guardián)',
   'GET /api/mensajes/chats': 'usuarioId de la query = sesión',
   'GET /api/guardian': 'usuarioId = sesión, o email = correo de la sesión',
   'POST /api/guardian': 'participante del viaje',
@@ -287,6 +287,21 @@ describe('Fase A: mensajes', () => {
       await call(mensajes.POST, 'POST', '/api/mensajes', { body: { chatId: 55, senderId: YO, text: 'hola' } }),
     );
     expect(writes()).toEqual([]);
+  });
+
+  test.each([
+    ['GET', mensajes.GET, { query: { guardianId: '77' } }, 200],
+    ['POST', mensajes.POST, { body: { guardianId: 77, senderId: YO, text: 'hola' } }, 201],
+  ])('%s chat de guardián: como contacto → pasa', async (metodo, handler, opciones, esperado) => {
+    useConnection([chatDe(OTRO, YO), { rows: [], rowsAffected: 1 }]);
+    const { status } = await call(handler, metodo, '/api/mensajes', opciones);
+    expect(status).toBe(esperado);
+  });
+
+  test('GET chat de guardián ajeno → 403 sin leer los mensajes', async () => {
+    useConnection([chatDe(OTRO, CONDUCTOR)]);
+    await expect403(await call(mensajes.GET, 'GET', '/api/mensajes', { query: { guardianId: '77' } }));
+    expect(conn.execute).toHaveBeenCalledOnce();
   });
 
   test('POST: participante propio → 201', async () => {

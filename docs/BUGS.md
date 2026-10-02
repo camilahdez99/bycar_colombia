@@ -25,7 +25,7 @@ Severidad: 🔴 crítica · 🟠 alta · 🟡 media · ⚪ baja.
 | ~~F1~~ | ✅ | `dashboard/page.jsx:547,569` | **Resuelto 2026-10-01: sin usuario se avisa "Inicia sesión para continuar" y no se llama a la API.** Si no hay sesión se usa `|| 1` como ID: las acciones quedan a nombre del usuario 1. |
 | F2 | 🟠 | `solicitudes/route.js:4-23` | No valida cupos, duplicados ni que el usuario se auto-solicite su viaje. Aceptar no descuenta `CUPOS_DISPONIBLES_VIA`. |
 | F3 | 🟠 | `viajes/route.js:159-171` | Si la placa pertenece a otro usuario, igual se publica el viaje con ese vehículo. |
-| F4 | 🟡 | `mensajes/route.js:32-38` | Los mensajes se filtran por par de usuarios y no por chat: dos viajes entre las mismas personas comparten historial. |
+| ~~F4~~ | ✅ | `mensajes/route.js:32-38` | **Resuelto 2026-10-01 (script 05): cada mensaje guarda su solicitud o su guardián y el historial se filtra por chat. Los mensajes anteriores quedan sin chat y ya no se muestran.** Los mensajes se filtran por par de usuarios y no por chat: dos viajes entre las mismas personas comparten historial. |
 | F5 | 🟡 | `guardian/route.js:50-72` | El conductor nunca ve su guardián, porque el JOIN exige una solicitud aceptada propia. El comentario dice lo contrario. |
 | ~~F6~~ | ✅ | `viajes/route.js:9,38` | **Resuelto 2026-10-01 (DT-31): solo un número entero completo se toma como ID (`idDeCatalogo`).** `parseInt("2024 Mazda")` devuelve 2024 y se usa como ID de marca o municipio. |
 | ~~F7~~ | ✅ | `dashboard/page.jsx` | **Resuelto 2026-09-30 (`bff9b6b`, DT-10):** la variable que leía el perfil no se usaba y se eliminó; el dashboard ya no lee `PERFIL_ID_PER`. Original: Se lee `PERFIL_ID_PER`, pero el login no lo devuelve: siempre es null. |
