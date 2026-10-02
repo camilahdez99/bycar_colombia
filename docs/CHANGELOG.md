@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-02 — Envío del código por Gmail (SMTP)
+
+Los correos de Brevo llegaban a spam: el remitente era `@elpoli.edu.co`, cuyo SPF (`include:_spf.google.com -all`) no autoriza a Brevo, y sin acceso a ese DNS no hay DKIM. Gmail firma y autoriza sus propios correos, así que llegan a la bandeja de entrada. Es gratis (unos 500 correos por día).
+
+**Qué se hizo**
+- Dependencia nueva: `nodemailer` 10.0.13 (autorizada por la usuaria; requiere Node 20 o superior; `npm audit` en 0).
+- `lib/email.js`: con `GMAIL_USER` y `GMAIL_APP_PASSWORD` envía por `smtp.gmail.com:465` (TLS) con la propia cuenta como remitente; si no están, sigue usando Brevo. `proveedorDeCorreo()` informa cuál se usa. A la contraseña de aplicación se le quitan los espacios. Los errores de SMTP van al log solo con su código (`EAUTH`, `535`…), sin el destinatario.
+- Sin cambios en las rutas, la base ni la pantalla.
+
+**Tests**: 5 nuevos con `nodemailer` simulado (ningún correo real). `npm test` (944 en verde), `npm run lint` y `npm run build` sin errores.
+
+**Riesgos pendientes**
+- Gmail exige la verificación en dos pasos para crear contraseñas de aplicación. Las cuentas institucionales suelen tenerlas bloqueadas: conviene un Gmail personal o uno creado para el proyecto.
+- Límite de Gmail: unos 500 destinatarios por día. Si se supera, Google suspende el envío por 24 h y el registro responde 502.
+- Si se cambia la contraseña de la cuenta de Google, la contraseña de aplicación deja de valer y hay que generar otra.
+
 ## 2026-10-02 — Registro con verificación del correo (flag `EMAIL_VERIFICATION`)
 
 Pedido explícito. Detrás del flag `EMAIL_VERIFICATION`, apagado por defecto: sin él, el registro sigue exactamente igual (los tests y el snapshot de SQL de `register` no cambian).
