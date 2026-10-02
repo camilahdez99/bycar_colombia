@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-10-02 — Registro con verificación del correo (flag `EMAIL_VERIFICATION`)
+
+Pedido explícito. Detrás del flag `EMAIL_VERIFICATION`, apagado por defecto: sin él, el registro sigue exactamente igual (los tests y el snapshot de SQL de `register` no cambian).
+
+**Cómo funciona con el flag encendido**
+1. `POST /api/auth/register` valida la forma del correo (`correoValido`) y que no esté registrado. Guarda el registro en `REGISTROS_PENDIENTES` con el **hash** (HMAC-SHA256 con `SESSION_SECRET`) de un código aleatorio de 6 dígitos, lo envía por Brevo y responde 202. En `USUARIOS` no se crea nada todavía. Si el envío falla, no queda nada guardado (502).
+2. `POST /api/auth/register/verificar` con `{ correo, codigo }`:
+   - Código correcto: crea el usuario con sus permisos (mismo SQL de siempre, ahora en `crearUsuario` de `lib/api/registro.js`) y borra el pendiente.
+   - Primer error: avisa que queda 1 intento.
+   - Segundo error, o pasados 5 minutos: borra el pendiente y el registro se descarta (410).
+   - Dos errores simultáneos no regalan un intento: el UPDATE va condicionado al valor leído.
+3. `POST /api/auth/register/reenviar`: código nuevo, que reinicia los 5 minutos y los intentos. Máximo 3 reenvíos y 60 s entre envíos (429). Volver a registrarse con el mismo correo también respeta esos 60 s.
+4. Cada registro limpia los pendientes vencidos de cualquier correo, así no quedan datos de registros abandonados.
+5. `/register`: el paso "Verifica tu correo" (`components/register/VerificarCorreo.jsx`) tiene contador de 5:00, aviso de intentos, "Reenviar código" (habilitado a los 60 s), "Cambiar correo" y vuelta automática al formulario cuando vence o se descarta.
+
+**Base de datos**: `scripts/postgres/06_registros_pendientes.sql` (idempotente). `01_esquema.sql` y `02_indices.sql` actualizados para bases nuevas.
+
+**Configuración**: `EMAIL_VERIFICATION`, `BREVO_API_KEY`, `EMAIL_REMITENTE` y, opcional, `EMAIL_REMITENTE_NOMBRE`. Documentado en `CLAUDE.md`. El envío usa la API HTTP de Brevo con `fetch`, sin dependencias nuevas.
+
+**Tests**: 80 nuevos (reglas puras, correo y código, las tres rutas, rutas públicas con `AUTH_ENFORCED` y la pantalla con timers falsos). `npm test` (939 en verde), `npm run lint` y `npm run build` sin errores. No se envió ningún correo real: Brevo se simula en los tests. Se detectó un test intermitente ajeno a este cambio (BACKLOG DT-52).
+
+**Riesgos pendientes**
+- Para encenderlo, en orden: correr el script 06 en Supabase, cargar las variables de Brevo en Vercel, poner `EMAIL_VERIFICATION=true` y redesplegar. Probarlo primero con un correo propio.
+- El pendiente guarda la contraseña en texto plano, igual que `USUARIOS` (BUGS S4 / DT-47). Se borra al verificar, al vencer o en la limpieza siguiente.
+- Sin límite por IP: alguien puede pedir códigos para correos ajenos (como mucho uno por minuto y 4 en total por registro). El plan gratis de Brevo permite 300 correos por día.
+- La espera de 60 s y el límite de reenvíos son por registro: registrarse de nuevo después de que se descarta vuelve a empezar.
+- `crearUsuario` conserva un detalle del código anterior: el `SELECT` de menús confirma el INSERT del usuario antes de los permisos (el contrato de `lib/pg` confirma con autoCommit por defecto). No cambia con este trabajo.
+
 ## 2026-10-01 — Guardián: detalle y contador para el contacto, y chat usuario-guardián
 
 Pedido explícito: cambia el comportamiento y el esquema. Sin feature flag, por decisión de la usuaria (activo directo).

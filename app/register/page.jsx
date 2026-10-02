@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import VerificarCorreo from '@/components/register/VerificarCorreo';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,6 +12,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  // Con EMAIL_VERIFICATION la API responde 202 y falta ingresar el código: { correo, vigenciaSegundos }
+  const [verificacion, setVerificacion] = useState(null);
+  const volverAlFormulario = useCallback(() => setVerificacion(null), []);
 
   const handleRegister = async () => {
     if (!nombre || !apellido || !email || !password) {
@@ -33,7 +37,10 @@ export default function RegisterPage() {
 
       const data = await res.json();
 
-      if (res.ok) {
+      if (res.status === 202) {
+        toast.success(data.mensaje);
+        setVerificacion({ correo: data.correo, vigenciaSegundos: data.vigenciaSegundos });
+      } else if (res.ok) {
         toast.success('¡Registro exitoso! Ya puedes iniciar sesión.');
         router.push('/login');
       } else {
@@ -103,81 +110,92 @@ export default function RegisterPage() {
           <span>Bycar</span>
         </div>
 
-        <h1>Únete a Bycar</h1>
-        <p className="sub">Crea tu cuenta para viajar por Colombia</p>
+        {verificacion ? (
+          <VerificarCorreo
+            correo={verificacion.correo}
+            vigenciaSegundos={verificacion.vigenciaSegundos}
+            onVerificado={() => router.push('/login')}
+            onDescartado={volverAlFormulario}
+          />
+        ) : (
+          <>
+          <h1>Únete a Bycar</h1>
+          <p className="sub">Crea tu cuenta para viajar por Colombia</p>
 
-        <div className="row">
+          <div className="row">
+            <div className="form-group">
+              <label>Nombre</label>
+              <div className="input-wrap">
+                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="" 
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value.toUpperCase())}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Apellido</label>
+              <div className="input-wrap">
+                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <input 
+                  type="text" 
+                  placeholder="" 
+                  value={apellido}
+                  onChange={(e) => setApellido(e.target.value.toUpperCase())}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="form-group">
-            <label>Nombre</label>
+            <label>Correo electrónico</label>
             <div className="input-wrap">
               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
               </svg>
               <input 
-                type="text" 
-                placeholder="" 
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value.toUpperCase())}
+                type="email" 
+                placeholder="tu@correo.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
           </div>
+
           <div className="form-group">
-            <label>Apellido</label>
+            <label>Contraseña</label>
             <div className="input-wrap">
               <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
               <input 
-                type="text" 
-                placeholder="" 
-                value={apellido}
-                onChange={(e) => setApellido(e.target.value.toUpperCase())}
+                type="password" 
+                placeholder="••••••••" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
           </div>
-        </div>
 
-        <div className="form-group">
-          <label>Correo electrónico</label>
-          <div className="input-wrap">
-            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-            </svg>
-            <input 
-              type="email" 
-              placeholder="tu@correo.com" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label>Contraseña</label>
-          <div className="input-wrap">
-            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <button 
-          className="btn-full" 
-          onClick={handleRegister}
-          disabled={loading}
-        >
-          {loading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
-        </button>
+          <button 
+            className="btn-full" 
+            onClick={handleRegister}
+            disabled={loading}
+          >
+            {loading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
+          </button>
         
-        <div className="bottom">
-          ¿Ya tienes cuenta? <a onClick={() => router.push('/login')}>Inicia sesión</a>
-        </div>
+          <div className="bottom">
+            ¿Ya tienes cuenta? <a onClick={() => router.push('/login')}>Inicia sesión</a>
+          </div>
+          </>
+        )}
       </div>
     </>
   );
