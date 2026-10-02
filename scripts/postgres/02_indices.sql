@@ -173,4 +173,14 @@ ON GUARDIANES (USUARIO_ID_USU);
 CREATE INDEX IDX_GUARDIANES_CONTACTO
 ON GUARDIANES (CONTACTO_ID_USU);
 
+-- ==========================================================
+-- INDICES TABLA: REGISTROS_PENDIENTES
+-- ==========================================================
+
+-- Este índice ayuda a limpiar los registros pendientes vencidos.
+-- (El correo ya tiene índice por su restricción UNIQUE.)
+
+CREATE INDEX IDX_REGISTROS_PENDIENTES_EXPIRA
+ON REGISTROS_PENDIENTES (EXPIRA_REG);
+
 COMMIT;
