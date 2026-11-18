@@ -2,9 +2,11 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getConnection } from '@/lib/db';
 import { GET, POST, PUT } from '@/app/api/guardian/route';
+import { enviarAvisoGuardian } from '@/lib/email';
 import { createFakeConnection, makeRequest, readResponse, silenceConsole } from '../../../helpers/api';
 
 vi.mock('@/lib/db', () => ({ getConnection: vi.fn() }));
+vi.mock('@/lib/email', () => ({ enviarAvisoGuardian: vi.fn(async () => true) }));
 
 const NOW = 1_760_000_000_000;
 
@@ -272,6 +274,30 @@ describe('PUT /api/guardian (caracterización)', () => {
       body: { message: 'Estado actualizado' },
     });
     expect(conn.calls).toMatchSnapshot();
+  });
+
+  test('al pasar a Alerta avisa al contacto por correo una vez y marca NOTIFICADO_ALERTA_GUA', async () => {
+    const detalle = { correo: 'mama@x.co', protegido: 'ANA', origen: 'A', destino: 'B', conductor: 'LUIS', placa: 'ABC', carro: 'MAZDA', salida: '2026-11-18 08:00', tiempo: 30 };
+    const conn = createFakeConnection([{ rowsAffected: 1 }, { rows: [detalle] }, { rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    expect((await readResponse(await put({ id: 11, estado: 'Alerta' }))).status).toBe(200);
+    expect(enviarAvisoGuardian).toHaveBeenCalledOnce();
+    expect(enviarAvisoGuardian.mock.calls[0][0]).toMatchObject({ correo: 'mama@x.co', tipo: 'alerta' });
+    expect(conn.calls.some((c) => /NOTIFICADO_ALERTA_GUA/.test(c.sql))).toBe(true);
+  });
+
+  test('no reenvía la alerta si ya fue notificada (la consulta trae 0 filas)', async () => {
+    const conn = createFakeConnection([{ rowsAffected: 1 }, { rows: [] }]);
+    getConnection.mockResolvedValue(conn);
+    await put({ id: 11, estado: 'Alerta' });
+    expect(enviarAvisoGuardian).not.toHaveBeenCalled();
+  });
+
+  test('cambiar a otro estado (no Alerta) no envía correo', async () => {
+    const conn = createFakeConnection([{ rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    await put({ id: 11, estado: 'Inactivo' });
+    expect(enviarAvisoGuardian).not.toHaveBeenCalled();
   });
 
   test('400 sin id, sin abrir conexión (DT-31)', async () => {
