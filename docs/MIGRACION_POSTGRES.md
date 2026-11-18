@@ -19,6 +19,7 @@ Rama `feat/migracion-postgres` (2026-10-01). La aplicación pasó de `oracledb` 
    | `04_usuario_admin.sql` | Opcional. El usuario admin del seed original. **Antes de correrlo, cambiá la contraseña `'admin'`** (BUGS S5). |
    | `05_guardian_y_chats.sql` | Solo para una base creada **antes** del 2026-10-01 con la versión anterior de 01 y 02: agrega `GUARDIANES.USUARIO_ID_USU` / `CONTACTO_ID_USU` y `MENSAJES.SOLICITUD_ID_SOL` / `GUARDIAN_ID_GUA` con sus FK e índices. Idempotente y sin borrar datos. Una base nueva ya las tiene por 01 y 02. Hay que correrlo **antes** de desplegar el código que las usa. |
    | `06_registros_pendientes.sql` | Solo para una base creada **antes** del 2026-10-02: crea `REGISTROS_PENDIENTES` (registros que esperan el código del correo) con su índice y RLS. Idempotente. Hay que correrlo **antes** de encender `EMAIL_VERIFICATION`. |
+   | `09_xpress.sql` | Solo para una base creada **antes** del 2026-11-18: crea `ESTADOS_XPRESS` (con sus 6 estados) y `CARGAS` (encomiendas del módulo Xpress) con FK, índices y RLS, agrega el menú `Xpress` (`/xpress`) y se lo da a los usuarios existentes. Idempotente y sin borrar datos. Una base nueva ya lo tiene por 01, 02 y 03. Hay que correrlo **antes** de desplegar `/api/xpress`. (No hay script 08.) |
 
    También se pueden correr con `psql "$DATABASE_URL" -f scripts/postgres/01_esquema.sql` (y así con los demás).
 

@@ -189,4 +189,25 @@ ON SOLICITUDES (CONTACTO_GUARDIAN_ID);
 CREATE INDEX IDX_REGISTROS_PENDIENTES_EXPIRA
 ON REGISTROS_PENDIENTES (EXPIRA_REG);
 
+-- ==========================================================
+-- INDICES TABLA: CARGAS
+-- ==========================================================
+
+-- Estos índices ayudan a consultar los envíos de un usuario (emisor),
+-- los que va a recibir (receptor) y las cargas de un viaje.
+
+CREATE INDEX IDX_CARGAS_EMISOR
+ON CARGAS (USUARIO_EMISOR_US);
+
+CREATE INDEX IDX_CARGAS_RECEPTOR
+ON CARGAS (USUARIO_RECEPTOR_US);
+
+CREATE INDEX IDX_CARGAS_VIAJE
+ON CARGAS (VIAJE_ID);
+
+-- Este índice ayuda a consultar las cargas según su estado.
+
+CREATE INDEX IDX_CARGAS_ESTADO
+ON CARGAS (ESTADO_ID_EST_XP);
+
 COMMIT;

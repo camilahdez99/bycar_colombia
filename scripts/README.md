@@ -12,6 +12,7 @@ Se corren en orden. Paso a paso en `docs/MIGRACION_POSTGRES.md`.
 | `postgres/02_indices.sql` | Creación de índices, con la justificación de cada uno. |
 | `postgres/03_datos_iniciales.sql` | Datos iniciales: roles, perfiles, estados, marcas, menús, departamentos y municipios. |
 | `postgres/04_usuario_admin.sql` | Opcional: el usuario admin del seed original. ⚠️ Cambiar la contraseña antes de correrlo (BUGS S5). |
+| `postgres/09_xpress.sql` | Solo para una base existente (la nueva ya lo trae por 01 a 03): crea `ESTADOS_XPRESS` y `CARGAS` (encomiendas Xpress), el menú `/xpress` y su permiso para los usuarios actuales. Idempotente. Va después de los scripts 05 a 07 de migración. |
 
 ## Oracle — históricos
 
