@@ -136,10 +136,20 @@ describe('esContactoPropio', () => {
 });
 
 describe('unirChats', () => {
-  test('guardianes primero, después viajes, con tipo y clave única', () => {
+  test('guardianes primero, después viajes, con tipo, clave única y vigente', () => {
     expect(unirChats([{ chatId: 9 }], [{ guardianId: 77 }])).toEqual([
-      { guardianId: 77, tipo: 'guardian', clave: 'guardian-77' },
-      { chatId: 9, tipo: 'viaje', clave: 'viaje-9' },
+      { guardianId: 77, tipo: 'guardian', clave: 'guardian-77', vigente: true },
+      { chatId: 9, tipo: 'viaje', clave: 'viaje-9', vigente: true },
+    ]);
+  });
+
+  test('el historial (vigente = false) va después de los chats vigentes', () => {
+    const lista = unirChats(
+      [{ chatId: 9, vigente: false }, { chatId: 10, vigente: true }],
+      [{ guardianId: 77, vigente: false }],
+    );
+    expect(lista.map((c) => [c.clave, c.vigente])).toEqual([
+      ['viaje-10', true], ['guardian-77', false], ['viaje-9', false],
     ]);
   });
 

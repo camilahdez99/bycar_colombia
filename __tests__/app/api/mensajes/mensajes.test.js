@@ -30,14 +30,14 @@ describe('GET /api/mensajes (caracterización)', () => {
   test('200: busca el par pasajero/conductor y mapea los mensajes a { senderId, text }', async () => {
     const conn = createFakeConnection([
       participantes,
-      { rows: [{ content: 'hola', senderId: 42 }, { content: null, senderId: 7 }] },
+      { rows: [{ content: 'hola', senderId: 42, fecha: '2026-10-01 14:05' }, { content: null, senderId: 7 }] },
     ]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ chatId: '9' }))).toEqual({
       status: 200,
       body: [
-        { senderId: 42, text: 'hola' },
-        { senderId: 7, text: '' },
+        { senderId: 42, text: 'hola', fecha: '2026-10-01 14:05' },
+        { senderId: 7, text: '', fecha: null },
       ],
     });
     // chatId se envía como string; los mensajes se filtran por su solicitud (BUGS F4)
@@ -50,7 +50,7 @@ describe('GET /api/mensajes (caracterización)', () => {
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ guardianId: '77' }))).toEqual({
       status: 200,
-      body: [{ senderId: 42, text: 'llegué' }],
+      body: [{ senderId: 42, text: 'llegué', fecha: null }],
     });
     expect(conn.calls[0].sql).toContain('FROM GUARDIANES');
     expect(conn.calls[1].sql).toContain('GUARDIAN_ID_GUA = :chatId');
@@ -69,7 +69,22 @@ describe('GET /api/mensajes (caracterización)', () => {
     expect((await readResponse(await get({ guardianId: 'abc' }))).body).toEqual({ error: 'guardianId inválido' });
   });
 
-  test('200 con [] si la solicitud no existe o su día ya pasó (sin consultar mensajes)', async () => {
+  test('200 con el historial aunque el día del chat ya pasó (vigente = false)', async () => {
+    const conn = createFakeConnection([
+      { rows: [{ passengerId: 42, driverId: 7, vigente: false }] },
+      { rows: [{ content: 'gracias por el viaje', senderId: 42, fecha: '2026-09-01 18:00' }] },
+    ]);
+    getConnection.mockResolvedValue(conn);
+    expect(await readResponse(await get({ chatId: '9' }))).toEqual({
+      status: 200,
+      body: [{ senderId: 42, text: 'gracias por el viaje', fecha: '2026-09-01 18:00' }],
+    });
+    // La consulta de participantes ya no filtra por fecha: el historial se conserva
+    expect(conn.calls[0].sql).not.toMatch(/AND\s+CAST/);
+    expect(conn.calls[0].sql).toContain('as "vigente"');
+  });
+
+  test('200 con [] si la solicitud no existe (sin consultar mensajes)', async () => {
     const conn = createFakeConnection([{ rows: [] }]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ chatId: '9' }))).toEqual({ status: 200, body: [] });
@@ -156,6 +171,23 @@ describe('POST /api/mensajes (caracterización)', () => {
       body: { error: 'Indica chatId o guardianId, no ambos' },
     });
     expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test('409 si el chat ya cerró (su día pasó): no inserta', async () => {
+    const conn = createFakeConnection([{ rows: [{ passengerId: 42, driverId: 7, vigente: false }] }]);
+    getConnection.mockResolvedValue(conn);
+    expect(await readResponse(await post(validBody))).toEqual({
+      status: 409,
+      body: { error: 'Este chat ya cerró: puedes leer el historial, pero no enviar mensajes' },
+    });
+    expect(conn.execute).toHaveBeenCalledOnce();
+    expect(conn.close).toHaveBeenCalledOnce();
+  });
+
+  test('201 si el chat sigue vigente (vigente = true)', async () => {
+    const conn = createFakeConnection([{ rows: [{ passengerId: 42, driverId: 7, vigente: true }] }, { rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    expect((await post(validBody)).status).toBe(201);
   });
 
   test('404 si el chat no existe', async () => {

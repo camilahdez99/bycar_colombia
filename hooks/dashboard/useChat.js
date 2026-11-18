@@ -16,7 +16,7 @@ const REFRESCO_CHAT_MS = 3000;
  */
 export function useChat(currentUser) {
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatData, setChatData] = useState({ name: '', avatar: '', chatId: null, guardianId: null, clave: null });
+  const [chatData, setChatData] = useState({ name: '', avatar: '', chatId: null, guardianId: null, clave: null, vigente: true });
   const [currentChatMsgs, setCurrentChatMsgs] = useState([]);
   const [msgInput, setMsgInput] = useState('');
 
@@ -29,7 +29,8 @@ export function useChat(currentUser) {
         const myId = getUserId(currentUser);
         const formatted = data.map(m => ({
           sender: m.senderId == myId ? 'me' : 'other',
-          text: m.text
+          text: m.text,
+          fecha: m.fecha ?? null,
         }));
         setCurrentChatMsgs(formatted);
       }
@@ -46,7 +47,8 @@ export function useChat(currentUser) {
   }, [chatOpen, chatData, fetchChatMsgs]); // chatData solo cambia al abrir otro chat
 
   const enviarMensaje = async () => {
-    if (!msgInput.trim() || !chatData.clave) return;
+    // Un chat del historial (su día ya pasó) es de solo lectura
+    if (!msgInput.trim() || !chatData.clave || chatData.vigente === false) return;
     const myId = getUserId(currentUser);
     
     // Add locally immediately for fast UI
@@ -55,10 +57,10 @@ export function useChat(currentUser) {
     setMsgInput('');
 
     // Si el envío falla, el mensaje no queda como enviado: se saca y vuelve al input (BUGS F29)
-    const descartarMensaje = () => {
+    const descartarMensaje = (motivo = 'No se pudo enviar el mensaje') => {
       setCurrentChatMsgs(prev => prev.filter(m => m !== newMsg));
       setMsgInput(newMsg.text);
-      toast.error('No se pudo enviar el mensaje');
+      toast.error(motivo);
     };
 
     try {
@@ -71,7 +73,14 @@ export function useChat(currentUser) {
           text: newMsg.text
         })
       });
-      if (!res.ok) descartarMensaje();
+      if (res.status === 409) {
+        // El chat cerró mientras estaba abierto: pasa a solo lectura
+        const data = await res.json().catch(() => ({}));
+        setChatData(prev => ({ ...prev, vigente: false }));
+        descartarMensaje(data.error || 'Este chat ya cerró');
+      } else if (!res.ok) {
+        descartarMensaje();
+      }
     } catch (e) {
       console.error('Error enviando mensaje', e);
       descartarMensaje();
@@ -86,6 +95,7 @@ export function useChat(currentUser) {
     const datos = {
       name: chat.nombre, avatar: chat.nombre.charAt(0),
       chatId: chat.chatId ?? null, guardianId: chat.guardianId ?? null, clave,
+      vigente: chat.vigente !== false,
     };
     setChatData(datos);
     setCurrentChatMsgs([]);
