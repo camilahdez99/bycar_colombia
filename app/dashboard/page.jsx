@@ -10,6 +10,7 @@ import PublicarViajeModal from '@/components/dashboard/PublicarViajeModal';
 import MisRutasTab from '@/components/dashboard/MisRutasTab';
 import SolicitudesTab from '@/components/dashboard/SolicitudesTab';
 import MensajesTab from '@/components/dashboard/MensajesTab';
+import XpressTab from '@/components/dashboard/XpressTab';
 import InicioTab from '@/components/dashboard/InicioTab';
 import BuscarTab from '@/components/dashboard/BuscarTab';
 import GuardianEnCurso from '@/components/dashboard/GuardianEnCurso';
@@ -24,6 +25,7 @@ import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
 import { MENU_INICIO_ID } from '@/lib/domain/constantes';
 import { useChat } from '@/hooks/dashboard/useChat';
 import { useRutas } from '@/hooks/dashboard/useRutas';
+import { useXpress } from '@/hooks/dashboard/useXpress';
 import { useGuardian, PRE_ALERTA_SEG, EXTENSION_GUARDIAN_MIN } from '@/hooks/dashboard/useGuardian';
 
 // Refresco en segundo plano
@@ -37,6 +39,7 @@ const MENU_ICONS = {
   '/solicitudes': 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8z',
   '/mensajes':    'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
   '/guardian':    'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+  '/xpress':      'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16zM3.3 7L12 12l8.7-5M12 22V12',
 };
 
 export default function DashboardPage() {
@@ -47,6 +50,7 @@ export default function DashboardPage() {
   
   const [currentUser, setCurrentUser] = useState(null);
   const chat = useChat(currentUser);
+  const xpress = useXpress(currentUser, activePage);
   const [mensajes, setMensajes] = useState([]);
   const [mensajesLeidos, setMensajesLeidos] = useState(0); // cuántos chats vio el usuario la última vez
   const [userPermisos, setUserPermisos] = useState(null); // null = cargando, [] = sin permisos
@@ -490,6 +494,26 @@ export default function DashboardPage() {
           />
         )}
 
+        {activePage === 'xpress' && (
+          <XpressTab
+            vista={xpress.vista}
+            onVista={xpress.setVista}
+            cargas={xpress.cargas}
+            form={xpress.form}
+            setForm={xpress.setForm}
+            viajes={xpress.viajes}
+            formAbierto={xpress.formAbierto}
+            editandoId={xpress.editandoId}
+            guardando={xpress.guardando}
+            onNueva={xpress.abrirNueva}
+            onEditar={xpress.abrirEdicion}
+            onCancelar={xpress.cancelar}
+            onEstado={xpress.cambiarEstado}
+            onGuardar={xpress.guardar}
+            onCerrarForm={xpress.cerrarForm}
+          />
+        )}
+
         {activePage === 'guardian' && (
           <section>
             <div className="page-header">
@@ -543,7 +567,7 @@ export default function DashboardPage() {
         )}
 
         {/* VISTA DINÁMICA DE FALLBACK PARA NUEVOS MENÚS CREADOS POR EL ADMINISTRADOR */}
-        {!['inicio', 'buscar', 'mis-rutas', 'solicitudes', 'mensajes', 'guardian'].includes(activePage) && (
+        {!['inicio', 'buscar', 'mis-rutas', 'solicitudes', 'mensajes', 'xpress', 'guardian'].includes(activePage) && (
           <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '2rem' }}>
             <div style={{ width: '80px', height: '80px', background: 'rgba(255,255,255,0.05)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--red)', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
               <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
