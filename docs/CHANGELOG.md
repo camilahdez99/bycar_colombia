@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-18 — Xpress: encomiendas dentro de un viaje
+
+Cuarta funcionalidad del PPI (`docs/PLAN_PPI.md`, Fase 4). Un usuario (remitente) manda una encomienda a otro usuario de Bycar (receptor) dentro de un viaje; el conductor del viaje la gestiona. No toca el chat ni el guardián.
+
+**Qué se hizo**
+- **BD** (`scripts/postgres/09_xpress.sql`, idempotente, sin ejecutar desde el proyecto): `ESTADOS_XPRESS` (1 Pendiente, 2 Aceptada, 3 Rechazada, 4 En camino, 5 Entregada, 6 Cancelada) y `CARGAS` (descripción, peso opcional, emisor, receptor, viaje, estado, fecha; FK con `ON DELETE CASCADE`, índices y RLS). Agrega el menú `Xpress` (`/xpress`, ID 8) y su permiso a los usuarios existentes. Una base nueva ya lo trae por `01_esquema.sql`, `02_indices.sql` y `03_datos_iniciales.sql`.
+- **Dominio** (`lib/domain/xpress.js`, constantes `ESTADO_XPRESS`, `RECEPTOR_NO_REGISTRADO` y `RECEPTOR_PROPIO`): transiciones permitidas (conductor: Pendiente → Aceptada / Rechazada, Aceptada → En camino → Entregada; remitente: cancelar desde Pendiente o Aceptada; el receptor solo ve) y validación de descripción (hasta 300 caracteres) y peso (0 a 1000 kg).
+- **API** `app/api/xpress/route.js`: `GET` (`usuarioId` + `vista` = `enviados` | `recibidos` | `conductor`, y `viajeId` opcional en la del conductor), `POST` (valida viaje vigente, que el receptor sea un usuario registrado y que no sea el propio remitente ni el conductor del viaje), `PUT` (editar descripción y peso mientras está Pendiente, o cambiar el estado) y `DELETE` (cancelación lógica: pasa a Cancelada, la fila queda en el historial). Un cambio de estado lleva el estado actual en el `WHERE`: si otra persona lo cambió antes responde 409 en vez de pisarlo. `findCargaParticipants` en `lib/auth/ownershipQueries.js`.
+- **UI**: pestaña Xpress en el dashboard (`XpressTab`, hook `useXpress`) con «Mis envíos», «Por recibir» y «En mis viajes» (el conductor acepta, rechaza, marca en camino o entregada), formulario de registro y edición (reusa `SelectorUsuario` para el receptor) y refresco cada 10 s.
+
+**Verificación**: `npm test` (1 132 en verde), `npm run lint` sin errores ni warnings. `npm run build` con Turbopack no corre en este worktree (no resuelve `next` por cómo está enlazado `node_modules`); con `next build --webpack` compila y lista `/api/xpress`. Tests nuevos: dominio, ruta (con snapshots de SQL), pertenencia (`idor`), autenticación (`auth-enforcement`, de 24 a 28 handlers) y la pestaña.
+
+**Riesgos pendientes**
+- Hay que correr `09_xpress.sql` en Supabase **antes** de desplegar: sin las tablas, `/api/xpress` responde 500.
+- Cualquier usuario puede mandar una encomienda en cualquier viaje vigente (no hace falta ser pasajero aceptado), como pide la propuesta; el conductor decide si la acepta.
+- Con `AUTH_ENFORCED` apagado, las reglas de quién puede hacer qué dependen de la sesión y no se aplican (igual que en el resto de la API).
+
 ## 2026-10-02 — Ícono del carrito en la pestaña del navegador
 
 Pedido explícito: reemplazar el ícono de la plantilla de Next/Vercel.
