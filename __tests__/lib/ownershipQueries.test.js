@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, test } from 'vitest';
 import {
+  findCargaParticipants,
   findSolicitudParticipants,
   findUserEmail,
   isGuardianParticipant,
@@ -51,5 +52,19 @@ describe('findUserEmail', () => {
 
   test('usuario inexistente → null', async () => {
     expect(await findUserEmail(createFakeConnection([{ rows: [] }]), 7)).toBeNull();
+  });
+});
+
+describe('findCargaParticipants', () => {
+  test('devuelve emisor, receptor, conductor y estado; fija el SQL y el bind numérico', async () => {
+    const fila = { emisorId: 7, receptorId: 8, conductorId: 9, estadoId: 1 };
+    const conn = createFakeConnection([{ rows: [fila] }]);
+    expect(await findCargaParticipants(conn, '55')).toEqual(fila);
+    expect(conn.calls[0].binds).toEqual({ cargaId: 55 });
+    expect(conn.calls).toMatchSnapshot();
+  });
+
+  test.each([[{ rows: [] }], [{}]])('sin filas → null (%j)', async (respuesta) => {
+    expect(await findCargaParticipants(createFakeConnection([respuesta]), 55)).toBeNull();
   });
 });

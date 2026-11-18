@@ -1,0 +1,289 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DELETE /api/xpress (caracterización) > cancelación lógica: UPDATE a Cancelada, nunca DELETE 1`] = `
+[
+  {
+    "binds": {
+      "cargaId": 3,
+    },
+    "options": undefined,
+    "sql": "
+    SELECT c.USUARIO_EMISOR_US AS "emisorId",
+           c.USUARIO_RECEPTOR_US AS "receptorId",
+           v.USUARIOS_ID_USU AS "conductorId",
+           c.ESTADO_ID_EST_XP AS "estadoId"
+    FROM CARGAS c
+    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    WHERE c.ID_XP = :cargaId
+  ",
+  },
+  {
+    "binds": {
+      "cargaId": 3,
+      "estadoActual": 2,
+      "estadoNuevo": 6,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "UPDATE CARGAS SET ESTADO_ID_EST_XP = :estadoNuevo WHERE ID_XP = :cargaId AND ESTADO_ID_EST_XP = :estadoActual",
+  },
+]
+`;
+
+exports[`GET /api/xpress (caracterización) > conductor: filtra por el conductor del viaje y, opcional, por viaje 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": 9,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT c.ID_XP AS "id",
+             c.DESCRIPCION_XP AS "descripcion",
+             c.PESO_XP AS "peso",
+             c.ESTADO_ID_EST_XP AS "estadoId",
+             es.ESTADO_EST_XP AS "estado",
+             TO_CHAR(c.FECHA_CREACION_XP, 'YYYY-MM-DD HH24:MI') AS "fecha",
+             v.ID_VIA AS "viajeId",
+             mo.NOMBRE_MUN AS "origen",
+             md.NOMBRE_MUN AS "destino",
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
+             c.USUARIO_EMISOR_US AS "emisorId",
+             ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
+             c.USUARIO_RECEPTOR_US AS "receptorId",
+             ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
+             v.USUARIOS_ID_USU AS "conductorId",
+             uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
+      FROM CARGAS c
+      JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
+      JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+      WHERE v.USUARIOS_ID_USU = :usuarioId
+      ORDER BY c.FECHA_CREACION_XP DESC
+    ",
+  },
+  {
+    "binds": {
+      "usuarioId": 9,
+      "viajeId": 5,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT c.ID_XP AS "id",
+             c.DESCRIPCION_XP AS "descripcion",
+             c.PESO_XP AS "peso",
+             c.ESTADO_ID_EST_XP AS "estadoId",
+             es.ESTADO_EST_XP AS "estado",
+             TO_CHAR(c.FECHA_CREACION_XP, 'YYYY-MM-DD HH24:MI') AS "fecha",
+             v.ID_VIA AS "viajeId",
+             mo.NOMBRE_MUN AS "origen",
+             md.NOMBRE_MUN AS "destino",
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
+             c.USUARIO_EMISOR_US AS "emisorId",
+             ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
+             c.USUARIO_RECEPTOR_US AS "receptorId",
+             ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
+             v.USUARIOS_ID_USU AS "conductorId",
+             uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
+      FROM CARGAS c
+      JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
+      JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+      WHERE v.USUARIOS_ID_USU = :usuarioId AND c.VIAJE_ID = :viajeId
+      ORDER BY c.FECHA_CREACION_XP DESC
+    ",
+  },
+]
+`;
+
+exports[`GET /api/xpress (caracterización) > mis envíos (vista por defecto): filtra por emisor y devuelve las filas tal cual 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": 7,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT c.ID_XP AS "id",
+             c.DESCRIPCION_XP AS "descripcion",
+             c.PESO_XP AS "peso",
+             c.ESTADO_ID_EST_XP AS "estadoId",
+             es.ESTADO_EST_XP AS "estado",
+             TO_CHAR(c.FECHA_CREACION_XP, 'YYYY-MM-DD HH24:MI') AS "fecha",
+             v.ID_VIA AS "viajeId",
+             mo.NOMBRE_MUN AS "origen",
+             md.NOMBRE_MUN AS "destino",
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
+             c.USUARIO_EMISOR_US AS "emisorId",
+             ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
+             c.USUARIO_RECEPTOR_US AS "receptorId",
+             ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
+             v.USUARIOS_ID_USU AS "conductorId",
+             uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
+      FROM CARGAS c
+      JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
+      JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+      WHERE c.USUARIO_EMISOR_US = :usuarioId
+      ORDER BY c.FECHA_CREACION_XP DESC
+    ",
+  },
+]
+`;
+
+exports[`GET /api/xpress (caracterización) > recibidos: filtra por receptor 1`] = `
+[
+  {
+    "binds": {
+      "usuarioId": 8,
+    },
+    "options": undefined,
+    "sql": "
+      SELECT c.ID_XP AS "id",
+             c.DESCRIPCION_XP AS "descripcion",
+             c.PESO_XP AS "peso",
+             c.ESTADO_ID_EST_XP AS "estadoId",
+             es.ESTADO_EST_XP AS "estado",
+             TO_CHAR(c.FECHA_CREACION_XP, 'YYYY-MM-DD HH24:MI') AS "fecha",
+             v.ID_VIA AS "viajeId",
+             mo.NOMBRE_MUN AS "origen",
+             md.NOMBRE_MUN AS "destino",
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
+             c.USUARIO_EMISOR_US AS "emisorId",
+             ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
+             c.USUARIO_RECEPTOR_US AS "receptorId",
+             ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
+             v.USUARIOS_ID_USU AS "conductorId",
+             uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
+      FROM CARGAS c
+      JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+      JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
+      JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+      WHERE c.USUARIO_RECEPTOR_US = :usuarioId
+      ORDER BY c.FECHA_CREACION_XP DESC
+    ",
+  },
+]
+`;
+
+exports[`POST /api/xpress (caracterización) > 201: valida el viaje y el receptor, e inserta la carga Pendiente 1`] = `
+[
+  {
+    "binds": {
+      "idXp": undefined,
+      "viajeId": 5,
+    },
+    "options": undefined,
+    "sql": "SELECT USUARIOS_ID_USU AS "conductorId", ESTADO_VIA_ID_EST_VIA AS "estadoId" FROM VIAJES WHERE ID_VIA = :viajeId",
+  },
+  {
+    "binds": {
+      "email": "luis@x.co",
+      "idXp": undefined,
+    },
+    "options": undefined,
+    "sql": "SELECT ID_USU FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)",
+  },
+  {
+    "binds": {
+      "descripcion": "Caja con libros",
+      "estadoId": 1,
+      "idXp": "ID",
+      "peso": 2.5,
+      "receptorId": 8,
+      "usuarioId": 7,
+      "viajeId": 5,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      INSERT INTO CARGAS (ID_XP, DESCRIPCION_XP, PESO_XP, USUARIO_EMISOR_US, USUARIO_RECEPTOR_US, VIAJE_ID, ESTADO_ID_EST_XP, FECHA_CREACION_XP)
+      VALUES (:idXp, :descripcion, :peso, :usuarioId, :receptorId, :viajeId, :estadoId, CURRENT_TIMESTAMP)
+    ",
+  },
+]
+`;
+
+exports[`PUT /api/xpress (caracterización) > cambio de estado: pasa de Pendiente a Aceptada con el estado actual en el WHERE 1`] = `
+[
+  {
+    "binds": {
+      "cargaId": 3,
+    },
+    "options": undefined,
+    "sql": "
+    SELECT c.USUARIO_EMISOR_US AS "emisorId",
+           c.USUARIO_RECEPTOR_US AS "receptorId",
+           v.USUARIOS_ID_USU AS "conductorId",
+           c.ESTADO_ID_EST_XP AS "estadoId"
+    FROM CARGAS c
+    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    WHERE c.ID_XP = :cargaId
+  ",
+  },
+  {
+    "binds": {
+      "cargaId": 3,
+      "estadoActual": 1,
+      "estadoNuevo": 2,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "UPDATE CARGAS SET ESTADO_ID_EST_XP = :estadoNuevo WHERE ID_XP = :cargaId AND ESTADO_ID_EST_XP = :estadoActual",
+  },
+]
+`;
+
+exports[`PUT /api/xpress (caracterización) > edición: actualiza descripción y peso solo si sigue Pendiente 1`] = `
+[
+  {
+    "binds": {
+      "cargaId": 3,
+    },
+    "options": undefined,
+    "sql": "
+    SELECT c.USUARIO_EMISOR_US AS "emisorId",
+           c.USUARIO_RECEPTOR_US AS "receptorId",
+           v.USUARIOS_ID_USU AS "conductorId",
+           c.ESTADO_ID_EST_XP AS "estadoId"
+    FROM CARGAS c
+    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    WHERE c.ID_XP = :cargaId
+  ",
+  },
+  {
+    "binds": {
+      "cargaId": 3,
+      "descripcion": "Sobre",
+      "pendiente": 1,
+      "peso": 1,
+    },
+    "options": {
+      "autoCommit": true,
+    },
+    "sql": "
+      UPDATE CARGAS SET DESCRIPCION_XP = :descripcion, PESO_XP = :peso
+      WHERE ID_XP = :cargaId AND ESTADO_ID_EST_XP = :pendiente
+    ",
+  },
+]
+`;

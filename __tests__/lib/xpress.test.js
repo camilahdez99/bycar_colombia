@@ -7,6 +7,7 @@ import {
   puedeVerCarga,
   resolverEstadoXpress,
   rolesEnCarga,
+  tieneRolParaEstado,
   transicionValida,
   validarDatosCarga,
 } from '@/lib/domain/xpress';
@@ -80,6 +81,23 @@ describe('transiciones de estado', () => {
 
   test('sin carga nadie cambia nada', () => {
     expect(puedeCambiarEstado(CONDUCTOR, null, ACEPTADA)).toBe(false);
+  });
+});
+
+describe('tieneRolParaEstado', () => {
+  test('el conductor pide los estados del viaje y el emisor cancela, sin importar el estado actual', () => {
+    for (const estado of [ACEPTADA, RECHAZADA, EN_CAMINO, ENTREGADA]) {
+      expect(tieneRolParaEstado(CONDUCTOR, carga(ENTREGADA), estado)).toBe(true);
+      expect(tieneRolParaEstado(EMISOR, carga(PENDIENTE), estado)).toBe(false);
+      expect(tieneRolParaEstado(RECEPTOR, carga(PENDIENTE), estado)).toBe(false);
+    }
+    expect(tieneRolParaEstado(EMISOR, carga(ENTREGADA), CANCELADA)).toBe(true);
+    expect(tieneRolParaEstado(CONDUCTOR, carga(PENDIENTE), CANCELADA)).toBe(false);
+  });
+
+  test('nadie pide Pendiente; sin carga, tampoco', () => {
+    expect(tieneRolParaEstado(EMISOR, carga(ACEPTADA), PENDIENTE)).toBe(false);
+    expect(tieneRolParaEstado(CONDUCTOR, null, ACEPTADA)).toBe(false);
   });
 });
 

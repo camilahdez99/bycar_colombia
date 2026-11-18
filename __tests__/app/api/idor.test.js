@@ -14,6 +14,7 @@ import * as mensajes from '@/app/api/mensajes/route';
 import * as chats from '@/app/api/mensajes/chats/route';
 import * as guardian from '@/app/api/guardian/route';
 import * as usuariosBuscar from '@/app/api/usuarios/buscar/route';
+import * as xpress from '@/app/api/xpress/route';
 
 vi.mock('@/lib/db', () => ({ getConnection: vi.fn() }));
 
@@ -67,6 +68,10 @@ const COBERTURA = {
   'GET /api/usuarios/buscar': 'sin IDs de recurso: búsqueda de usuarios (excluye al propio)',
   'POST /api/guardian': 'participante del viaje',
   'PUT /api/guardian': 'participante del viaje del guardián',
+  'GET /api/xpress': 'usuarioId de la query = sesión',
+  'POST /api/xpress': 'usuarioId (remitente) del body = sesión',
+  'PUT /api/xpress': 'conductor del viaje cambia el estado, remitente edita o cancela',
+  'DELETE /api/xpress': 'remitente de la encomienda',
 };
 
 test('todos los handlers de usuario tienen una regla de pertenencia definida', () => {
@@ -80,6 +85,7 @@ test('todos los handlers de usuario tienen una regla de pertenencia definida', (
     '/api/mensajes/chats': chats,
     '/api/guardian': guardian,
     '/api/usuarios/buscar': usuariosBuscar,
+    '/api/xpress': xpress,
   };
   const exportados = Object.entries(modulos).flatMap(([ruta, modulo]) =>
     ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].filter((m) => modulo[m]).map((m) => `${m} ${ruta}`),
@@ -93,6 +99,7 @@ describe('Fase A: usuarioId en la query', () => {
     ['GET /api/solicitudes/recibidas', recibidas.GET, '/api/solicitudes/recibidas'],
     ['GET /api/mensajes/chats', chats.GET, '/api/mensajes/chats'],
     ['GET /api/guardian?usuarioId', guardian.GET, '/api/guardian'],
+    ['GET /api/xpress', xpress.GET, '/api/xpress'],
   ])('%s', (_nombre, handler, ruta) => {
     test('propio → pasa', async () => {
       const { status } = await call(handler, 'GET', ruta, { query: { usuarioId: String(YO) } });
@@ -191,6 +198,72 @@ describe('Fase B: PUT /api/solicitudes (conductor acepta/rechaza, pasajero cance
     useConnection([{ rowsAffected: 1 }]);
     expect((await put(55, 'Pendiente', { userId: null, role: ROLES.ADMIN })).status).toBe(200);
     expect(conn.execute).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Fase B: xpress', () => {
+  const carga = (estadoId) => ({ rows: [{ emisorId: YO, receptorId: OTRO, conductorId: CONDUCTOR, estadoId }] });
+  const cargaDeOtro = (estadoId) => ({ rows: [{ emisorId: OTRO, receptorId: 3, conductorId: CONDUCTOR, estadoId }] });
+  const comoConductor = { userId: CONDUCTOR, role: ROLES.USER };
+  const NUEVA = { viajeId: 5, receptorEmail: 'luis@x.co', descripcion: 'Caja' };
+
+  test('POST a nombre de otro → 403 sin abrir conexión', async () => {
+    await expect403(await call(xpress.POST, 'POST', '/api/xpress', { body: { ...NUEVA, usuarioId: OTRO } }));
+    expect(getConnection).not.toHaveBeenCalled();
+  });
+
+  test('POST propio → 201', async () => {
+    useConnection([{ rows: [{ conductorId: CONDUCTOR, estadoId: 1 }] }, { rows: [{ ID_USU: 3 }] }, {}]);
+    const { status } = await call(xpress.POST, 'POST', '/api/xpress', { body: { ...NUEVA, usuarioId: YO } });
+    expect(status).toBe(201);
+    expect(writes()).toHaveLength(1);
+  });
+
+  test.each([
+    ['el conductor acepta', cargaDeOtro(1), comoConductor, { id: 3, estado: 'Aceptada' }],
+    ['el conductor la pone en camino', cargaDeOtro(2), comoConductor, { id: 3, estado: 'En camino' }],
+    ['el remitente edita', carga(1), undefined, { id: 3, descripcion: 'Sobre' }],
+    ['el remitente cancela por PUT', carga(1), undefined, { id: 3, estado: 'Cancelada' }],
+  ])('PUT: %s → 200', async (_caso, filas, session, body) => {
+    useConnection([filas, { rowsAffected: 1 }]);
+    expect((await call(xpress.PUT, 'PUT', '/api/xpress', { body, session })).status).toBe(200);
+    expect(writes()).toHaveLength(1);
+  });
+
+  test.each([
+    ['el remitente se acepta su propia carga', carga(1), undefined, { id: 3, estado: 'Aceptada' }],
+    ['el receptor acepta', cargaDeOtro(1), { userId: 3, role: ROLES.USER }, { id: 3, estado: 'Aceptada' }],
+    ['el conductor cancela', carga(1), comoConductor, { id: 3, estado: 'Cancelada' }],
+    ['el conductor edita la descripción', carga(1), comoConductor, { id: 3, descripcion: 'x' }],
+    ['un tercero edita', cargaDeOtro(1), undefined, { id: 3, descripcion: 'x' }],
+    ['carga inexistente', { rows: [] }, undefined, { id: 3, estado: 'Cancelada' }],
+  ])('PUT: %s → 403 sin escribir', async (_caso, filas, session, body) => {
+    useConnection([filas]);
+    await expect403(await call(xpress.PUT, 'PUT', '/api/xpress', { body, session }));
+    expect(writes()).toEqual([]);
+  });
+
+  test('DELETE: el remitente cancela → 200 con UPDATE (no DELETE)', async () => {
+    useConnection([carga(1), { rowsAffected: 1 }]);
+    expect((await call(xpress.DELETE, 'DELETE', '/api/xpress', { query: { id: '3' } })).status).toBe(200);
+    expect(writes()).toHaveLength(1);
+    expect(writes()[0].sql).toMatch(/^\s*UPDATE CARGAS/);
+  });
+
+  test.each([
+    ['otro remitente', cargaDeOtro(1), undefined],
+    ['el conductor', carga(1), comoConductor],
+    ['el receptor', carga(1), { userId: OTRO, role: ROLES.USER }],
+  ])('DELETE: %s → 403 sin escribir', async (_caso, filas, session) => {
+    useConnection([filas]);
+    await expect403(await call(xpress.DELETE, 'DELETE', '/api/xpress', { query: { id: '3' }, session }));
+    expect(writes()).toEqual([]);
+  });
+
+  test('admin → cancela sin ser el remitente', async () => {
+    useConnection([cargaDeOtro(1), { rowsAffected: 1 }]);
+    const res = await call(xpress.DELETE, 'DELETE', '/api/xpress', { query: { id: '3' }, session: { userId: null, role: ROLES.ADMIN } });
+    expect(res.status).toBe(200);
   });
 });
 
