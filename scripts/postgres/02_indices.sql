@@ -173,6 +173,12 @@ ON GUARDIANES (USUARIO_ID_USU);
 CREATE INDEX IDX_GUARDIANES_CONTACTO
 ON GUARDIANES (CONTACTO_ID_USU);
 
+-- Este índice ayuda a encontrar las solicitudes en las que un usuario
+-- fue elegido como guardián (y a borrar la referencia si borra su cuenta).
+
+CREATE INDEX IDX_SOLICITUDES_CONTACTO_GUARDIAN
+ON SOLICITUDES (CONTACTO_GUARDIAN_ID);
+
 -- ==========================================================
 -- INDICES TABLA: REGISTROS_PENDIENTES
 -- ==========================================================

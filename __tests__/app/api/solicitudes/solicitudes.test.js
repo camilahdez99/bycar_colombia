@@ -78,6 +78,51 @@ describe('POST /api/solicitudes (caracterización)', () => {
     });
     expect(getConnection).not.toHaveBeenCalled();
   });
+
+  describe('con contacto de guardián elegido', () => {
+    test('busca al contacto, lo guarda en la solicitud y responde 201', async () => {
+      const conn = createFakeConnection([{ rows: [{ id: 55 }] }, { rowsAffected: 1 }, { rowsAffected: 1 }]);
+      getConnection.mockResolvedValue(conn);
+      const res = await post({ viajeId: 5, usuarioId: 42, contactoGuardianEmail: 'mama@x.co', tiempoGuardian: 40 });
+      expect(res.status).toBe(201);
+      // 1) busca el contacto  2) inserta la solicitud  3) guarda el guardián
+      expect(conn.calls[0].sql).toContain('FROM USUARIOS');
+      expect(conn.calls[1].sql).toContain('INSERT INTO SOLICITUDES');
+      expect(conn.calls[2].sql).toContain('UPDATE SOLICITUDES SET CONTACTO_GUARDIAN_ID');
+      expect(conn.calls[2].binds).toMatchObject({ contactoId: 55, tiempo: 40, idSol: NOW });
+    });
+
+    test('404 si el contacto no es un usuario de Bycar, sin crear la solicitud', async () => {
+      const conn = createFakeConnection([{ rows: [] }]);
+      getConnection.mockResolvedValue(conn);
+      const res = await readResponse(await post({ viajeId: 5, usuarioId: 42, contactoGuardianEmail: 'nadie@x.co' }));
+      expect(res.status).toBe(404);
+      expect(res.body.codigo).toBe('CONTACTO_NO_REGISTRADO');
+      expect(conn.calls).toHaveLength(1);
+    });
+
+    test('400 si el contacto es uno mismo, sin crear la solicitud', async () => {
+      const conn = createFakeConnection([{ rows: [{ id: 42 }] }]);
+      getConnection.mockResolvedValue(conn);
+      const res = await readResponse(await post({ viajeId: 5, usuarioId: 42, contactoGuardianEmail: 'yo@x.co' }));
+      expect(res.status).toBe(400);
+      expect(res.body.codigo).toBe('CONTACTO_PROPIO');
+      expect(conn.calls).toHaveLength(1);
+    });
+
+    test('400 si tiempoGuardian no es un entero positivo, sin abrir conexión', async () => {
+      const res = await readResponse(await post({ viajeId: 5, usuarioId: 42, contactoGuardianEmail: 'm@x.co', tiempoGuardian: -1 }));
+      expect(res.status).toBe(400);
+      expect(getConnection).not.toHaveBeenCalled();
+    });
+
+    test('sin tiempoGuardian guarda NULL', async () => {
+      const conn = createFakeConnection([{ rows: [{ id: 55 }] }, { rowsAffected: 1 }, { rowsAffected: 1 }]);
+      getConnection.mockResolvedValue(conn);
+      await post({ viajeId: 5, usuarioId: 42, contactoGuardianEmail: 'mama@x.co' });
+      expect(conn.calls[2].binds.tiempo).toBeNull();
+    });
+  });
 });
 
 describe('PUT /api/solicitudes (caracterización)', () => {

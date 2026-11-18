@@ -2,8 +2,10 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createTransport } from 'nodemailer';
 import {
+  enviarAvisoGuardian,
   enviarCodigoVerificacion,
   envioDeCorreoConfigurado,
+  mensajeDeGuardian,
   mensajeDeVerificacion,
   proveedorDeCorreo,
   verificacionDeCorreoActiva,
@@ -197,5 +199,59 @@ describe('código de verificación', () => {
   test('mismoHash con valores vacíos o de distinto largo → false', () => {
     expect(mismoHash('', '')).toBe(false);
     expect(mismoHash('ab', 'abcd')).toBe(false);
+  });
+});
+
+describe('mensajeDeGuardian', () => {
+  const datos = {
+    protegido: 'ANA PÉREZ', origen: 'BELLO', destino: 'ENVIGADO', conductor: 'LUIS ROJAS',
+    placa: 'ABC123', carro: 'MAZDA', salida: '2026-11-18 08:00', tiempo: 40,
+  };
+
+  test('inicio: asunto y cuerpo con la ruta y los datos del viaje', () => {
+    const { subject, textContent, htmlContent } = mensajeDeGuardian('inicio', datos);
+    expect(subject).toContain('ANA PÉREZ');
+    expect(subject).toContain('BELLO → ENVIGADO');
+    expect(textContent).toContain('LUIS ROJAS');
+    expect(textContent).toContain('ABC123');
+    expect(htmlContent).toContain('MAZDA');
+  });
+
+  test('alerta: el asunto avisa que no confirmó la llegada', () => {
+    const { subject, textContent } = mensajeDeGuardian('alerta', datos);
+    expect(subject).toContain('no confirmó');
+    expect(textContent).toContain('venció');
+  });
+
+  test('escapa los datos en el HTML', () => {
+    const { htmlContent } = mensajeDeGuardian('inicio', { ...datos, protegido: '<b>x</b>' });
+    expect(htmlContent).not.toContain('<b>x</b>');
+    expect(htmlContent).toContain('&lt;b&gt;');
+  });
+});
+
+describe('enviarAvisoGuardian', () => {
+  const base = {
+    correo: 'mama@x.co', tipo: 'inicio',
+    datos: { protegido: 'ANA', origen: 'A', destino: 'B', conductor: 'LUIS', placa: 'ABC123', carro: 'MAZDA', salida: '2026-11-18 08:00', tiempo: 30 },
+  };
+
+  test('por Gmail: envía y devuelve true; el remitente es la cuenta', async () => {
+    vi.stubEnv('GMAIL_USER', 'bycar.app@gmail.com');
+    vi.stubEnv('GMAIL_APP_PASSWORD', 'abcd efgh ijkl mnop');
+    expect(await enviarAvisoGuardian(base)).toBe(true);
+    const correo = sendMail.mock.calls[0][0];
+    expect(correo.to).toBe('mama@x.co');
+    expect(correo.subject).toContain('ANA');
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  test('false y sin envío si no hay proveedor configurado', async () => {
+    vi.stubEnv('BREVO_API_KEY', '');
+    vi.stubEnv('EMAIL_REMITENTE', '');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await enviarAvisoGuardian(base)).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

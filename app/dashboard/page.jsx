@@ -222,7 +222,7 @@ export default function DashboardPage() {
     }
   };
 
-  const solicitarViaje = async (id) => {
+  const solicitarViaje = async (id, extras = {}) => {
     // Sin usuario no se envía nada: antes se usaba el ID 1 (BUGS F1)
     const uId = getUserId(currentUser);
     if (!uId) {
@@ -234,13 +234,41 @@ export default function DashboardPage() {
       const res = await fetchConSesion('/api/solicitudes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ viajeId: id, usuarioId: uId })
+        body: JSON.stringify({ viajeId: id, usuarioId: uId, ...extras })
       });
       if (res.ok) {
         setSolicitados([...solicitados, id]);
-        toast.success('Solicitud enviada al conductor', { id: toastId });
+        const conGuardian = Boolean(extras.contactoGuardianEmail);
+        toast.success(conGuardian ? 'Solicitud enviada con tu contacto de confianza' : 'Solicitud enviada al conductor', { id: toastId });
       } else {
-        toast.error('Error al enviar solicitud', { id: toastId });
+        // El cupo falla o el contacto de guardián no es válido: se muestra el mensaje de la API
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al enviar solicitud', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Error de conexión', { id: toastId });
+    }
+  };
+
+  // El conductor inicia su viaje: pasa a "En Curso" y se activa el guardián de cada pasajero
+  const iniciarViaje = async (id) => {
+    const toastId = toast.loading('Iniciando viaje...');
+    try {
+      const res = await fetchConSesion('/api/viajes/iniciar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ viajeId: id })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const n = data.guardianesActivados ?? 0;
+        toast.success(n > 0 ? `Viaje iniciado. Se avisó a ${n} contacto(s) de confianza.` : 'Viaje iniciado.', { id: toastId });
+        const uId = getUserId(currentUser);
+        if (uId) {
+          fetchConSesion(`/api/viajes/mis-rutas?usuarioId=${uId}`).then(r => r.json()).then(aplicarMisRutas).catch(() => {});
+        }
+      } else {
+        toast.error(data.error || 'No se pudo iniciar el viaje', { id: toastId });
       }
     } catch (error) {
       toast.error('Error de conexión', { id: toastId });
@@ -437,7 +465,7 @@ export default function DashboardPage() {
         )}
 
         {activePage === 'mis-rutas' && (
-          <MisRutasTab rutasPublicadas={rutas.rutasPublicadas} rutasSolicitadas={rutasSolicitadas} />
+          <MisRutasTab rutasPublicadas={rutas.rutasPublicadas} rutasSolicitadas={rutasSolicitadas} onIniciarViaje={iniciarViaje} />
         )}
 
         {activePage === 'solicitudes' && (
@@ -552,7 +580,7 @@ export default function DashboardPage() {
             viaje={viajeDetalle}
             yaSolicitado={solicitados.includes(viajeDetalle.id)}
             onCerrar={() => setDetallesModalOpen(false)}
-            onSolicitar={() => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id); }}
+            onSolicitar={(extras) => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id, extras); }}
           />
         )}
         {guardian.showReadjustModal && (

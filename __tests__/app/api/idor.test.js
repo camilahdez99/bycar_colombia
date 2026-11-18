@@ -7,11 +7,13 @@ import { createFakeConnection, makeRequest, readResponse, silenceConsole } from 
 
 import * as viajes from '@/app/api/viajes/route';
 import * as misRutas from '@/app/api/viajes/mis-rutas/route';
+import * as iniciarViaje from '@/app/api/viajes/iniciar/route';
 import * as solicitudes from '@/app/api/solicitudes/route';
 import * as recibidas from '@/app/api/solicitudes/recibidas/route';
 import * as mensajes from '@/app/api/mensajes/route';
 import * as chats from '@/app/api/mensajes/chats/route';
 import * as guardian from '@/app/api/guardian/route';
+import * as usuariosBuscar from '@/app/api/usuarios/buscar/route';
 
 vi.mock('@/lib/db', () => ({ getConnection: vi.fn() }));
 
@@ -61,6 +63,8 @@ const COBERTURA = {
   'POST /api/mensajes': 'senderId = sesión y participante del chat (solicitud o guardián)',
   'GET /api/mensajes/chats': 'usuarioId de la query = sesión',
   'GET /api/guardian': 'usuarioId = sesión, o email = correo de la sesión',
+  'POST /api/viajes/iniciar': 'conductor dueño del viaje',
+  'GET /api/usuarios/buscar': 'sin IDs de recurso: búsqueda de usuarios (excluye al propio)',
   'POST /api/guardian': 'participante del viaje',
   'PUT /api/guardian': 'participante del viaje del guardián',
 };
@@ -69,11 +73,13 @@ test('todos los handlers de usuario tienen una regla de pertenencia definida', (
   const modulos = {
     '/api/viajes': viajes,
     '/api/viajes/mis-rutas': misRutas,
+    '/api/viajes/iniciar': iniciarViaje,
     '/api/solicitudes': solicitudes,
     '/api/solicitudes/recibidas': recibidas,
     '/api/mensajes': mensajes,
     '/api/mensajes/chats': chats,
     '/api/guardian': guardian,
+    '/api/usuarios/buscar': usuariosBuscar,
   };
   const exportados = Object.entries(modulos).flatMap(([ruta, modulo]) =>
     ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].filter((m) => modulo[m]).map((m) => `${m} ${ruta}`),

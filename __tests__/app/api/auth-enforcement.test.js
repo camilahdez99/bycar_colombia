@@ -6,11 +6,13 @@ import { createFakeConnection, makeRequest, readResponse, silenceConsole } from 
 
 import * as viajes from '@/app/api/viajes/route';
 import * as misRutas from '@/app/api/viajes/mis-rutas/route';
+import * as iniciarViaje from '@/app/api/viajes/iniciar/route';
 import * as solicitudes from '@/app/api/solicitudes/route';
 import * as recibidas from '@/app/api/solicitudes/recibidas/route';
 import * as mensajes from '@/app/api/mensajes/route';
 import * as chats from '@/app/api/mensajes/chats/route';
 import * as guardian from '@/app/api/guardian/route';
+import * as usuariosBuscar from '@/app/api/usuarios/buscar/route';
 import * as tablas from '@/app/api/admin/tablas/route';
 import * as permisos from '@/app/api/admin/permisos/route';
 import * as marcas from '@/app/api/marcas/route';
@@ -25,11 +27,13 @@ const handlersOf = (ruta, modulo) =>
 const RUTAS_USUARIO = [
   ...handlersOf('/api/viajes', viajes),
   ...handlersOf('/api/viajes/mis-rutas', misRutas),
+  ...handlersOf('/api/viajes/iniciar', iniciarViaje),
   ...handlersOf('/api/solicitudes', solicitudes),
   ...handlersOf('/api/solicitudes/recibidas', recibidas),
   ...handlersOf('/api/mensajes', mensajes),
   ...handlersOf('/api/mensajes/chats', chats),
   ...handlersOf('/api/guardian', guardian),
+  ...handlersOf('/api/usuarios/buscar', usuariosBuscar),
 ];
 
 const RUTAS_ADMIN = [
@@ -67,7 +71,7 @@ describe('AUTH_ENFORCED=true', () => {
   beforeEach(() => vi.stubEnv('AUTH_ENFORCED', 'true'));
 
   test('cubre todos los handlers exportados', () => {
-    expect(RUTAS_USUARIO.length + RUTAS_ADMIN.length + RUTAS_PUBLICAS.length + 1).toBe(22);
+    expect(RUTAS_USUARIO.length + RUTAS_ADMIN.length + RUTAS_PUBLICAS.length + 1).toBe(24);
   });
 
   test.each([...RUTAS_USUARIO, ...RUTAS_ADMIN, ['GET /api/admin/permisos', permisos.GET, 'GET', '/api/admin/permisos']])(

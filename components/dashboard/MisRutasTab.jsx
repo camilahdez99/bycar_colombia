@@ -2,8 +2,11 @@
 
 import React from 'react';
 
+// Estados de viaje (ESTADOS_VIA) desde los que el conductor puede iniciar el viaje
+const INICIABLES = ['Disponible', 'Lleno'];
+
 /** Pestaña "Mis rutas": viajes publicados y solicitudes enviadas con su estado. */
-export default function MisRutasTab({ rutasPublicadas, rutasSolicitadas }) {
+export default function MisRutasTab({ rutasPublicadas, rutasSolicitadas, onIniciarViaje }) {
   return (
     <section>
       <div className="page-header">
@@ -18,6 +21,15 @@ export default function MisRutasTab({ rutasPublicadas, rutasSolicitadas }) {
           {rutasPublicadas.map(r => (
             <div key={r.id} className="route-card">
               <div><strong>{r.origen} → {r.destino}</strong><p style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>Placa: {r.placa} • {r.fecha}</p></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {r.estado && <span className={`badge-status ${r.estado?.replace(/\s/g, '')}`}>{r.estado}</span>}
+                {onIniciarViaje && INICIABLES.includes(r.estado) && (
+                  <button className="btn-red" style={{ padding: '6px 14px', fontSize: '0.8rem' }} onClick={() => onIniciarViaje(r.id)}>
+                    🛡️ Iniciar viaje
+                  </button>
+                )}
+                {r.estado === 'En Curso' && <span style={{ color: '#4ade80', fontSize: '0.75rem', fontWeight: 'bold' }}>En curso</span>}
+              </div>
             </div>
           ))}
         </div>

@@ -7,7 +7,8 @@ import { authorize } from '@/lib/auth/guard';
 import { checkOwnership, requireSelf } from '@/lib/auth/ownership';
 import { findSolicitudParticipants } from '@/lib/auth/ownershipQueries';
 import { canChangeSolicitud, resolverEstadoSolicitud } from '@/lib/domain/solicitudes';
-import { enteroPositivo } from '@/lib/domain/validadores';
+import { enteroPositivo, textoNoVacio } from '@/lib/domain/validadores';
+import { CONTACTO_NO_REGISTRADO, CONTACTO_PROPIO } from '@/lib/domain/constantes';
 
 export async function POST(req) {
   const denied = await authorize(req);
@@ -17,7 +18,7 @@ export async function POST(req) {
   try {
     const body = await readJson(req);
     if (body === JSON_INVALIDO) return invalidJsonResponse();
-    const { viajeId, usuarioId } = body ?? {};
+    const { viajeId, usuarioId, contactoGuardianEmail, tiempoGuardian } = body ?? {};
 
     if (!viajeId || !usuarioId) {
       return NextResponse.json({ error: 'ID de viaje y usuario son requeridos' }, { status: 400 });
@@ -25,11 +26,35 @@ export async function POST(req) {
     if (!enteroPositivo(viajeId) || !enteroPositivo(usuarioId)) {
       return badRequest('ID de viaje o usuario inválido');
     }
+    // El contacto de guardián es opcional; si viene, se valida antes de abrir la conexión
+    const conGuardian = contactoGuardianEmail !== undefined && contactoGuardianEmail !== null && contactoGuardianEmail !== '';
+    if (conGuardian && !textoNoVacio(contactoGuardianEmail)) return badRequest('Correo del contacto inválido');
+    if (tiempoGuardian !== undefined && tiempoGuardian !== null && !enteroPositivo(tiempoGuardian)) {
+      return badRequest('El tiempo estimado debe ser un entero de minutos mayor a 0');
+    }
 
     const notOwner = await requireSelf(req, usuarioId);
     if (notOwner) return notOwner;
 
     connection = await getConnection();
+
+    // El contacto del guardián se valida antes de crear la solicitud: si no es un usuario de
+    // Bycar o es uno mismo, no se crea nada
+    let contactoId = null;
+    if (conGuardian) {
+      const userRes = await connection.execute(
+        `SELECT ID_USU as "id" FROM USUARIOS WHERE UPPER(CORREO_USU) = UPPER(:email)`,
+        { email: contactoGuardianEmail },
+      );
+      contactoId = userRes.rows?.[0]?.id ?? null;
+      if (contactoId === null) {
+        return NextResponse.json({ error: CONTACTO_NO_REGISTRADO.mensaje, codigo: CONTACTO_NO_REGISTRADO.codigo }, { status: 404 });
+      }
+      if (String(contactoId) === String(usuarioId)) {
+        return NextResponse.json({ error: CONTACTO_PROPIO.mensaje, codigo: CONTACTO_PROPIO.codigo }, { status: 400 });
+      }
+    }
+
     const idSol = Date.now();
 
     const sql = `
@@ -38,6 +63,15 @@ export async function POST(req) {
     `;
 
     await connection.execute(sql, { idSol, viajeId, usuarioId }, { autoCommit: true });
+
+    // Guardián elegido de antemano: se guarda en la solicitud y se activa solo al iniciar el viaje
+    if (contactoId !== null) {
+      await connection.execute(
+        `UPDATE SOLICITUDES SET CONTACTO_GUARDIAN_ID = :contactoId, TIEMPO_GUARDIAN_SOL = :tiempo WHERE ID_SOL = :idSol`,
+        { contactoId: Number(contactoId), tiempo: tiempoGuardian ? Number(tiempoGuardian) : null, idSol },
+        { autoCommit: true },
+      );
+    }
 
     return NextResponse.json({ message: 'Solicitud enviada', id: idSol }, { status: 201 });
   } catch (error) {
