@@ -83,7 +83,7 @@ describe('Dashboard · mensajes (caracterización)', () => {
     stubApi();
     render(<DashboardPage />);
     clickNav('Mensajes');
-    expect(await screen.findByText('Todavía no tienes chats. Aparecen cuando te aceptan un viaje o activas el guardián.')).toBeTruthy();
+    expect(await screen.findByText('No tienes chats activos de próximos viajes.')).toBeTruthy();
   });
 
   test('abrir un chat pide su historial y separa los mensajes propios de los ajenos', async () => {
@@ -220,36 +220,4 @@ describe('Dashboard · mensajes (caracterización)', () => {
     await waitFor(() => expect(llamadas('GET', '/api/mensajes?')).toHaveLength(2));
   });
 
-});
-
-describe('Dashboard · mensajes: historial persistente', () => {
-  const PASADO = { chatId: 40, nombre: 'RAUL', ruta: 'BELLO - ENVIGADO', fecha: '2026-09-01', vigente: false };
-
-  test('un chat de un viaje pasado se lista como historial y se abre en solo lectura', async () => {
-    stubApi({
-      '/api/mensajes/chats': [...CHATS, PASADO],
-      '/api/mensajes?chatId=40': [{ senderId: 12, text: 'Gracias por el viaje', fecha: '2026-09-01 18:30' }],
-    });
-    await abrirChat('RAUL');
-
-    expect(screen.getByText('Historial · solo lectura')).toBeTruthy();
-    expect(await screen.findByText('Gracias por el viaje')).toBeTruthy();
-    expect(screen.getByText('2026-09-01 18:30')).toBeTruthy();
-    expect(screen.queryByPlaceholderText('Escribe...')).toBeNull();
-    expect(screen.getByText('Este chat ya cerró: puedes leer el historial, pero no enviar mensajes.')).toBeTruthy();
-  });
-
-  test('si la API responde 409 el mensaje vuelve al campo y el chat pasa a solo lectura', async () => {
-    stubApi({
-      '/api/mensajes/chats': CHATS,
-      '/api/mensajes?chatId=31': [],
-      'POST /api/mensajes': () => new Response(JSON.stringify({ error: 'Este chat ya cerró' }), { status: 409 }),
-    });
-    await abrirChat();
-    fireEvent.change(screen.getByPlaceholderText('Escribe...'), { target: { value: 'Hola' } });
-    fireEvent.click(screen.getByText('Enviar'));
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Este chat ya cerró'));
-    expect(screen.queryByPlaceholderText('Escribe...')).toBeNull();
-  });
 });

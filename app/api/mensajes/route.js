@@ -12,21 +12,20 @@ import { calcularParticipantesMensaje } from '@/lib/domain/mensajes';
  * Un chat es una solicitud aceptada (pasajero y conductor, `chatId` = ID_SOL) o un guardián
  * (usuario protegido y su contacto de confianza, `guardianId` = ID_GUA). Cada mensaje guarda
  * su chat: antes se filtraban por par de usuarios y dos viajes compartían historial (BUGS F4).
- * El historial se conserva siempre. Se puede escribir hasta que termina el día del viaje (chat de
- * viaje) o el día en que se activó el guardián; después el chat queda de solo lectura ("vigente").
+ * El chat de un viaje se ve hasta que termina el día del viaje y el de un guardián, el día en
+ * que se activó. Después la consulta no lo encuentra: queda oculto, no se borra.
  */
 const CHATS = {
   solicitud: {
     participantes: `
-      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId",
-             (CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE) as "vigente"
+      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId"
       FROM SOLICITUDES s
       JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
       WHERE s.ID_SOL = :chatId
+        AND CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE
     `,
     mensajes: `
-      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId",
-             TO_CHAR(FECHA_ENVIO_MEN, 'YYYY-MM-DD HH24:MI') as "fecha"
+      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId"
       FROM MENSAJES
       WHERE SOLICITUD_ID_SOL = :chatId
       ORDER BY FECHA_ENVIO_MEN ASC
@@ -35,16 +34,15 @@ const CHATS = {
   guardian: {
     // Guardianes anteriores al script 05 no tienen USUARIO_ID_USU: no tienen chat
     participantes: `
-      SELECT g.USUARIO_ID_USU as "passengerId", g.CONTACTO_ID_USU as "driverId",
-             (CAST(g.FECHA_INICIO_GUA AS DATE) = CURRENT_DATE) as "vigente"
+      SELECT g.USUARIO_ID_USU as "passengerId", g.CONTACTO_ID_USU as "driverId"
       FROM GUARDIANES g
       WHERE g.ID_GUA = :chatId
         AND g.USUARIO_ID_USU IS NOT NULL
         AND g.CONTACTO_ID_USU IS NOT NULL
+        AND CAST(g.FECHA_INICIO_GUA AS DATE) = CURRENT_DATE
     `,
     mensajes: `
-      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId",
-             TO_CHAR(FECHA_ENVIO_MEN, 'YYYY-MM-DD HH24:MI') as "fecha"
+      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId"
       FROM MENSAJES
       WHERE GUARDIAN_ID_GUA = :chatId
       ORDER BY FECHA_ENVIO_MEN ASC
@@ -57,7 +55,6 @@ const isParticipant = (userId, passengerId, driverId) =>
   sameUser(userId, passengerId) || sameUser(userId, driverId);
 
 const CHAT_AMBIGUO = 'Indica chatId o guardianId, no ambos';
-const CHAT_CERRADO = 'Este chat ya cerró: puedes leer el historial, pero no enviar mensajes';
 
 /** { tipo, id } del chat pedido, o { error } si falta, sobra o es inválido. */
 function chatPedido(chatId, guardianId) {
@@ -99,8 +96,7 @@ export async function GET(req) {
 
     const messages = (resMsgs.rows || []).map(row => ({
       senderId: row.senderId,
-      text: row.content || '',
-      fecha: row.fecha ?? null,
+      text: row.content || ''
     }));
 
     return NextResponse.json(messages, { status: 200 });
@@ -144,15 +140,10 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Chat no encontrado' }, { status: 404 });
     }
 
-    const { passengerId, driverId, vigente } = resChat.rows[0];
+    const { passengerId, driverId } = resChat.rows[0];
 
     const notParticipant = await checkOwnership(req, (userId) => isParticipant(userId, passengerId, driverId));
     if (notParticipant) return notParticipant;
-
-    // Pasado su día el chat se conserva como historial, pero ya no recibe mensajes
-    if (vigente === false) {
-      return NextResponse.json({ error: CHAT_CERRADO }, { status: 409 });
-    }
 
     const { emisorId, receptorId } = calcularParticipantesMensaje(senderId, passengerId, driverId);
 

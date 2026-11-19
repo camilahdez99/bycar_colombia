@@ -3,18 +3,6 @@
 import React from 'react';
 import { claveDeChat } from '@/lib/client/chats';
 
-// "2026-10-01 14:05" → "14:05"; los de otro día llevan la fecha
-function horaDeMensaje(fecha, hoy) {
-  if (!fecha) return null;
-  const [dia, hora] = fecha.split(' ');
-  return dia === hoy ? hora : `${dia} ${hora}`;
-}
-
-const hoyLocal = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
 /**
  * Pestaña "Mensajes": lista de chats y la conversación abierta. El estado del chat y su
  * refresco viven en la página; acá solo se renderiza y se avisa por callbacks.
@@ -23,8 +11,6 @@ export default function MensajesTab({
   mensajes, chatOpen, chatData, currentChatMsgs, msgInput,
   onAbrirChat, onCerrarChat, onMsgInputChange, onEnviar,
 }) {
-  const hoy = hoyLocal();
-  const soloLectura = chatData.vigente === false;
   return (
     <section>
       <div className="page-header">
@@ -40,11 +26,10 @@ export default function MensajesTab({
             <div>
               <strong>{chat.nombre}</strong>
               <p style={{ fontSize: '0.8rem', color: 'var(--red)' }}>{chat.guardianId ? 'Guardián' : 'Viaje'}: {chat.ruta} ({chat.fecha})</p>
-              {chat.vigente === false && <p style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Historial · solo lectura</p>}
             </div>
           </div>
         </div>
-      )) : <p style={{ color: 'var(--muted)' }}>Todavía no tienes chats. Aparecen cuando te aceptan un viaje o activas el guardián.</p>}
+      )) : <p style={{ color: 'var(--muted)' }}>No tienes chats activos de próximos viajes.</p>}
       {chatOpen && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '20px', height: '400px', display: 'flex', flexDirection: 'column', marginTop: '1rem' }}>
           <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}><strong>Chat con {chatData.name}</strong><button onClick={onCerrarChat} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>✕</button></div>
@@ -67,19 +52,11 @@ export default function MensajesTab({
                   borderBottomLeftRadius: msg.sender === 'me' ? '12px' : '2px'
                 }}>
                   {msg.text}
-                  {msg.fecha && (
-                    <span style={{ display: 'block', fontSize: '0.65rem', opacity: 0.7, marginTop: '4px', textAlign: 'right' }}>{horaDeMensaje(msg.fecha, hoy)}</span>
-                  )}
                 </div>
               ))
             )}
           </div>
           
-          {soloLectura ? (
-          <p style={{ padding: '1rem', margin: 0, color: 'var(--muted)', fontSize: '0.8rem', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
-            Este chat ya cerró: puedes leer el historial, pero no enviar mensajes.
-          </p>
-          ) : (
           <div style={{ padding: '1rem', display: 'flex', gap: '10px' }}>
             <input 
               placeholder="Escribe..." 
@@ -90,7 +67,6 @@ export default function MensajesTab({
             />
             <button className="btn-red" onClick={onEnviar}>Enviar</button>
           </div>
-          )}
         </div>
       )}
     </section>

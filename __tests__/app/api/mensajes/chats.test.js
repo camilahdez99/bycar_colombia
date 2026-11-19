@@ -23,8 +23,8 @@ describe('GET /api/mensajes/chats (caracterización)', () => {
   });
 
   test('200: chats de guardián primero y después los de viaje, con tipo y clave (usuarioId convertido a número)', async () => {
-    const viaje = { chatId: 9, nombre: 'Ana Pérez', ruta: 'BELLO - ENVIGADO', fecha: '2026-10-01', vigente: true };
-    const guardian = { guardianId: 77, nombre: 'Mamá Pérez', ruta: 'BELLO - ENVIGADO', fecha: '2026-10-01', vigente: true };
+    const viaje = { chatId: 9, nombre: 'Ana Pérez', ruta: 'BELLO - ENVIGADO', fecha: '2026-10-01' };
+    const guardian = { guardianId: 77, nombre: 'Mamá Pérez', ruta: 'BELLO - ENVIGADO', fecha: '2026-10-01' };
     const conn = createFakeConnection([{ rows: [viaje] }, { rows: [guardian] }]);
     getConnection.mockResolvedValue(conn);
     expect(await readResponse(await get({ usuarioId: '42' }))).toEqual({
@@ -34,17 +34,9 @@ describe('GET /api/mensajes/chats (caracterización)', () => {
         { ...viaje, tipo: 'viaje', clave: 'viaje-9' },
       ],
     });
-    // El historial no se filtra por fecha: cada chat trae "vigente" (se puede escribir) y hay tope de 50
+    // Los de viaje se ven hasta el día del viaje; los de guardián, el día en que se activó
     expect(conn.calls).toMatchSnapshot();
     expect(conn.close).toHaveBeenCalledOnce();
-  });
-
-  test('200: los chats pasados (vigente = false) siguen en la lista, después de los vigentes', async () => {
-    const pasado = { chatId: 5, nombre: 'Luis', ruta: 'A - B', fecha: '2026-09-01', vigente: false };
-    const actual = { chatId: 9, nombre: 'Ana', ruta: 'A - B', fecha: '2026-10-01', vigente: true };
-    getConnection.mockResolvedValue(createFakeConnection([{ rows: [pasado, actual] }, { rows: [] }]));
-    const { body } = await readResponse(await get({ usuarioId: '42' }));
-    expect(body.map((c) => [c.clave, c.vigente])).toEqual([['viaje-9', true], ['viaje-5', false]]);
   });
 
   test('200 con [] si rows viene undefined', async () => {

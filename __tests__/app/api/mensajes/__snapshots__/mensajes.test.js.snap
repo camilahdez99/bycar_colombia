@@ -8,11 +8,11 @@ exports[`GET /api/mensajes (caracterización) > 200: busca el par pasajero/condu
     },
     "options": undefined,
     "sql": "
-      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId",
-             (CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE) as "vigente"
+      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId"
       FROM SOLICITUDES s
       JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
       WHERE s.ID_SOL = :chatId
+        AND CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE
     ",
   },
   {
@@ -21,8 +21,7 @@ exports[`GET /api/mensajes (caracterización) > 200: busca el par pasajero/condu
     },
     "options": undefined,
     "sql": "
-      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId",
-             TO_CHAR(FECHA_ENVIO_MEN, 'YYYY-MM-DD HH24:MI') as "fecha"
+      SELECT CONTENIDO_MEN as "content", USUARIOS_EMISOR_ID as "senderId"
       FROM MENSAJES
       WHERE SOLICITUD_ID_SOL = :chatId
       ORDER BY FECHA_ENVIO_MEN ASC
@@ -39,11 +38,11 @@ exports[`POST /api/mensajes (caracterización) > 201: el pasajero escribe → re
     },
     "options": undefined,
     "sql": "
-      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId",
-             (CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE) as "vigente"
+      SELECT s.USUARIOS_ID_USU as "passengerId", v.USUARIOS_ID_USU as "driverId"
       FROM SOLICITUDES s
       JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
       WHERE s.ID_SOL = :chatId
+        AND CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE
     ",
   },
   {

@@ -31,8 +31,7 @@ export async function GET(req) {
     // Chats de viaje:
     // - Si el usuario es pasajero, trae la info del conductor
     // - Si el usuario es conductor, trae la info del pasajero
-    // Solo solicitudes con estado Aceptada (ESTADO_ID_EST = 2). El historial se conserva: después
-    // del día del viaje el chat sigue en la lista con "vigente" = false (solo lectura)
+    // Solo solicitudes con estado Aceptada (ESTADO_ID_EST = 2), hasta que termina el día del viaje
     const sqlViajes = `
       SELECT s.ID_SOL as "chatId",
              CASE
@@ -40,8 +39,7 @@ export async function GET(req) {
                ELSE u_pasajero.NOMBRE_USU || ' ' || u_pasajero.APELLIDO_USU
              END as "nombre",
              mo.NOMBRE_MUN || ' - ' || md.NOMBRE_MUN as "ruta",
-             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD') as "fecha",
-             (CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE) as "vigente"
+             TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD') as "fecha"
       FROM SOLICITUDES s
       JOIN VIAJES v ON s.VIAJES_ID_VIA = v.ID_VIA
       JOIN USUARIOS u_cond ON v.USUARIOS_ID_USU = u_cond.ID_USU
@@ -50,13 +48,12 @@ export async function GET(req) {
       JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       WHERE s.ESTADO_ID_EST = 2
         AND (s.USUARIOS_ID_USU = :usuarioId OR v.USUARIOS_ID_USU = :usuarioId)
+        AND CAST(v.TIEMPO_SALIDA_VIA AS DATE) >= CURRENT_DATE
       ORDER BY s.ID_SOL DESC
-      LIMIT 50
     `;
 
-    // Chats de guardián: el usuario protegido ve a su contacto y el contacto ve a quien cuida.
-    // Se puede escribir el día en que se activó; después queda como historial (solo lectura).
-    // Los guardianes anteriores al script 05 no tienen chat
+    // Chats de guardián, solo el día en que se activó: el usuario protegido ve a su contacto
+    // y el contacto ve a quien cuida. Los guardianes anteriores al script 05 no tienen chat
     const sqlGuardianes = `
       SELECT g.ID_GUA as "guardianId",
              CASE
@@ -64,8 +61,7 @@ export async function GET(req) {
                ELSE u_pro.NOMBRE_USU || ' ' || u_pro.APELLIDO_USU
              END as "nombre",
              mo.NOMBRE_MUN || ' - ' || md.NOMBRE_MUN as "ruta",
-             TO_CHAR(g.FECHA_INICIO_GUA, 'YYYY-MM-DD') as "fecha",
-             (CAST(g.FECHA_INICIO_GUA AS DATE) = CURRENT_DATE) as "vigente"
+             TO_CHAR(g.FECHA_INICIO_GUA, 'YYYY-MM-DD') as "fecha"
       FROM GUARDIANES g
       JOIN USUARIOS u_pro ON g.USUARIO_ID_USU = u_pro.ID_USU
       JOIN USUARIOS u_con ON g.CONTACTO_ID_USU = u_con.ID_USU
@@ -73,8 +69,8 @@ export async function GET(req) {
       JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
       JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       WHERE (g.USUARIO_ID_USU = :usuarioId OR g.CONTACTO_ID_USU = :usuarioId)
+        AND CAST(g.FECHA_INICIO_GUA AS DATE) = CURRENT_DATE
       ORDER BY g.ID_GUA DESC
-      LIMIT 50
     `;
 
     // Convertir a número para comparar con las columnas BIGINT
