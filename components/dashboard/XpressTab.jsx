@@ -2,12 +2,19 @@
 
 import React from 'react';
 import SelectorUsuario from '@/components/dashboard/SelectorUsuario';
+import Autocomplete from '@/components/dashboard/Autocomplete';
 import { ESTADO_XPRESS } from '@/lib/domain/constantes';
 
 const VISTAS = [
   { id: 'enviados', etiqueta: 'Mis envíos', vacio: 'Todavía no has enviado ninguna encomienda.' },
   { id: 'recibidos', etiqueta: 'Por recibir', vacio: 'No tienes encomienda por recibir.' },
   { id: 'conductor', etiqueta: 'En mis viajes', vacio: 'Nadie ha enviado encomiendas en tus viajes.' },
+  { id: 'disponibles', etiqueta: 'Encomiendas disponibles', vacio: 'No hay encomiendas buscando conductor por ahora.' },
+];
+
+const MODOS = [
+  { id: 'viaje', etiqueta: 'En un viaje existente' },
+  { id: 'ruta', etiqueta: 'Proponer una ruta nueva' },
 ];
 
 const COLOR_ESTADO = {
@@ -23,7 +30,7 @@ const estiloBoton = { background: 'rgba(255,255,255,0.1)', color: '#fff', border
 const estiloBotonVerde = { background: '#4ade80', color: '#000', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
 
 /** Acciones que el rol de la vista puede hacer sobre la carga, según su estado. */
-function Acciones({ vista, carga, onEditar, onCancelar, onEstado }) {
+function Acciones({ vista, carga, onEditar, onCancelar, onEstado, onAceptar }) {
   const estado = Number(carga.estadoId);
   if (vista === 'enviados') {
     return (
@@ -53,10 +60,13 @@ function Acciones({ vista, carga, onEditar, onCancelar, onEstado }) {
       </>
     );
   }
+  if (vista === 'disponibles') {
+    return <button style={estiloBotonVerde} onClick={() => onAceptar(carga)}>Aceptar encomienda</button>;
+  }
   return null; // El receptor solo ve
 }
 
-function FormularioCarga({ form, setForm, viajes, editando, guardando, onGuardar, onCerrar }) {
+function FormularioCarga({ form, setForm, viajes, municipios, editando, guardando, onGuardar, onCerrar }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
       <div style={{ background: 'var(--surface)', width: '100%', maxWidth: '520px', borderRadius: '24px', border: '1px solid var(--border)', padding: '2.5rem', position: 'relative' }}>
@@ -67,18 +77,45 @@ function FormularioCarga({ form, setForm, viajes, editando, guardando, onGuardar
         <form onSubmit={(e) => { e.preventDefault(); onGuardar(); }} style={{ display: 'grid', gap: '1rem' }}>
           {!editando && (
             <>
-              <select
-                className="search-input"
-                aria-label="Viaje"
-                value={form.viajeId}
-                onChange={(e) => setForm({ ...form, viajeId: e.target.value })}
-                style={{ cursor: 'pointer' }}
-              >
-                <option value="">Elige el viaje</option>
-                {viajes.map((v) => (
-                  <option key={v.id} value={v.id}>{v.origen} → {v.destino} · {v.hora} · {v.conductor}</option>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {MODOS.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    aria-pressed={form.modo === m.id}
+                    onClick={() => setForm({ ...form, modo: m.id })}
+                    style={{ ...estiloBoton, background: form.modo === m.id ? 'var(--red)' : 'rgba(255,255,255,0.1)', fontWeight: form.modo === m.id ? 'bold' : 'normal' }}
+                  >
+                    {m.etiqueta}
+                  </button>
                 ))}
-              </select>
+              </div>
+              {form.modo === 'viaje' ? (
+                <select
+                  className="search-input"
+                  aria-label="Viaje"
+                  value={form.viajeId}
+                  onChange={(e) => setForm({ ...form, viajeId: e.target.value })}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="">Elige el viaje</option>
+                  {viajes.map((v) => (
+                    <option key={v.id} value={v.id}>{v.origen} → {v.destino} · {v.hora} · {v.conductor}</option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  <Autocomplete placeholder="Origen" value={form.origen} opciones={municipios} onChange={(val) => setForm({ ...form, origen: val })} />
+                  <Autocomplete placeholder="Destino" value={form.destino} opciones={municipios} onChange={(val) => setForm({ ...form, destino: val })} />
+                  <input
+                    type="date"
+                    className="search-input"
+                    aria-label="Fecha de envío"
+                    value={form.fechaXp}
+                    onChange={(e) => setForm({ ...form, fechaXp: e.target.value })}
+                  />
+                </>
+              )}
               <SelectorUsuario
                 placeholder="Receptor: busca por nombre o correo"
                 elegido={form.receptor}
@@ -120,8 +157,8 @@ function FormularioCarga({ form, setForm, viajes, editando, guardando, onGuardar
  * formulario para registrar o editar. Es de presentación: el estado y las acciones vienen de useXpress.
  */
 export default function XpressTab({
-  vista, onVista, cargas, form, setForm, viajes, formAbierto, editandoId, guardando,
-  onNueva, onEditar, onCancelar, onEstado, onGuardar, onCerrarForm,
+  vista, onVista, cargas, form, setForm, viajes, municipios = [], formAbierto, editandoId, guardando,
+  onNueva, onEditar, onCancelar, onEstado, onAceptar, onGuardar, onCerrarForm,
 }) {
   const actual = VISTAS.find((v) => v.id === vista) ?? VISTAS[0];
   const lista = cargas[actual.id] ?? [];
@@ -131,7 +168,7 @@ export default function XpressTab({
       <div className="page-header">
         <div>
           <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>📦 Xpress</h1>
-          <p style={{ color: 'var(--muted)' }}>Envía encomiendas con quienes ya viajan a tu destino, y gestiona las de tus viajes</p>
+          <p style={{ color: 'var(--muted)' }}>Envía encomiendas en un viaje que ya existe o propón tu propia ruta, y gestiona las de tus viajes</p>
         </div>
         <button className="btn-red" onClick={onNueva}>+ Nueva encomienda</button>
       </div>
@@ -156,17 +193,17 @@ export default function XpressTab({
           <div>
             <strong>{c.descripcion}</strong>
             <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-              {c.origen} → {c.destino} • sale {c.salida}{c.peso ? ` • ${Number(c.peso)} kg` : ''}
+              {c.origen} → {c.destino} • {c.viajeId ? `sale ${c.salida}` : `ruta propia${c.fechaXp ? ` • ${c.fechaXp}` : ''}`}{c.peso ? ` • ${Number(c.peso)} kg` : ''}
             </p>
             <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-              De {c.emisor} para {c.receptor} • Conductor: {c.conductor}
+              De {c.emisor} para {c.receptor} • Conductor: {c.conductor || 'buscando conductor'}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span className="badge-status" style={{ color: COLOR_ESTADO[c.estadoId], border: `1px solid ${COLOR_ESTADO[c.estadoId]}` }}>
               {c.estado}
             </span>
-            <Acciones vista={actual.id} carga={c} onEditar={onEditar} onCancelar={onCancelar} onEstado={onEstado} />
+            <Acciones vista={actual.id} carga={c} onEditar={onEditar} onCancelar={onCancelar} onEstado={onEstado} onAceptar={onAceptar} />
           </div>
         </div>
       ))}
@@ -176,6 +213,7 @@ export default function XpressTab({
           form={form}
           setForm={setForm}
           viajes={viajes}
+          municipios={municipios}
           editando={Boolean(editandoId)}
           guardando={guardando}
           onGuardar={onGuardar}
