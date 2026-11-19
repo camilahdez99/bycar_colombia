@@ -210,4 +210,16 @@ ON CARGAS (VIAJE_ID);
 CREATE INDEX IDX_CARGAS_ESTADO
 ON CARGAS (ESTADO_ID_EST_XP);
 
+-- Estos índices ayudan con las encomiendas de ruta propia: las de un conductor
+-- y las que buscan conductor por origen y destino.
+
+CREATE INDEX IDX_CARGAS_CONDUCTOR
+ON CARGAS (CONDUCTOR_ID_USU);
+
+CREATE INDEX IDX_CARGAS_ORIGEN
+ON CARGAS (ORIGEN_ID);
+
+CREATE INDEX IDX_CARGAS_DESTINO
+ON CARGAS (DESTINO_ID);
+
 COMMIT;
