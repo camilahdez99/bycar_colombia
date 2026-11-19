@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-19 — Xpress: encomiendas con ruta propia
+
+Conviven dos formas de crear una encomienda. **A) En un viaje existente** (sin cambios): `VIAJE_ID` y el conductor es el dueño del viaje. **B) Con ruta propia** (nueva): el remitente propone origen, destino y fecha sin viaje; queda "buscando conductor" hasta que un conductor la acepta y pasa a ser su responsable. Después sigue el ciclo normal (En camino → Entregada) y el remitente puede cancelar mientras no vaya en camino.
+
+**Qué se hizo**
+- **BD** (`scripts/postgres/10_xpress_ruta_propia.sql`, idempotente, sin ejecutar desde el proyecto): `CARGAS.VIAJE_ID` pasa a anulable y se agregan `ORIGEN_ID` y `DESTINO_ID` (FK a `MUNICIPIOS`), `FECHA_XP` (DATE, opcional) y `CONDUCTOR_ID_USU` (FK a `USUARIOS`, `ON DELETE SET NULL`), un CHECK (`VIAJE_ID` o bien origen y destino) e índices. Reflejado en `01_esquema.sql` y `02_indices.sql`; documentado en `docs/MIGRACION_POSTGRES.md` y `scripts/README.md`.
+- **Dominio** (`lib/domain/xpress.js`): `esCargaRutaPropia`, `puedeAceptarRutaPropia` (Pendiente, sin conductor, quien acepta no es remitente ni receptor), `resolverModoCarga` (viaje o ruta, excluyentes) y `validarFechaXp` (YYYY-MM-DD real, no anterior a hoy en Colombia). Las transiciones por rol no cambian: `conductorId` ya llega resuelto por la consulta.
+- **API** (`/api/xpress`): `POST` acepta `viajeId` (modo A, igual que antes) o `origenId` + `destinoId` + `fechaXp` opcional (modo B; 404 si un municipio no existe). `GET ?vista=disponibles` lista las de ruta propia Pendientes, sin conductor y vigentes, sin las propias ni las que el usuario va a recibir. `PUT { id, aceptar: true, usuarioId }` la acepta con guardas en el `WHERE` (409 si otro conductor se adelantó). Las vistas existentes ahora usan `LEFT JOIN VIAJES` y devuelven además `fechaXp`; `conductorId`/`conductor` vienen del viaje o de quien aceptó. `findCargaParticipants` devuelve también `viajeId`.
+- **UI**: selector «En un viaje existente / Proponer una ruta nueva» en el formulario (origen y destino con el autocompletado de municipios, y fecha), pestaña «Encomiendas disponibles» con el botón «Aceptar encomienda». `app/dashboard/page.jsx`: solo dos props nuevas para `XpressTab`.
+
+**Verificación**: `npm test` (1 195 en verde), `npm run lint` sin errores ni warnings; `npm run build` no corre con Turbopack en este worktree (limitación ya conocida), con `next build --webpack` compila. Se actualizaron los snapshots de SQL de las vistas y de `findCargaParticipants` (los cambios son los JOIN/COALESCE descritos).
+
+**Riesgos pendientes**
+- Hay que correr `10_xpress_ruta_propia.sql` en Supabase **antes** de desplegar: sin las columnas, `/api/xpress` responde 500.
+- «Cualquier conductor» hoy es cualquier usuario que no sea remitente ni receptor: no se exige tener vehículo.
+- La pestaña de disponibles no filtra por origen/destino ni cercanía; lista todas las vigentes.
+
 ## 2026-11-18 — Xpress: encomiendas dentro de un viaje
 
 Cuarta funcionalidad del PPI (`docs/PLAN_PPI.md`, Fase 4). Un usuario (remitente) manda una encomienda a otro usuario de Bycar (receptor) dentro de un viaje; el conductor del viaje la gestiona. No toca el chat ni el guardián.
