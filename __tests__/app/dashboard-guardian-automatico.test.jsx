@@ -101,3 +101,40 @@ describe('Dashboard · iniciar viaje (conductor)', () => {
     expect(screen.queryByText('🛡️ Iniciar viaje')).toBeNull();
   });
 });
+
+describe('Dashboard · guardián precarga el último contacto', () => {
+  const VIAJES = [{ id: 9, origen: 'BOGOTA', destino: 'TUNJA', conductor: 'LUIS', hora: '2026-10-01', valor: 25000, puestos: 3, carro: 'MAZDA', comentarios: '' }];
+
+  async function buscar() {
+    await screen.findAllByPlaceholderText('Origen');
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/municipios'));
+    fireEvent.click(screen.getByText('Buscar rutas disponibles'));
+    await screen.findByText('Resultados de búsqueda');
+  }
+
+  test('el detalle del viaje precarga el contacto usado antes, y se puede quitar para elegir otro', async () => {
+    stubApi({
+      '/api/viajes$': VIAJES,
+      '/api/guardian/ultimo-contacto': { id: 55, nombre: 'MAMÁ PÉREZ', correo: 'mama@x.co' },
+    });
+    render(<DashboardPage />);
+    await buscar();
+    fireEvent.click(await screen.findByText('Ver Detalles'));
+    await screen.findByText('Detalles del Viaje');
+
+    // Aparece precargado como contacto elegido
+    expect(await screen.findByText(/mama@x.co/)).toBeTruthy();
+    // Se puede quitar para elegir otro (vuelve el buscador)
+    fireEvent.click(screen.getByLabelText('Quitar contacto'));
+    expect(screen.getByPlaceholderText('Busca por nombre o correo')).toBeTruthy();
+  });
+
+  test('sin historial, el detalle no precarga nada (muestra el buscador)', async () => {
+    stubApi({ '/api/viajes$': VIAJES, '/api/guardian/ultimo-contacto': null });
+    render(<DashboardPage />);
+    await buscar();
+    fireEvent.click(await screen.findByText('Ver Detalles'));
+    await screen.findByText('Detalles del Viaje');
+    expect(screen.getByPlaceholderText('Busca por nombre o correo')).toBeTruthy();
+  });
+});

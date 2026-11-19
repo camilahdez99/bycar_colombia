@@ -37,7 +37,7 @@ function registrarAlerta(id) {
  * renderizar a quien usa el hook. Para mostrarlos, suscribirse con `ContadorGuardian`.
  * Se calculan contra la hora de vencimiento (`finRef`), no descontando por tick (BUGS F39).
  */
-export function useGuardian(currentUser) {
+export function useGuardian(currentUser, ultimoContacto) {
   const [viaje, setViaje] = useState(null);
   const [config, setConfig] = useState({ email: '', tiempoMin: TIEMPO_GUARDIAN_POR_DEFECTO_MIN });
   const [activo, setActivo] = useState(false);
@@ -56,11 +56,13 @@ export function useGuardian(currentUser) {
   const alertaEnviadaRef = useRef(false);
   const guardianIdRef = useRef(null);
   const finRef = useRef(0); // vencimiento en ms; el intervalo calcula contra el reloj
+  const ultimoContactoRef = useRef(null); // último contacto usado, para precargarlo (task 3)
 
   // Sincronizar refs con el estado
   useEffect(() => { preAlertaRef.current = preAlerta; }, [preAlerta]);
   useEffect(() => { alertaEnviadaRef.current = alertaEnviada; }, [alertaEnviada]);
   useEffect(() => { guardianIdRef.current = guardianId; }, [guardianId]);
+  useEffect(() => { ultimoContactoRef.current = ultimoContacto; }, [ultimoContacto]);
 
   // Temporizador — SÓLO se reinicia cuando `activo` cambia
   useEffect(() => {
@@ -143,6 +145,11 @@ export function useGuardian(currentUser) {
   const elegirViaje = (viajeElegido) => {
     setViaje(viajeElegido);
     setErrorContacto(null);
+    // Precargar el último contacto usado si el campo está vacío; el usuario puede cambiarlo (task 3)
+    const ultimoCorreo = ultimoContactoRef.current?.correo;
+    if (ultimoCorreo) {
+      setConfig((c) => (c.email ? c : { ...c, email: ultimoCorreo }));
+    }
     setConfigOpen(true);
   };
 

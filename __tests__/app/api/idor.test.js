@@ -13,6 +13,7 @@ import * as recibidas from '@/app/api/solicitudes/recibidas/route';
 import * as mensajes from '@/app/api/mensajes/route';
 import * as chats from '@/app/api/mensajes/chats/route';
 import * as guardian from '@/app/api/guardian/route';
+import * as guardianUltimo from '@/app/api/guardian/ultimo-contacto/route';
 import * as usuariosBuscar from '@/app/api/usuarios/buscar/route';
 import * as xpress from '@/app/api/xpress/route';
 
@@ -64,6 +65,7 @@ const COBERTURA = {
   'POST /api/mensajes': 'senderId = sesión y participante del chat (solicitud o guardián)',
   'GET /api/mensajes/chats': 'usuarioId de la query = sesión',
   'GET /api/guardian': 'usuarioId = sesión, o email = correo de la sesión',
+  'GET /api/guardian/ultimo-contacto': 'usuarioId de la query = sesión',
   'POST /api/viajes/iniciar': 'conductor dueño del viaje',
   'GET /api/usuarios/buscar': 'sin IDs de recurso: búsqueda de usuarios (excluye al propio)',
   'POST /api/guardian': 'participante del viaje',
@@ -84,6 +86,7 @@ test('todos los handlers de usuario tienen una regla de pertenencia definida', (
     '/api/mensajes': mensajes,
     '/api/mensajes/chats': chats,
     '/api/guardian': guardian,
+    '/api/guardian/ultimo-contacto': guardianUltimo,
     '/api/usuarios/buscar': usuariosBuscar,
     '/api/xpress': xpress,
   };
@@ -99,6 +102,7 @@ describe('Fase A: usuarioId en la query', () => {
     ['GET /api/solicitudes/recibidas', recibidas.GET, '/api/solicitudes/recibidas'],
     ['GET /api/mensajes/chats', chats.GET, '/api/mensajes/chats'],
     ['GET /api/guardian?usuarioId', guardian.GET, '/api/guardian'],
+    ['GET /api/guardian/ultimo-contacto', guardianUltimo.GET, '/api/guardian/ultimo-contacto'],
     ['GET /api/xpress', xpress.GET, '/api/xpress'],
   ])('%s', (_nombre, handler, ruta) => {
     test('propio → pasa', async () => {

@@ -55,6 +55,7 @@ describe('DashboardPage (caracterización de la carga inicial)', () => {
         '/api/solicitudes/recibidas?usuarioId=7',
         '/api/mensajes/chats?usuarioId=7',
         '/api/guardian?usuarioId=7',
+        '/api/guardian/ultimo-contacto?usuarioId=7',
         '/api/admin/permisos?usuarioId=7',
       ].sort(),
     );

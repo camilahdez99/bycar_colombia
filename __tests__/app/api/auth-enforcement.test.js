@@ -12,6 +12,7 @@ import * as recibidas from '@/app/api/solicitudes/recibidas/route';
 import * as mensajes from '@/app/api/mensajes/route';
 import * as chats from '@/app/api/mensajes/chats/route';
 import * as guardian from '@/app/api/guardian/route';
+import * as guardianUltimo from '@/app/api/guardian/ultimo-contacto/route';
 import * as usuariosBuscar from '@/app/api/usuarios/buscar/route';
 import * as xpress from '@/app/api/xpress/route';
 import * as tablas from '@/app/api/admin/tablas/route';
@@ -34,6 +35,7 @@ const RUTAS_USUARIO = [
   ...handlersOf('/api/mensajes', mensajes),
   ...handlersOf('/api/mensajes/chats', chats),
   ...handlersOf('/api/guardian', guardian),
+  ...handlersOf('/api/guardian/ultimo-contacto', guardianUltimo),
   ...handlersOf('/api/usuarios/buscar', usuariosBuscar),
   ...handlersOf('/api/xpress', xpress),
 ];
@@ -73,7 +75,7 @@ describe('AUTH_ENFORCED=true', () => {
   beforeEach(() => vi.stubEnv('AUTH_ENFORCED', 'true'));
 
   test('cubre todos los handlers exportados', () => {
-    expect(RUTAS_USUARIO.length + RUTAS_ADMIN.length + RUTAS_PUBLICAS.length + 1).toBe(28);
+    expect(RUTAS_USUARIO.length + RUTAS_ADMIN.length + RUTAS_PUBLICAS.length + 1).toBe(29);
   });
 
   test.each([...RUTAS_USUARIO, ...RUTAS_ADMIN, ['GET /api/admin/permisos', permisos.GET, 'GET', '/api/admin/permisos']])(

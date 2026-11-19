@@ -71,7 +71,8 @@ export default function DashboardPage() {
   const [solicitudesRecibidas, setSolicitudesRecibidas] = useState([]);
 
   // --- GUARDIÁN ---
-  const guardian = useGuardian(currentUser);
+  const [ultimoContactoGuardian, setUltimoContactoGuardian] = useState(null); // para precargarlo
+  const guardian = useGuardian(currentUser, ultimoContactoGuardian);
   const retomarGuardian = guardian.retomar;
   const [alertasRecibidas, setAlertasRecibidas] = useState([]);
 
@@ -106,14 +107,19 @@ export default function DashboardPage() {
         if (!uIdChat) return;
 
         // Mis rutas y chats no se piden acá: los trae el efecto de refresco apenas hay currentUser
-        const [resSol, resGuardian, resPermisos] = await Promise.all([
+        const [resSol, resGuardian, resPermisos, resUltimo] = await Promise.all([
           fetchConSesion(`/api/solicitudes/recibidas?usuarioId=${uIdChat}`),
           fetchConSesion(`/api/guardian?usuarioId=${uIdChat}`),
-          fetchConSesion(`/api/admin/permisos?usuarioId=${uIdChat}`)
+          fetchConSesion(`/api/admin/permisos?usuarioId=${uIdChat}`),
+          fetchConSesion(`/api/guardian/ultimo-contacto?usuarioId=${uIdChat}`)
         ]);
         if (resSol.ok) {
           const dataSol = await resSol.json();
           setSolicitudesRecibidas(Array.isArray(dataSol) ? dataSol : []);
+        }
+        if (resUltimo && resUltimo.ok) {
+          const dataUltimo = await resUltimo.json();
+          if (dataUltimo && dataUltimo.correo) setUltimoContactoGuardian(dataUltimo);
         }
         if (resGuardian && resGuardian.ok) {
           const dataGuardian = await resGuardian.json();
@@ -603,6 +609,7 @@ export default function DashboardPage() {
           <DetallesViajeModal
             viaje={viajeDetalle}
             yaSolicitado={solicitados.includes(viajeDetalle.id)}
+            contactoInicial={ultimoContactoGuardian}
             onCerrar={() => setDetallesModalOpen(false)}
             onSolicitar={(extras) => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id, extras); }}
           />

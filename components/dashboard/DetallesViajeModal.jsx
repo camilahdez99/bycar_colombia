@@ -9,8 +9,9 @@ import { TIEMPO_GUARDIAN_POR_DEFECTO_MIN } from '@/lib/domain/constantes';
  * Opcionalmente, el pasajero elige de antemano su contacto de confianza (guardián): se guarda
  * en la solicitud y se activa solo cuando el conductor inicia el viaje.
  */
-export default function DetallesViajeModal({ viaje, yaSolicitado, onCerrar, onSolicitar }) {
-  const [contacto, setContacto] = useState(null); // { correo, nombre } o null
+export default function DetallesViajeModal({ viaje, yaSolicitado, contactoInicial, onCerrar, onSolicitar }) {
+  // Precargado con el último contacto usado (si hay); se puede quitar con la ✕ y elegir otro (task 3)
+  const [contacto, setContacto] = useState(contactoInicial ?? null); // { correo, nombre } o null
   const [tiempo, setTiempo] = useState(TIEMPO_GUARDIAN_POR_DEFECTO_MIN);
 
   const solicitar = () => {
