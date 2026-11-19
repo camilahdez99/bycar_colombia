@@ -72,7 +72,7 @@ const COBERTURA = {
   'PUT /api/guardian': 'participante del viaje del guardián',
   'GET /api/xpress': 'usuarioId de la query = sesión',
   'POST /api/xpress': 'usuarioId (remitente) del body = sesión',
-  'PUT /api/xpress': 'conductor del viaje cambia el estado, remitente edita o cancela',
+  'PUT /api/xpress': 'conductor (del viaje o el que aceptó) cambia el estado, remitente edita o cancela, aceptar = usuarioId del body = sesión',
   'DELETE /api/xpress': 'remitente de la encomienda',
 };
 

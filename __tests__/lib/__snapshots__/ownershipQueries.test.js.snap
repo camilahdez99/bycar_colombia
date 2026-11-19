@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`findCargaParticipants > devuelve emisor, receptor, conductor y estado; fija el SQL y el bind numérico 1`] = `
+exports[`findCargaParticipants > devuelve emisor, receptor, conductor (del viaje o el que aceptó), viaje y estado; fija el SQL y el bind numérico 1`] = `
 [
   {
     "binds": {
@@ -10,10 +10,11 @@ exports[`findCargaParticipants > devuelve emisor, receptor, conductor y estado; 
     "sql": "
     SELECT c.USUARIO_EMISOR_US AS "emisorId",
            c.USUARIO_RECEPTOR_US AS "receptorId",
-           v.USUARIOS_ID_USU AS "conductorId",
+           COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) AS "conductorId",
+           c.VIAJE_ID AS "viajeId",
            c.ESTADO_ID_EST_XP AS "estadoId"
     FROM CARGAS c
-    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
     WHERE c.ID_XP = :cargaId
   ",
   },

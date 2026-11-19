@@ -13,6 +13,7 @@ Se corren en orden. Paso a paso en `docs/MIGRACION_POSTGRES.md`.
 | `postgres/03_datos_iniciales.sql` | Datos iniciales: roles, perfiles, estados, marcas, menús, departamentos y municipios. |
 | `postgres/04_usuario_admin.sql` | Opcional: el usuario admin del seed original. ⚠️ Cambiar la contraseña antes de correrlo (BUGS S5). |
 | `postgres/09_xpress.sql` | Solo para una base existente (la nueva ya lo trae por 01 a 03): crea `ESTADOS_XPRESS` y `CARGAS` (encomiendas Xpress), el menú `/xpress` y su permiso para los usuarios actuales. Idempotente. Va después de los scripts 05 a 07 de migración. |
+| `postgres/10_xpress_ruta_propia.sql` | Solo para una base existente que ya corrió el 09 (la nueva lo trae por 01 y 02): hace `CARGAS.VIAJE_ID` anulable y agrega origen, destino, fecha y conductor para las encomiendas con ruta propia. Idempotente. Va después del 09. |
 
 ## Oracle — históricos
 

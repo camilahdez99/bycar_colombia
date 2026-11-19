@@ -508,6 +508,7 @@ export default function DashboardPage() {
             form={xpress.form}
             setForm={xpress.setForm}
             viajes={xpress.viajes}
+            municipios={xpress.municipios}
             formAbierto={xpress.formAbierto}
             editandoId={xpress.editandoId}
             guardando={xpress.guardando}
@@ -515,6 +516,7 @@ export default function DashboardPage() {
             onEditar={xpress.abrirEdicion}
             onCancelar={xpress.cancelar}
             onEstado={xpress.cambiarEstado}
+            onAceptar={xpress.aceptar}
             onGuardar={xpress.guardar}
             onCerrarForm={xpress.cerrarForm}
           />
