@@ -13,12 +13,18 @@ import { enviarAvisoGuardian } from '@/lib/email';
 
 const MENSAJE_TIEMPO_INVALIDO = 'El tiempo debe ser un número entero de minutos mayor a 0';
 
+// Columna que marca que ya se avisó, por tipo de aviso (son literales fijos, no entran del cliente)
+const COLUMNA_NOTIFICADO = { inicio: 'NOTIFICADO_INICIO_GUA', alerta: 'NOTIFICADO_ALERTA_GUA' };
+
 /**
- * Avisa por correo al contacto que el tiempo venció sin confirmación de llegada. Una sola vez:
- * solo envía si NOTIFICADO_ALERTA_GUA está en NULL, y lo marca al enviarlo. Un fallo de correo
- * no corta la respuesta (el estado Alerta ya quedó registrado).
+ * Avisa por correo al contacto de confianza. `tipo` = 'inicio' (el viaje arrancó) o 'alerta'
+ * (venció el tiempo sin confirmar). Una sola vez: solo envía si la columna NOTIFICADO del tipo
+ * está en NULL, y la marca al enviarlo. Un fallo de correo no corta la respuesta. Sin un proveedor
+ * de correo configurado (Gmail/Brevo), no envía nada (es un no-op) y no marca.
  */
-async function avisarAlertaPorCorreo(connection, id) {
+async function avisarGuardianPorCorreo(connection, id, tipo) {
+  const columna = COLUMNA_NOTIFICADO[tipo];
+  if (!columna) return;
   try {
     const det = await connection.execute(
       `SELECT g.EMAIL_CONFIANZA_GUA as "correo",
@@ -36,14 +42,14 @@ async function avisarAlertaPorCorreo(connection, id) {
        JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
        JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
        LEFT JOIN USUARIOS up ON g.USUARIO_ID_USU = up.ID_USU
-       WHERE g.ID_GUA = :id AND g.NOTIFICADO_ALERTA_GUA IS NULL`,
+       WHERE g.ID_GUA = :id AND g.${columna} IS NULL`,
       { id },
     );
     const fila = det.rows?.[0];
     if (!fila) return;
     const enviado = await enviarAvisoGuardian({
       correo: fila.correo,
-      tipo: 'alerta',
+      tipo,
       datos: {
         protegido: fila.protegido || 'Tu contacto', origen: fila.origen, destino: fila.destino,
         conductor: fila.conductor, placa: fila.placa, carro: fila.carro, salida: fila.salida, tiempo: fila.tiempo,
@@ -51,12 +57,12 @@ async function avisarAlertaPorCorreo(connection, id) {
     });
     if (enviado) {
       await connection.execute(
-        `UPDATE GUARDIANES SET NOTIFICADO_ALERTA_GUA = CURRENT_TIMESTAMP WHERE ID_GUA = :id`,
+        `UPDATE GUARDIANES SET ${columna} = CURRENT_TIMESTAMP WHERE ID_GUA = :id`,
         { id }, { autoCommit: true },
       );
     }
   } catch (error) {
-    logError('guardian_alerta_correo_fallido', error, { route: 'PUT /api/guardian', id });
+    logError('guardian_correo_fallido', error, { route: 'POST/PUT /api/guardian', id, tipo });
   }
 }
 
@@ -227,6 +233,9 @@ export async function POST(req) {
       contactoId: Number(userRes.rows[0].ID_USU),
     }, { autoCommit: true });
 
+    // Avisar al contacto por correo que el viaje arrancó (si hay proveedor configurado; si no, no-op)
+    await avisarGuardianPorCorreo(connection, Number(idGua), 'inicio');
+
     return NextResponse.json({ message: 'Guardián activado', id: idGua }, { status: 201 });
   } catch (error) {
     logError('api_error', error, { route: 'POST /api/guardian', mensaje: 'Error en POST Guardian' });
@@ -297,7 +306,7 @@ export async function PUT(req) {
     const esAlerta = isNaN(estado)
       ? /^alerta/i.test(String(estado))
       : Number(estado) === ESTADO_GUARDIAN.ALERTA;
-    if (esAlerta) await avisarAlertaPorCorreo(connection, id);
+    if (esAlerta) await avisarGuardianPorCorreo(connection, id, 'alerta');
 
     return NextResponse.json({ message: 'Estado actualizado' });
   } catch (error) {

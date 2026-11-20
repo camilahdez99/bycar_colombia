@@ -111,6 +111,23 @@ describe('POST /api/guardian (caracterización)', () => {
     expect(conn.close).toHaveBeenCalledOnce();
   });
 
+  test('al activar avisa al contacto por correo (tipo inicio) y marca NOTIFICADO_INICIO_GUA', async () => {
+    const det = { correo: 'a@x.co', protegido: 'ANA', origen: 'A', destino: 'B', conductor: 'LUIS', placa: 'ABC', carro: 'MAZDA', salida: '2026-11-18 08:00', tiempo: 30 };
+    const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }, { rows: [det] }, { rowsAffected: 1 }]);
+    getConnection.mockResolvedValue(conn);
+    expect((await post({ viajeId: 5, usuarioId: 7, email: 'a@x.co' })).status).toBe(201);
+    expect(enviarAvisoGuardian).toHaveBeenCalledOnce();
+    expect(enviarAvisoGuardian.mock.calls[0][0]).toMatchObject({ correo: 'a@x.co', tipo: 'inicio' });
+    expect(conn.calls.some((c) => /UPDATE GUARDIANES SET NOTIFICADO_INICIO_GUA/.test(c.sql))).toBe(true);
+  });
+
+  test('sin proveedor de correo (sin fila de detalle) igual responde 201 y no marca', async () => {
+    const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }, { rows: [] }]);
+    getConnection.mockResolvedValue(conn);
+    expect((await post({ viajeId: 5, usuarioId: 7, email: 'a@x.co' })).status).toBe(201);
+    expect(conn.calls.some((c) => /UPDATE GUARDIANES SET NOTIFICADO_INICIO_GUA/.test(c.sql))).toBe(false);
+  });
+
   test('201 guarda quién lo activó (usuarioId del body) y el usuario contacto', async () => {
     const conn = createFakeConnection([usuarioExiste, { rowsAffected: 1 }]);
     getConnection.mockResolvedValue(conn);

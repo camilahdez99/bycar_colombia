@@ -103,6 +103,28 @@ exports[`POST /api/guardian (caracterización) > 201: valida que el correo exist
       VALUES (:idGua, :email, CURRENT_TIMESTAMP, :viajeId, 1, :tiempo, :usuarioId, :contactoId)
     ",
   },
+  {
+    "binds": {
+      "id": 1760000000000,
+    },
+    "options": undefined,
+    "sql": "SELECT g.EMAIL_CONFIANZA_GUA as "correo",
+              up.NOMBRE_USU || ' ' || up.APELLIDO_USU as "protegido",
+              mo.NOMBRE_MUN as "origen", md.NOMBRE_MUN as "destino",
+              uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU as "conductor",
+              vh.PLACA_VEH as "placa", mar.NOMBRE_MAR as "carro",
+              TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') as "salida",
+              g.TIEMPO_ESTIMADO_GUA as "tiempo"
+       FROM GUARDIANES g
+       JOIN VIAJES v ON g.VIAJES_ID_VIA = v.ID_VIA
+       JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+       JOIN VEHICULOS vh ON v.VEHICULO_PLACA_VEH = vh.PLACA_VEH
+       JOIN MARCAS mar ON vh.MARCA_ID_MAR = mar.ID_MAR
+       JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+       JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
+       LEFT JOIN USUARIOS up ON g.USUARIO_ID_USU = up.ID_USU
+       WHERE g.ID_GUA = :id AND g.NOTIFICADO_INICIO_GUA IS NULL",
+  },
 ]
 `;
 
