@@ -64,13 +64,12 @@ afterEach(() => {
 });
 
 describe('Dashboard · Xpress', () => {
-  test('el menú Xpress aparece y pide las cuatro listas del usuario', async () => {
+  test('el menú Xpress aparece y pide las tres listas del usuario', async () => {
     montar();
     await abrirXpress();
 
     await waitFor(() => expect(llamadas('GET', '/api/xpress?').map((c) => c.url).sort()).toEqual([
       '/api/xpress?usuarioId=7&vista=conductor',
-      '/api/xpress?usuarioId=7&vista=disponibles',
       '/api/xpress?usuarioId=7&vista=enviados',
       '/api/xpress?usuarioId=7&vista=recibidos',
     ]));
@@ -131,66 +130,6 @@ describe('Dashboard · Xpress', () => {
     await waitFor(() => expect(screen.queryByText('Guardar cambios')).toBeNull());
   });
 
-  test('registrar: elige viaje y receptor, y manda POST con el remitente de la sesión', async () => {
-    montar({
-      '/api/viajes': [{ id: 5, origen: 'BOGOTA', destino: 'TUNJA', hora: '2026-11-20', conductor: 'EVA SOTO' }],
-      '/api/usuarios/buscar': [{ id: 12, nombre: 'LUIS ROJAS', correo: 'luis@x.co' }],
-      'POST /api/xpress': jsonResponse({ message: 'Encomienda registrada', id: 1 }, 201),
-    });
-    await abrirXpress();
-
-    fireEvent.click(screen.getByText('+ Nueva encomienda'));
-    await screen.findByText('Nueva encomienda');
-    await screen.findByText(/BOGOTA → TUNJA · 2026-11-20 · EVA SOTO/);
-    fireEvent.change(screen.getByLabelText('Viaje'), { target: { value: '5' } });
-    fireEvent.change(screen.getByPlaceholderText('Receptor: busca por nombre o correo'), { target: { value: 'luis' } });
-    fireEvent.mouseDown(await screen.findByText(/LUIS ROJAS/));
-    await screen.findByText(/luis@x.co/);
-    fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: '  Caja con libros ' } });
-    fireEvent.click(screen.getByText('Registrar encomienda'));
-
-    await waitFor(() => expect(llamadas('POST', '/api/xpress')).toHaveLength(1));
-    expect(llamadas('POST', '/api/xpress')[0].body).toEqual({
-      viajeId: '5',
-      usuarioId: 7,
-      receptorEmail: 'luis@x.co',
-      descripcion: 'Caja con libros',
-      peso: null,
-    });
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Encomienda registrada', { id: 'toast-id' }));
-  });
-
-  test('registrar sin viaje, sin receptor o sin descripción avisa y no llama a la API', async () => {
-    montar();
-    await abrirXpress();
-
-    fireEvent.click(screen.getByText('+ Nueva encomienda'));
-    await screen.findByText('Nueva encomienda');
-    fireEvent.click(screen.getByText('Registrar encomienda'));
-    expect(toast.error).toHaveBeenLastCalledWith('Elige el viaje en el que va la encomienda');
-    expect(llamadas('POST', '/api/xpress')).toHaveLength(0);
-  });
-
-  test('si la API rechaza (receptor no registrado) muestra su mensaje y deja el formulario abierto', async () => {
-    montar({
-      '/api/viajes': [{ id: 5, origen: 'A', destino: 'B', hora: '2026-11-20', conductor: 'EVA' }],
-      '/api/usuarios/buscar': [{ id: 12, nombre: 'LUIS ROJAS', correo: 'luis@x.co' }],
-      'POST /api/xpress': jsonResponse({ error: 'El receptor debe ser un usuario registrado en Bycar.' }, 404),
-    });
-    await abrirXpress();
-
-    fireEvent.click(screen.getByText('+ Nueva encomienda'));
-    await screen.findByText(/A → B/);
-    fireEvent.change(screen.getByLabelText('Viaje'), { target: { value: '5' } });
-    fireEvent.change(screen.getByPlaceholderText('Receptor: busca por nombre o correo'), { target: { value: 'luis' } });
-    fireEvent.mouseDown(await screen.findByText(/LUIS ROJAS/));
-    fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: 'Caja' } });
-    fireEvent.click(screen.getByText('Registrar encomienda'));
-
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('El receptor debe ser un usuario registrado en Bycar.', { id: 'toast-id' }));
-    expect(screen.getByText('Registrar encomienda')).toBeTruthy();
-  });
-
   test('En mis viajes: el conductor acepta una carga Pendiente con PUT', async () => {
     montar({
       '/api/xpress': xpressPorVista({ conductor: [carga({ emisorId: 12, conductorId: 7 })] }),
@@ -249,95 +188,120 @@ describe('Dashboard · Xpress', () => {
       { id: 'toast-id' },
     ));
   });
+});
 
-  describe('ruta propia', () => {
-    const cargaRuta = (extra) => carga({ viajeId: null, salida: null, fechaXp: '2026-12-01', conductorId: null, conductor: null, ...extra });
-    const MUNICIPIOS = [{ id: 1, nombre: 'BOGOTA' }, { id: 2, nombre: 'MEDELLIN' }];
+const MUNICIPIOS = [{ id: 1, nombre: 'BOGOTA' }, { id: 2, nombre: 'TUNJA' }];
+const VIAJE = { id: 5, origen: 'BOGOTA', destino: 'TUNJA', hora: '2026-11-20', conductor: 'EVA SOTO' };
 
-    test('Mis envíos: una de ruta propia sin conductor muestra su fecha y "buscando conductor"', async () => {
-      montar({ '/api/xpress': xpressPorVista({ enviados: [cargaRuta()] }) });
-      await abrirXpress();
+/** Abre el formulario, busca BOGOTA → TUNJA y elige el primer viaje encontrado. */
+async function buscarYElegirViaje() {
+  fireEvent.click(screen.getByText('+ Nueva encomienda'));
+  await screen.findByText('Nueva encomienda');
+  fireEvent.change(screen.getByPlaceholderText('Origen'), { target: { value: 'BOGOTA' } });
+  fireEvent.change(screen.getByPlaceholderText('Destino'), { target: { value: 'TUNJA' } });
+  fireEvent.click(screen.getByText('Buscar viajes'));
+  fireEvent.click(await screen.findByText(/BOGOTA → TUNJA · 2026-11-20 · EVA SOTO/));
+}
 
-      expect(await screen.findByText(/ruta propia • 2026-12-01/)).toBeTruthy();
-      expect(screen.getByText(/Conductor: buscando conductor/)).toBeTruthy();
-      expect(screen.getByText('Cancelar envío')).toBeTruthy();
+async function elegirReceptor() {
+  fireEvent.change(screen.getByPlaceholderText('Receptor: busca por nombre o correo'), { target: { value: 'luis' } });
+  fireEvent.mouseDown(await screen.findByText(/LUIS ROJAS/));
+  await screen.findByText(/luis@x.co/);
+}
+
+describe('Dashboard · Xpress · nueva encomienda por búsqueda de viaje', () => {
+  const rutasBase = {
+    '/api/municipios': MUNICIPIOS,
+    '/api/usuarios/buscar': [{ id: 12, nombre: 'LUIS ROJAS', correo: 'luis@x.co' }],
+  };
+
+  test('busca por origen y destino con el mismo endpoint del pasajero, elige el viaje y manda POST con el remitente de la sesión', async () => {
+    montar({ ...rutasBase, '/api/viajes': [VIAJE], 'POST /api/xpress': jsonResponse({ message: 'Encomienda registrada', id: 1 }, 201) });
+    await abrirXpress();
+
+    await buscarYElegirViaje();
+    expect(llamadas('GET', '/api/viajes').at(-1).url).toBe('/api/viajes?origen=BOGOTA&destino=TUNJA');
+    await elegirReceptor();
+    fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: '  Caja con libros ' } });
+    fireEvent.click(screen.getByText('Registrar encomienda'));
+
+    await waitFor(() => expect(llamadas('POST', '/api/xpress')).toHaveLength(1));
+    expect(llamadas('POST', '/api/xpress')[0].body).toEqual({
+      viajeId: '5',
+      usuarioId: 7,
+      receptorEmail: 'luis@x.co',
+      descripcion: 'Caja con libros',
+      peso: null,
     });
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Encomienda registrada', { id: 'toast-id' }));
+  });
 
-    test('Encomiendas disponibles: el conductor acepta con PUT aceptar y su usuarioId', async () => {
-      montar({
-        '/api/xpress': xpressPorVista({ disponibles: [cargaRuta({ emisorId: 12, receptorId: 13 })] }),
-        'PUT /api/xpress': { message: 'Encomienda aceptada' },
-      });
-      await abrirXpress();
+  test('no lista viajes hasta buscar, y buscar sin origen o destino avisa sin llamar a la API', async () => {
+    montar({ ...rutasBase, '/api/viajes': [VIAJE] });
+    await abrirXpress();
 
-      fireEvent.click(await screen.findByText(/^Encomiendas disponibles/));
-      fireEvent.click(await screen.findByText('Aceptar encomienda'));
+    fireEvent.click(screen.getByText('+ Nueva encomienda'));
+    await screen.findByText('Nueva encomienda');
+    expect(screen.queryByText(/EVA SOTO/)).toBeNull();
+    const antes = llamadas('GET', '/api/viajes').length;
+    fireEvent.click(screen.getByText('Buscar viajes'));
+    expect(toast.error).toHaveBeenLastCalledWith('Indica el origen y el destino del viaje');
+    expect(llamadas('GET', '/api/viajes')).toHaveLength(antes);
+  });
 
-      await waitFor(() => expect(llamadas('PUT', '/api/xpress')).toHaveLength(1));
-      expect(llamadas('PUT', '/api/xpress')[0].body).toEqual({ id: 301, aceptar: true, usuarioId: 7 });
-      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Encomienda aceptada', { id: 'toast-id' }));
+  test('si no hay viajes para la ruta avisa y no deja crear la encomienda', async () => {
+    montar({ ...rutasBase, '/api/viajes': [] });
+    await abrirXpress();
+
+    fireEvent.click(screen.getByText('+ Nueva encomienda'));
+    await screen.findByText('Nueva encomienda');
+    fireEvent.change(screen.getByPlaceholderText('Origen'), { target: { value: 'BOGOTA' } });
+    fireEvent.change(screen.getByPlaceholderText('Destino'), { target: { value: 'TUNJA' } });
+    fireEvent.click(screen.getByText('Buscar viajes'));
+
+    expect(await screen.findByText('No hay viajes para esa ruta; no se puede crear la encomienda.')).toBeTruthy();
+    expect(screen.getByText('Registrar encomienda').disabled).toBe(true);
+    fireEvent.click(screen.getByText('Registrar encomienda'));
+    expect(llamadas('POST', '/api/xpress')).toHaveLength(0);
+  });
+
+  test('cambiar el origen o el destino descarta los resultados y el viaje elegido', async () => {
+    montar({ ...rutasBase, '/api/viajes': [VIAJE] });
+    await abrirXpress();
+
+    await buscarYElegirViaje();
+    fireEvent.change(screen.getByPlaceholderText('Destino'), { target: { value: 'TUNJ' } });
+    expect(screen.queryByText(/EVA SOTO/)).toBeNull();
+    expect(screen.getByText('Registrar encomienda').disabled).toBe(true);
+  });
+
+  test('con viaje elegido pero sin receptor o sin descripción avisa y no llama a la API', async () => {
+    montar({ ...rutasBase, '/api/viajes': [VIAJE] });
+    await abrirXpress();
+
+    await buscarYElegirViaje();
+    fireEvent.click(screen.getByText('Registrar encomienda'));
+    expect(toast.error).toHaveBeenLastCalledWith('Elige quién la va a recibir');
+    await elegirReceptor();
+    fireEvent.click(screen.getByText('Registrar encomienda'));
+    expect(toast.error).toHaveBeenLastCalledWith('Describe lo que vas a enviar');
+    expect(llamadas('POST', '/api/xpress')).toHaveLength(0);
+  });
+
+  test('si la API rechaza (receptor no registrado) muestra su mensaje y deja el formulario abierto', async () => {
+    montar({
+      ...rutasBase,
+      '/api/viajes': [VIAJE],
+      'POST /api/xpress': jsonResponse({ error: 'El receptor debe ser un usuario registrado en Bycar.' }, 404),
     });
+    await abrirXpress();
 
-    test('Encomiendas disponibles sin nada muestra su mensaje', async () => {
-      montar();
-      await abrirXpress();
+    await buscarYElegirViaje();
+    await elegirReceptor();
+    fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: 'Caja' } });
+    fireEvent.click(screen.getByText('Registrar encomienda'));
 
-      fireEvent.click(await screen.findByText(/^Encomiendas disponibles/));
-      expect(await screen.findByText('No hay encomiendas buscando conductor por ahora.')).toBeTruthy();
-    });
-
-    test('registrar con ruta propia: manda origenId, destinoId y fecha, sin viajeId', async () => {
-      montar({
-        '/api/municipios': MUNICIPIOS,
-        '/api/usuarios/buscar': [{ id: 12, nombre: 'LUIS ROJAS', correo: 'luis@x.co' }],
-        'POST /api/xpress': jsonResponse({ message: 'Encomienda registrada', id: 1 }, 201),
-      });
-      await abrirXpress();
-
-      fireEvent.click(screen.getByText('+ Nueva encomienda'));
-      await screen.findByText('Nueva encomienda');
-      fireEvent.click(screen.getByText('Proponer una ruta nueva'));
-      expect(screen.queryByLabelText('Viaje')).toBeNull();
-      fireEvent.change(screen.getByPlaceholderText('Origen'), { target: { value: 'bogota' } });
-      fireEvent.change(screen.getByPlaceholderText('Destino'), { target: { value: 'medellín' } });
-      fireEvent.change(screen.getByLabelText('Fecha de envío'), { target: { value: '2026-12-01' } });
-      fireEvent.change(screen.getByPlaceholderText('Receptor: busca por nombre o correo'), { target: { value: 'luis' } });
-      fireEvent.mouseDown(await screen.findByText(/LUIS ROJAS/));
-      fireEvent.change(screen.getByLabelText('Descripción'), { target: { value: 'Caja' } });
-      fireEvent.click(screen.getByText('Registrar encomienda'));
-
-      await waitFor(() => expect(llamadas('POST', '/api/xpress')).toHaveLength(1));
-      expect(llamadas('POST', '/api/xpress')[0].body).toEqual({
-        origenId: 1,
-        destinoId: 2,
-        fechaXp: '2026-12-01',
-        usuarioId: 7,
-        receptorEmail: 'luis@x.co',
-        descripcion: 'Caja',
-        peso: null,
-      });
-    });
-
-    test('ruta propia con un origen que no es municipio, o igual al destino, avisa y no llama a la API', async () => {
-      montar({ '/api/municipios': MUNICIPIOS });
-      await abrirXpress();
-
-      fireEvent.click(screen.getByText('+ Nueva encomienda'));
-      await screen.findByText('Nueva encomienda');
-      fireEvent.click(screen.getByText('Proponer una ruta nueva'));
-      fireEvent.change(screen.getByPlaceholderText('Origen'), { target: { value: 'narnia' } });
-      fireEvent.change(screen.getByPlaceholderText('Destino'), { target: { value: 'mordor' } });
-      fireEvent.click(screen.getByText('Registrar encomienda'));
-      expect(toast.error).toHaveBeenLastCalledWith('Elige el origen y el destino de la lista de municipios');
-
-      fireEvent.change(screen.getByPlaceholderText('Origen'), { target: { value: 'bogota' } });
-      fireEvent.change(screen.getByPlaceholderText('Destino'), { target: { value: 'bogota' } });
-      // Los municipios llegan de forma asíncrona: se reintenta hasta que el formulario ya los conoce
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Registrar encomienda'));
-        expect(toast.error).toHaveBeenLastCalledWith('El origen y el destino no pueden ser el mismo');
-      });
-      expect(llamadas('POST', '/api/xpress')).toHaveLength(0);
-    });
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('El receptor debe ser un usuario registrado en Bycar.', { id: 'toast-id' }));
+    expect(screen.getByText('Registrar encomienda')).toBeTruthy();
   });
 });
