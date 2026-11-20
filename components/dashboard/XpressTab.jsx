@@ -146,7 +146,7 @@ export default function XpressTab({
     <section>
       <div className="page-header">
         <div>
-          <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>📦 Xpress</h1>
+          <h1 style={{ fontFamily: 'Syne', fontWeight: 800 }}>Xpress</h1>
           <p style={{ color: 'var(--muted)' }}>Envía encomiendas con quienes ya viajan a tu destino, y gestiona las de tus viajes</p>
         </div>
         <button className="btn-red" onClick={onNueva}>+ Nueva encomienda</button>

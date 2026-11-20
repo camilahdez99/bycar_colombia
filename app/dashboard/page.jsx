@@ -41,7 +41,7 @@ const MENU_ICONS = {
   '/solicitudes': 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8z',
   '/mensajes':    'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z',
   '/guardian':    'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-  '/xpress':      'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16zM3.3 7L12 12l8.7-5M12 22V12',
+  '/xpress':      'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
 };
 
 export default function DashboardPage() {
@@ -82,6 +82,7 @@ export default function DashboardPage() {
   const guardian = useGuardian(currentUser, ultimoContactoGuardian, estimarTiempoViaje);
   const retomarGuardian = guardian.retomar;
   const [alertasRecibidas, setAlertasRecibidas] = useState([]);
+  const [xpressPendientes, setXpressPendientes] = useState(0); // encomiendas Pendientes del conductor (badge)
 
   // Cargar catálogos dinámicos (menús, marcas, municipios)
   useEffect(() => {
@@ -179,6 +180,15 @@ export default function DashboardPage() {
           }
         })
         .catch(err => console.error(err));
+
+      // Refresh encomiendas Xpress pendientes del conductor, para el badge. Fuera de la pestaña
+      // Xpress (dentro, useXpress ya trae esa lista); así no se duplica la consulta.
+      if (activePage !== 'xpress') {
+        fetchConSesion(`/api/xpress?usuarioId=${uId}&vista=conductor`)
+          .then(res => res.ok ? res.json() : [])
+          .then(data => setXpressPendientes(Array.isArray(data) ? data.filter(c => (c.estado || '').toUpperCase() === 'PENDIENTE').length : 0))
+          .catch(err => console.error(err));
+      }
 
       // Refresh guardian alerts
       if (activePage === 'guardian') {
@@ -332,6 +342,7 @@ export default function DashboardPage() {
     mensajes,
     mensajesLeidos,
     alertasRecibidas,
+    xpressPendientes,
   });
 
   // Construir navItems dinámicamente desde la BD (MENUS)

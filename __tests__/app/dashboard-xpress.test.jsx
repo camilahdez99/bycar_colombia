@@ -47,7 +47,7 @@ function montar(rutas = {}) {
 
 async function abrirXpress() {
   fireEvent.click(await screen.findAllByText('Xpress').then((els) => els[0]));
-  await screen.findByText('📦 Xpress');
+  await screen.findByRole('heading', { name: 'Xpress' });
 }
 
 beforeEach(() => {
@@ -68,7 +68,9 @@ describe('Dashboard · Xpress', () => {
     montar();
     await abrirXpress();
 
-    await waitFor(() => expect(llamadas('GET', '/api/xpress?').map((c) => c.url).sort()).toEqual([
+    // La pestaña pide las tres vistas; la de conductor puede venir además del refresco del badge,
+    // por eso se deduplican
+    await waitFor(() => expect([...new Set(llamadas('GET', '/api/xpress?').map((c) => c.url))].sort()).toEqual([
       '/api/xpress?usuarioId=7&vista=conductor',
       '/api/xpress?usuarioId=7&vista=enviados',
       '/api/xpress?usuarioId=7&vista=recibidos',

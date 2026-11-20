@@ -109,6 +109,12 @@ describe('getBadgeCount', () => {
     expect(getBadgeCount('/guardian', { ...base, alertasRecibidas })).toBe(2);
   });
 
+  test('xpress: pendientes del conductor fuera de la pestaña, 0 estando en ella', () => {
+    expect(getBadgeCount('/xpress', { ...base, xpressPendientes: 3 })).toBe(3);
+    expect(getBadgeCount('/xpress', { ...base, activePage: 'xpress', xpressPendientes: 3 })).toBe(0);
+    expect(getBadgeCount('/xpress', base)).toBe(0);
+  });
+
   test('otras URLs: 0', () => {
     expect(getBadgeCount('/inicio', base)).toBe(0);
     expect(getBadgeCount(undefined, base)).toBe(0);

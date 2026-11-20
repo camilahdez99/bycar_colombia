@@ -187,15 +187,15 @@ describe('Dashboard · refresco periódico (caracterización, DT-33)', () => {
     render(<DashboardPage />);
     await waitFor(() => expect(llamadas('GET', '/api/mensajes/chats')).toHaveLength(1));
 
-    expect(await urlsTrasTick()).toEqual(['/api/mensajes/chats', '/api/viajes/mis-rutas']);
+    expect(await urlsTrasTick()).toEqual(['/api/mensajes/chats', '/api/viajes/mis-rutas', '/api/xpress']);
 
     clickNav('Solicitudes');
     await waitFor(() => expect(llamadas('GET', '/api/mensajes/chats')).toHaveLength(3));
-    expect(await urlsTrasTick()).toEqual(['/api/mensajes/chats', '/api/solicitudes/recibidas', '/api/viajes/mis-rutas']);
+    expect(await urlsTrasTick()).toEqual(['/api/mensajes/chats', '/api/solicitudes/recibidas', '/api/viajes/mis-rutas', '/api/xpress']);
 
     clickNav('Guardian');
     await waitFor(() => expect(llamadas('GET', '/api/mensajes/chats')).toHaveLength(5));
-    expect(await urlsTrasTick()).toEqual(['/api/guardian', '/api/mensajes/chats', '/api/viajes/mis-rutas']);
+    expect(await urlsTrasTick()).toEqual(['/api/guardian', '/api/mensajes/chats', '/api/viajes/mis-rutas', '/api/xpress']);
   });
 
   test('sin usuario no hay refresco periódico', async () => {

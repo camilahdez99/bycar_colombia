@@ -57,6 +57,7 @@ describe('DashboardPage (caracterización de la carga inicial)', () => {
         '/api/guardian?usuarioId=7',
         '/api/guardian/ultimo-contacto?usuarioId=7',
         '/api/admin/permisos?usuarioId=7',
+        '/api/xpress?usuarioId=7&vista=conductor',
       ].sort(),
     );
     expect(push).not.toHaveBeenCalled();
