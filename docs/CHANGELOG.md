@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-11-19 — Xpress: se simplifica, solo sobre un viaje existente (búsqueda por ruta)
+
+Se **quita el modo «ruta propia»** y el flujo del conductor para aceptar encomiendas sueltas. Una encomienda se crea únicamente sobre un viaje existente, vigente y Disponible, que el remitente **busca por origen y destino** (igual que un pasajero). Si no hay viaje para esa ruta, no se puede crear.
+
+**Qué se hizo**
+- **Dominio** (`lib/domain/xpress.js`): se eliminan `esCargaRutaPropia`, `puedeAceptarRutaPropia`, `resolverModoCarga` y `validarFechaXp`. El conductor de una carga vuelve a ser el dueño del viaje.
+- **API** (`/api/xpress`): `POST` acepta solo `{ viajeId, usuarioId, receptorEmail, descripcion, peso? }` (mismas validaciones del viaje y del receptor). `GET` pierde la vista `disponibles` (quedan `enviados`, `recibidos`, `conductor`). `PUT` pierde `aceptar`; sigue editando datos (remitente, Pendiente) y cambiando estado por el ciclo normal. `findCargaParticipants` vuelve a `{ emisorId, receptorId, conductorId, estadoId }`.
+- **UI**: el formulario de nueva encomienda pide origen y destino (autocompletado de municipios), busca con `GET /api/viajes?origen=&destino=` (el mismo endpoint del pasajero: solo Disponibles y con salida desde hoy), muestra los resultados para elegir uno y recién ahí pide receptor, descripción y peso. Sin resultados muestra «No hay viajes para esa ruta; no se puede crear la encomienda.» y el botón queda deshabilitado; cambiar origen o destino descarta la búsqueda. Desaparecen el selector de modo y la sección «Encomiendas disponibles».
+- **BD**: sin cambios. Las columnas `ORIGEN_ID`, `DESTINO_ID`, `FECHA_XP`, `CONDUCTOR_ID_USU` y el CHECK `CK_CARGAS_MODO` quedan sin uso (crear siempre con `VIAJE_ID` los satisface). Con esto, el código ya no depende de `10_xpress_ruta_propia.sql`.
+
+**Verificación**: `npm test` (1 150 en verde), `npm run lint` sin errores ni warnings, build con `next build --webpack` (Turbopack no resuelve el `node_modules` de este worktree). Se eliminó `xpress-ruta-propia.test.js` con su snapshot; los snapshots de SQL de `/api/xpress` y `findCargaParticipants` volvieron a su forma anterior; los tests de UI de registro se reescribieron para el flujo de búsqueda.
+
+**Riesgos pendientes**: las cargas de ruta propia que ya existieran en la base (sin `VIAJE_ID`) quedarían huérfanas para la API (el `JOIN` a municipios ya no las ve).
+
 ## 2026-11-19 — Guardián: tiempo estimado automático por la ruta
 
 El tiempo estimado del guardián ya no hay que inventarlo: se **calcula solo** a partir del origen y el destino del viaje y se **precarga** en el campo (siempre editable). Es una estimación por distancia (sin GPS ni servicios externos): coordenadas de los 1122 municipios (DANE/DIVIPOLA, `lib/domain/coordenadasMunicipios.js`) y la fórmula del haversine por un factor de carretera y una velocidad promedio (`lib/domain/tiempoViaje.js`, con tests). Se precarga tanto al activar el guardián (pestaña Guardián) como al solicitar un cupo con contacto de confianza. Si falta la coordenada de algún municipio, cae al valor por defecto (30 min). No toca la base ni la API.
