@@ -10,11 +10,10 @@ exports[`DELETE /api/xpress (caracterización) > cancelación lógica: UPDATE a 
     "sql": "
     SELECT c.USUARIO_EMISOR_US AS "emisorId",
            c.USUARIO_RECEPTOR_US AS "receptorId",
-           COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) AS "conductorId",
-           c.VIAJE_ID AS "viajeId",
+           v.USUARIOS_ID_USU AS "conductorId",
            c.ESTADO_ID_EST_XP AS "estadoId"
     FROM CARGAS c
-    LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
     WHERE c.ID_XP = :cargaId
   ",
   },
@@ -50,22 +49,21 @@ exports[`GET /api/xpress (caracterización) > conductor: filtra por el conductor
              mo.NOMBRE_MUN AS "origen",
              md.NOMBRE_MUN AS "destino",
              TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
-             TO_CHAR(c.FECHA_XP, 'YYYY-MM-DD') AS "fechaXp",
              c.USUARIO_EMISOR_US AS "emisorId",
              ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
              c.USUARIO_RECEPTOR_US AS "receptorId",
              ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
-             uc.ID_USU AS "conductorId",
+             v.USUARIOS_ID_USU AS "conductorId",
              uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
       FROM CARGAS c
       JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
-      LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
-      JOIN MUNICIPIOS mo ON COALESCE(v.MUNICIPIO_ORIGEN_ID, c.ORIGEN_ID) = mo.ID_MUN
-      JOIN MUNICIPIOS md ON COALESCE(v.MUNICIPIOS_DESTINO_ID, c.DESTINO_ID) = md.ID_MUN
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
       JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
-      LEFT JOIN USUARIOS uc ON COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) = uc.ID_USU
-      WHERE COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) = :usuarioId
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+      WHERE v.USUARIOS_ID_USU = :usuarioId
       ORDER BY c.FECHA_CREACION_XP DESC
     ",
   },
@@ -86,22 +84,21 @@ exports[`GET /api/xpress (caracterización) > conductor: filtra por el conductor
              mo.NOMBRE_MUN AS "origen",
              md.NOMBRE_MUN AS "destino",
              TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
-             TO_CHAR(c.FECHA_XP, 'YYYY-MM-DD') AS "fechaXp",
              c.USUARIO_EMISOR_US AS "emisorId",
              ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
              c.USUARIO_RECEPTOR_US AS "receptorId",
              ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
-             uc.ID_USU AS "conductorId",
+             v.USUARIOS_ID_USU AS "conductorId",
              uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
       FROM CARGAS c
       JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
-      LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
-      JOIN MUNICIPIOS mo ON COALESCE(v.MUNICIPIO_ORIGEN_ID, c.ORIGEN_ID) = mo.ID_MUN
-      JOIN MUNICIPIOS md ON COALESCE(v.MUNICIPIOS_DESTINO_ID, c.DESTINO_ID) = md.ID_MUN
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
       JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
-      LEFT JOIN USUARIOS uc ON COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) = uc.ID_USU
-      WHERE COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) = :usuarioId AND c.VIAJE_ID = :viajeId
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
+      WHERE v.USUARIOS_ID_USU = :usuarioId AND c.VIAJE_ID = :viajeId
       ORDER BY c.FECHA_CREACION_XP DESC
     ",
   },
@@ -126,21 +123,20 @@ exports[`GET /api/xpress (caracterización) > mis envíos (vista por defecto): f
              mo.NOMBRE_MUN AS "origen",
              md.NOMBRE_MUN AS "destino",
              TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
-             TO_CHAR(c.FECHA_XP, 'YYYY-MM-DD') AS "fechaXp",
              c.USUARIO_EMISOR_US AS "emisorId",
              ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
              c.USUARIO_RECEPTOR_US AS "receptorId",
              ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
-             uc.ID_USU AS "conductorId",
+             v.USUARIOS_ID_USU AS "conductorId",
              uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
       FROM CARGAS c
       JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
-      LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
-      JOIN MUNICIPIOS mo ON COALESCE(v.MUNICIPIO_ORIGEN_ID, c.ORIGEN_ID) = mo.ID_MUN
-      JOIN MUNICIPIOS md ON COALESCE(v.MUNICIPIOS_DESTINO_ID, c.DESTINO_ID) = md.ID_MUN
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
       JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
-      LEFT JOIN USUARIOS uc ON COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) = uc.ID_USU
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
       WHERE c.USUARIO_EMISOR_US = :usuarioId
       ORDER BY c.FECHA_CREACION_XP DESC
     ",
@@ -166,21 +162,20 @@ exports[`GET /api/xpress (caracterización) > recibidos: filtra por receptor 1`]
              mo.NOMBRE_MUN AS "origen",
              md.NOMBRE_MUN AS "destino",
              TO_CHAR(v.TIEMPO_SALIDA_VIA, 'YYYY-MM-DD HH24:MI') AS "salida",
-             TO_CHAR(c.FECHA_XP, 'YYYY-MM-DD') AS "fechaXp",
              c.USUARIO_EMISOR_US AS "emisorId",
              ue.NOMBRE_USU || ' ' || ue.APELLIDO_USU AS "emisor",
              c.USUARIO_RECEPTOR_US AS "receptorId",
              ur.NOMBRE_USU || ' ' || ur.APELLIDO_USU AS "receptor",
-             uc.ID_USU AS "conductorId",
+             v.USUARIOS_ID_USU AS "conductorId",
              uc.NOMBRE_USU || ' ' || uc.APELLIDO_USU AS "conductor"
       FROM CARGAS c
       JOIN ESTADOS_XPRESS es ON c.ESTADO_ID_EST_XP = es.ID_EST_XP
-      LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
-      JOIN MUNICIPIOS mo ON COALESCE(v.MUNICIPIO_ORIGEN_ID, c.ORIGEN_ID) = mo.ID_MUN
-      JOIN MUNICIPIOS md ON COALESCE(v.MUNICIPIOS_DESTINO_ID, c.DESTINO_ID) = md.ID_MUN
+      JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+      JOIN MUNICIPIOS mo ON v.MUNICIPIO_ORIGEN_ID = mo.ID_MUN
+      JOIN MUNICIPIOS md ON v.MUNICIPIOS_DESTINO_ID = md.ID_MUN
       JOIN USUARIOS ue ON c.USUARIO_EMISOR_US = ue.ID_USU
       JOIN USUARIOS ur ON c.USUARIO_RECEPTOR_US = ur.ID_USU
-      LEFT JOIN USUARIOS uc ON COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) = uc.ID_USU
+      JOIN USUARIOS uc ON v.USUARIOS_ID_USU = uc.ID_USU
       WHERE c.USUARIO_RECEPTOR_US = :usuarioId
       ORDER BY c.FECHA_CREACION_XP DESC
     ",
@@ -220,9 +215,9 @@ exports[`POST /api/xpress (caracterización) > 201: valida el viaje y el recepto
       "autoCommit": true,
     },
     "sql": "
-  INSERT INTO CARGAS (ID_XP, DESCRIPCION_XP, PESO_XP, USUARIO_EMISOR_US, USUARIO_RECEPTOR_US, VIAJE_ID, ESTADO_ID_EST_XP, FECHA_CREACION_XP)
-  VALUES (:idXp, :descripcion, :peso, :usuarioId, :receptorId, :viajeId, :estadoId, CURRENT_TIMESTAMP)
-",
+      INSERT INTO CARGAS (ID_XP, DESCRIPCION_XP, PESO_XP, USUARIO_EMISOR_US, USUARIO_RECEPTOR_US, VIAJE_ID, ESTADO_ID_EST_XP, FECHA_CREACION_XP)
+      VALUES (:idXp, :descripcion, :peso, :usuarioId, :receptorId, :viajeId, :estadoId, CURRENT_TIMESTAMP)
+    ",
   },
 ]
 `;
@@ -237,11 +232,10 @@ exports[`PUT /api/xpress (caracterización) > cambio de estado: pasa de Pendient
     "sql": "
     SELECT c.USUARIO_EMISOR_US AS "emisorId",
            c.USUARIO_RECEPTOR_US AS "receptorId",
-           COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) AS "conductorId",
-           c.VIAJE_ID AS "viajeId",
+           v.USUARIOS_ID_USU AS "conductorId",
            c.ESTADO_ID_EST_XP AS "estadoId"
     FROM CARGAS c
-    LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
     WHERE c.ID_XP = :cargaId
   ",
   },
@@ -269,11 +263,10 @@ exports[`PUT /api/xpress (caracterización) > edición: actualiza descripción y
     "sql": "
     SELECT c.USUARIO_EMISOR_US AS "emisorId",
            c.USUARIO_RECEPTOR_US AS "receptorId",
-           COALESCE(v.USUARIOS_ID_USU, c.CONDUCTOR_ID_USU) AS "conductorId",
-           c.VIAJE_ID AS "viajeId",
+           v.USUARIOS_ID_USU AS "conductorId",
            c.ESTADO_ID_EST_XP AS "estadoId"
     FROM CARGAS c
-    LEFT JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
+    JOIN VIAJES v ON c.VIAJE_ID = v.ID_VIA
     WHERE c.ID_XP = :cargaId
   ",
   },

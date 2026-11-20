@@ -56,8 +56,8 @@ describe('findUserEmail', () => {
 });
 
 describe('findCargaParticipants', () => {
-  test('devuelve emisor, receptor, conductor (del viaje o el que aceptó), viaje y estado; fija el SQL y el bind numérico', async () => {
-    const fila = { emisorId: 7, receptorId: 8, conductorId: 9, viajeId: 5, estadoId: 1 };
+  test('devuelve emisor, receptor, conductor y estado; fija el SQL y el bind numérico', async () => {
+    const fila = { emisorId: 7, receptorId: 8, conductorId: 9, estadoId: 1 };
     const conn = createFakeConnection([{ rows: [fila] }]);
     expect(await findCargaParticipants(conn, '55')).toEqual(fila);
     expect(conn.calls[0].binds).toEqual({ cargaId: 55 });
