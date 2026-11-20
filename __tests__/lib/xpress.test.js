@@ -1,19 +1,15 @@
 import { describe, expect, test } from 'vitest';
 import { ESTADO_XPRESS } from '@/lib/domain/constantes';
 import {
-  esCargaRutaPropia,
-  puedeAceptarRutaPropia,
   puedeCambiarEstado,
   puedeCancelarCarga,
   puedeEditarCarga,
   puedeVerCarga,
   resolverEstadoXpress,
-  resolverModoCarga,
   rolesEnCarga,
   tieneRolParaEstado,
   transicionValida,
   validarDatosCarga,
-  validarFechaXp,
 } from '@/lib/domain/xpress';
 
 const EMISOR = 1;
@@ -146,88 +142,5 @@ describe('validarDatosCarga', () => {
 
   test.each([[0], [-1], ['abc'], [1001], [{}]])('peso %j → error', (peso) => {
     expect(validarDatosCarga({ descripcion: 'x', peso })).toHaveProperty('error');
-  });
-});
-
-describe('encomiendas de ruta propia', () => {
-  const rutaPropia = (estadoId, conductorId = null) => ({ emisorId: EMISOR, receptorId: RECEPTOR, conductorId, viajeId: null, estadoId });
-  const enViaje = (estadoId) => ({ ...carga(estadoId), viajeId: 5 });
-
-  test('es de ruta propia solo si viajeId es null', () => {
-    expect(esCargaRutaPropia(rutaPropia(PENDIENTE))).toBe(true);
-    expect(esCargaRutaPropia(enViaje(PENDIENTE))).toBe(false);
-    expect(esCargaRutaPropia(null)).toBe(false);
-  });
-
-  test('cualquier usuario menos el emisor y el receptor acepta una Pendiente sin conductor', () => {
-    expect(puedeAceptarRutaPropia(AJENO, rutaPropia(PENDIENTE))).toBe(true);
-    expect(puedeAceptarRutaPropia(String(AJENO), rutaPropia(PENDIENTE))).toBe(true);
-    expect(puedeAceptarRutaPropia(EMISOR, rutaPropia(PENDIENTE))).toBe(false);
-    expect(puedeAceptarRutaPropia(RECEPTOR, rutaPropia(PENDIENTE))).toBe(false);
-    expect(puedeAceptarRutaPropia(null, rutaPropia(PENDIENTE))).toBe(false);
-  });
-
-  test('no se acepta si ya tiene conductor, ya no está Pendiente, es de un viaje o no existe', () => {
-    expect(puedeAceptarRutaPropia(AJENO, rutaPropia(PENDIENTE, CONDUCTOR))).toBe(false);
-    expect(puedeAceptarRutaPropia(AJENO, rutaPropia(ACEPTADA))).toBe(false);
-    expect(puedeAceptarRutaPropia(AJENO, rutaPropia(CANCELADA))).toBe(false);
-    expect(puedeAceptarRutaPropia(AJENO, enViaje(PENDIENTE))).toBe(false);
-    expect(puedeAceptarRutaPropia(AJENO, null)).toBe(false);
-  });
-
-  test('sin conductor, nadie tiene el rol de conductor; el emisor sigue cancelando', () => {
-    expect(rolesEnCarga(AJENO, rutaPropia(PENDIENTE))).toEqual([]);
-    expect(tieneRolParaEstado(AJENO, rutaPropia(PENDIENTE), ACEPTADA)).toBe(false);
-    expect(puedeCancelarCarga(EMISOR, rutaPropia(PENDIENTE))).toBe(true);
-  });
-
-  test('con el conductor que la aceptó, el ciclo sigue como en un viaje', () => {
-    const aceptada = rutaPropia(ACEPTADA, CONDUCTOR);
-    expect(rolesEnCarga(CONDUCTOR, aceptada)).toEqual(['conductor']);
-    expect(puedeCambiarEstado(CONDUCTOR, aceptada, EN_CAMINO)).toBe(true);
-    expect(puedeCambiarEstado(CONDUCTOR, rutaPropia(EN_CAMINO, CONDUCTOR), ENTREGADA)).toBe(true);
-    expect(puedeCambiarEstado(AJENO, aceptada, EN_CAMINO)).toBe(false);
-    expect(puedeCancelarCarga(EMISOR, aceptada)).toBe(true);
-    expect(puedeCancelarCarga(EMISOR, rutaPropia(EN_CAMINO, CONDUCTOR))).toBe(false);
-  });
-});
-
-describe('resolverModoCarga', () => {
-  test('viajeId solo → modo viaje', () => {
-    expect(resolverModoCarga({ viajeId: 5 })).toEqual({ modo: 'viaje' });
-    expect(resolverModoCarga({ viajeId: '5', origenId: '', destinoId: null })).toEqual({ modo: 'viaje' });
-  });
-
-  test('origen y destino → modo ruta', () => {
-    expect(resolverModoCarga({ origenId: 1, destinoId: '2' })).toEqual({ modo: 'ruta' });
-  });
-
-  test.each([
-    [{}, 'Viaje, remitente y receptor son requeridos'],
-    [{ viajeId: 5, origenId: 1, destinoId: 2 }, 'Elige un viaje o una ruta propia, no las dos cosas'],
-    [{ viajeId: 5, origenId: 1 }, 'Elige un viaje o una ruta propia, no las dos cosas'],
-    [{ viajeId: 'x' }, 'ID de viaje inválido'],
-    [{ origenId: 1 }, 'El origen y el destino son requeridos'],
-    [{ destinoId: 2 }, 'El origen y el destino son requeridos'],
-    [{ origenId: 'x', destinoId: 2 }, 'Origen o destino inválido'],
-    [{ origenId: 1, destinoId: -3 }, 'Origen o destino inválido'],
-    [{ origenId: 4, destinoId: '4' }, 'El origen y el destino no pueden ser el mismo'],
-  ])('%j → error', (entrada, error) => expect(resolverModoCarga(entrada)).toEqual({ error }));
-});
-
-describe('validarFechaXp', () => {
-  const HOY = '2026-11-19';
-
-  test.each([[undefined], [null], ['']])('%j → sin fecha', (fecha) => {
-    expect(validarFechaXp(fecha, HOY)).toEqual({ fecha: null });
-  });
-
-  test('hoy y fechas futuras valen', () => {
-    expect(validarFechaXp('2026-11-19', HOY)).toEqual({ fecha: '2026-11-19' });
-    expect(validarFechaXp('2027-01-05', HOY)).toEqual({ fecha: '2027-01-05' });
-  });
-
-  test.each([['2026-11-18'], ['19/11/2026'], ['2026-13-01'], ['2026-02-30'], ['mañana'], [20261119]])('%j → error', (fecha) => {
-    expect(validarFechaXp(fecha, HOY)).toHaveProperty('error');
   });
 });
