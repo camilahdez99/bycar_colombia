@@ -78,10 +78,11 @@ export default function ConfigurarGuardianModal({ viaje, config, setConfig, erro
               max="600" 
               placeholder="30" 
               value={config.tiempoMin} 
-              onChange={(e) => setConfig({...config, tiempoMin: parseInt(e.target.value) || 0})} 
+              onChange={(e) => setConfig({...config, tiempoMin: parseInt(e.target.value) || 0})}
               style={{ padding: '12px 16px' }}
-              required 
+              required
             />
+            <p style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '6px' }}>Lo calculamos por la ruta; ajústalo si lo necesitas.</p>
           </div>
         </div>
 

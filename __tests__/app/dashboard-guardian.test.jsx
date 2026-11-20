@@ -552,3 +552,38 @@ describe('Dashboard · guardián: alertas recibidas (caracterización)', () => {
     expect(llamadas('GET', '/api/guardian?email')).toEqual([]);
   });
 });
+
+describe('Dashboard · guardián precarga el tiempo estimado de la ruta', () => {
+  const MUNICIPIOS_REALES = [{ id: 11001, nombre: 'BOGOTA' }, { id: 15001, nombre: 'TUNJA' }];
+
+  test('el tiempo viene calculado por origen/destino (no el 30 por defecto) y es editable', async () => {
+    stubApi({ ...misRutas([VIAJE_HOY]), '/api/municipios': MUNICIPIOS_REALES, 'POST /api/guardian': { id: 77 } });
+    render(<DashboardPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/municipios'));
+    await act(async () => {}); // deja que se cargue municipiosDB antes de abrir el guardián
+
+    clickNav('Guardian');
+    fireEvent.click(await screen.findByText('Activar'));
+    await screen.findByText('🛡️ Configurar Guardián');
+
+    const input = screen.getByPlaceholderText('30');
+    expect(Number(input.value)).toBeGreaterThan(60); // Bogotá→Tunja ≈ 170 min
+    expect(Number(input.value)).not.toBe(30);
+    expect(screen.getByText('Lo calculamos por la ruta; ajústalo si lo necesitas.')).toBeTruthy();
+
+    // Sigue siendo editable
+    fireEvent.change(input, { target: { value: '45' } });
+    expect(Number(input.value)).toBe(45);
+  });
+
+  test('si no hay coordenadas del municipio, cae al valor por defecto (30)', async () => {
+    stubApi({ ...misRutas([VIAJE_HOY]), '/api/municipios': [{ id: 1, nombre: 'BOGOTA' }, { id: 2, nombre: 'TUNJA' }] });
+    render(<DashboardPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/municipios'));
+    await act(async () => {});
+    clickNav('Guardian');
+    fireEvent.click(await screen.findByText('Activar'));
+    await screen.findByText('🛡️ Configurar Guardián');
+    expect(Number(screen.getByPlaceholderText('30').value)).toBe(30);
+  });
+});

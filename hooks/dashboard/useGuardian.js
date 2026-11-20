@@ -37,7 +37,7 @@ function registrarAlerta(id) {
  * renderizar a quien usa el hook. Para mostrarlos, suscribirse con `ContadorGuardian`.
  * Se calculan contra la hora de vencimiento (`finRef`), no descontando por tick (BUGS F39).
  */
-export function useGuardian(currentUser, ultimoContacto) {
+export function useGuardian(currentUser, ultimoContacto, estimarTiempoViaje) {
   const [viaje, setViaje] = useState(null);
   const [config, setConfig] = useState({ email: '', tiempoMin: TIEMPO_GUARDIAN_POR_DEFECTO_MIN });
   const [activo, setActivo] = useState(false);
@@ -145,11 +145,15 @@ export function useGuardian(currentUser, ultimoContacto) {
   const elegirViaje = (viajeElegido) => {
     setViaje(viajeElegido);
     setErrorContacto(null);
-    // Precargar el último contacto usado si el campo está vacío; el usuario puede cambiarlo (task 3)
+    // Precargar el último contacto usado (si el campo está vacío) y el tiempo estimado de la ruta;
+    // los dos quedan editables. Si no hay estimación, se mantiene el valor por defecto.
     const ultimoCorreo = ultimoContactoRef.current?.correo;
-    if (ultimoCorreo) {
-      setConfig((c) => (c.email ? c : { ...c, email: ultimoCorreo }));
-    }
+    const estimado = estimarTiempoViaje?.(viajeElegido.origen, viajeElegido.destino);
+    setConfig((c) => ({
+      ...c,
+      email: c.email || ultimoCorreo || '',
+      tiempoMin: estimado || c.tiempoMin,
+    }));
     setConfigOpen(true);
   };
 

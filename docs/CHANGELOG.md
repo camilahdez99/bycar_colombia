@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19 — Guardián: tiempo estimado automático por la ruta
+
+El tiempo estimado del guardián ya no hay que inventarlo: se **calcula solo** a partir del origen y el destino del viaje y se **precarga** en el campo (siempre editable). Es una estimación por distancia (sin GPS ni servicios externos): coordenadas de los 1122 municipios (DANE/DIVIPOLA, `lib/domain/coordenadasMunicipios.js`) y la fórmula del haversine por un factor de carretera y una velocidad promedio (`lib/domain/tiempoViaje.js`, con tests). Se precarga tanto al activar el guardián (pestaña Guardián) como al solicitar un cupo con contacto de confianza. Si falta la coordenada de algún municipio, cae al valor por defecto (30 min). No toca la base ni la API.
+
 ## 2026-11-19 — Xpress: encomiendas con ruta propia
 
 Conviven dos formas de crear una encomienda. **A) En un viaje existente** (sin cambios): `VIAJE_ID` y el conductor es el dueño del viaje. **B) Con ruta propia** (nueva): el remitente propone origen, destino y fecha sin viaje; queda "buscando conductor" hasta que un conductor la acepta y pasa a ser su responsable. Después sigue el ciclo normal (En camino → Entregada) y el remitente puede cancelar mientras no vaya en camino.

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import HydrationWrapper from '@/components/HydrationWrapper';
@@ -23,6 +23,8 @@ import { getUserId, MENSAJE_SIN_SESION } from '@/lib/client/usuario';
 import { getBadgeCount } from '@/lib/client/badges';
 import { iniciarIntervaloVisible } from '@/lib/client/intervaloVisible';
 import { MENU_INICIO_ID } from '@/lib/domain/constantes';
+import { normalizar } from '@/lib/client/formato';
+import { estimarTiempoViajeMin } from '@/lib/domain/tiempoViaje';
 import { useChat } from '@/hooks/dashboard/useChat';
 import { useRutas } from '@/hooks/dashboard/useRutas';
 import { useXpress } from '@/hooks/dashboard/useXpress';
@@ -72,7 +74,12 @@ export default function DashboardPage() {
 
   // --- GUARDIÁN ---
   const [ultimoContactoGuardian, setUltimoContactoGuardian] = useState(null); // para precargarlo
-  const guardian = useGuardian(currentUser, ultimoContactoGuardian);
+  // Estima el tiempo de viaje (minutos) por los nombres de origen/destino, para precargar el guardián
+  const estimarTiempoViaje = useCallback((origen, destino) => {
+    const idDe = (nombre) => municipiosDB.find(m => normalizar(m.nombre) === normalizar(nombre || ''))?.id;
+    return estimarTiempoViajeMin(idDe(origen), idDe(destino));
+  }, [municipiosDB]);
+  const guardian = useGuardian(currentUser, ultimoContactoGuardian, estimarTiempoViaje);
   const retomarGuardian = guardian.retomar;
   const [alertasRecibidas, setAlertasRecibidas] = useState([]);
 
@@ -612,6 +619,7 @@ export default function DashboardPage() {
             viaje={viajeDetalle}
             yaSolicitado={solicitados.includes(viajeDetalle.id)}
             contactoInicial={ultimoContactoGuardian}
+            tiempoEstimado={estimarTiempoViaje(viajeDetalle.origen, viajeDetalle.destino)}
             onCerrar={() => setDetallesModalOpen(false)}
             onSolicitar={(extras) => { setDetallesModalOpen(false); solicitarViaje(viajeDetalle.id, extras); }}
           />
